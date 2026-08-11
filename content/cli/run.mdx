@@ -1,99 +1,115 @@
 ---
 title: wefter run
-description: --watch, --env, and dev-server-unreachable behavior.
+description: Syncs, builds, installs, and launches — optionally with hot reload.
 ---
 
+## Synopsis
+
 ```bash
-wefter run <platform> [projectDir] [--watch] [--env <environment>]
+wefter run <platform> [--watch] [--env <name>] [--simulator <name>] [projectDir]
 ```
 
-| Argument/Option | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `platform` | positional, required | — | Only `"android"` is supported right now, same as `build`. |
-| `projectDir` | positional, optional | current working directory | Project root. |
-| `--watch` | boolean flag | `false` | Point the installed app's WebView at a live local dev server instead of bundled assets. |
-| `--env <environment>` | string | `"development"` | Which `config.environments` entry to build, install, and launch. Must exist in config or the command fails: `Unknown environment "<x>". Configured environments: <list>`. |
+`<platform>` is required, `android` or `ios`, same restriction as
+[`wefter build`](/cli/build).
+
+## What it does
+
+Requires the project to already be synced — same sync-freshness check and
+refusal as [`wefter build`](/cli/build) if it's missing or stale. `run`
+does **not** call `sync` or the `build` command for you; it builds via the
+same lower-level Gradle/`xcodebuild` invocation `build` uses, then
+installs and launches directly:
+
+- **`android`**: `adb install -r` onto whatever device or emulator is
+  currently connected, then `adb shell am start`.
+- **`ios`**: resolves a Simulator (see `--simulator` below), boots it if
+  it isn't already, then `xcrun simctl install`, then `xcrun simctl
+  launch`.
+
+## Options
+
+| Flag                  | Description                                                                                        | Default       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------| ------------- |
+| `--watch`              | Points the app's WebView at a live local dev server instead of the bundled build, for hot reload.   | off           |
+| `--env <name>`         | Which entry under `wefter.config.json`'s `environments` to run.                                     | `development` |
+| `--simulator <name>`  | iOS only: the `xcrun simctl` device name or UDID to boot/install/launch on. Ignored for `android`.  | unset — picks the first available simulator whose name starts with `iPhone` |
+
+## Examples
 
 ```bash
 wefter run android --watch
-wefter run android --env production
 ```
-
-Always builds a **debug** artifact — `run` has no `--release` option;
-that's what [`wefter build android --release`](/cli/build) is for.
-
-## Same freshness requirement as `build`
-
-`run` requires the project already be synced and current, with the exact
-same check and error messages as [`wefter build`](/cli/build#requires-an-already-fresh-sync--it-does-not-sync-for-you).
-Run [`wefter sync`](/cli/sync) first if you've changed config or a plugin.
-
-## What `--watch` actually does
-
-1. **Resolves a LAN IP** the device can reach your machine on.
-   `WEFTER_LAN_IP` overrides everything if set. Otherwise it enumerates
-   network interfaces, skips virtualization ones (`docker`, `veth`,
-   `tailscale`, `wg`, etc.), and if more than one real candidate remains
-   and the terminal is interactive, prompts you to pick one — the
-   Wi-Fi-named interface is pre-selected as the recommended default. In a
-   non-interactive shell (CI, a script) with multiple candidates, it picks
-   the recommended one automatically and prints a warning rather than
-   hanging on a prompt.
-2. **Starts a Vite dev server** at `node_modules/.bin/vite --host 0.0.0.0
-   --port 5173 --strictPort`, and waits for its own "ready" output before
-   continuing. Fails immediately with a clear message if `vite` isn't
-   installed in the project.
-3. **Wires the dev server into the native project** — adds a network
-   security exception for your LAN IP to the debug network security
-   config, and injects the dev server's URL into the debug build type's
-   `DEV_SERVER_URL` build config field. Both edits are wrapped in the same
-   snapshot-and-restore transaction [`sync`](/cli/sync#ejected-projects-transactional)
-   uses on ejected projects, so a failure here doesn't leave the native
-   project half-wired.
-4. Builds, installs, and launches as normal (see below). The app comes up
-   already pointed at your dev server — editing and saving your web code
-   reloads on-device directly, no reinstall.
-
-Press <kbd>Ctrl+C</kbd> to stop — this kills the Vite process and exits
-cleanly; the last installed build stays on the device as-is.
-
-<Callout type="warn">
-  `--watch` only gives you live reload for web code. A plugin's Kotlin
-  source, its `plugin.json`, or anything else that changes the native
-  project isn't picked up — that needs a real `wefter sync` and a fresh
-  `wefter run`, since native code has to be recompiled by Gradle.
-</Callout>
-
-## Build, install, launch (every run, `--watch` or not)
-
-After the dev-server wiring above (skipped entirely without `--watch`),
-every `run` builds a debug APK for the chosen `--env`, then:
 
 ```bash
-adb install -r <apkPath>
-adb shell am start -n <applicationId>/<namespace>.MainActivity
+wefter run ios --watch
 ```
 
-`applicationId` comes from the chosen environment's `appId`; `namespace`
-is the Android namespace derived from config (see [wefter.config.json's
-role](/cli/config-role)). If a plugin is declared but not resolvable in
-`node_modules`, the same warning `build` shows is printed here too,
-before install proceeds.
+```bash
+wefter run ios --env production
+```
 
-## Dev-server-unreachable behavior
+Installs and launches a non-watch build of the `production` environment on
+the Simulator, useful for checking a production build's real behavior
+without a full device release.
 
-This part happens on the device, not in the CLI: if the app (built with
-`--watch`) ever can't reach the dev server — the machine went to sleep,
-the network dropped, you stopped the CLI process — the WebView doesn't
-silently fall back to stale bundled content or show a generic browser
-connection error. It shows a `"Dev server unreachable"` message and
-blanks the page, a deliberate, honest failure rather than a confusing
-one. The fix is simply restarting `wefter run android --watch` and
-reloading. Full context on this behavior lives on [Development
-Workflow](/docs/development-workflow#what-happens-if-the-dev-server-goes-away).
+## `--watch` behavior, both platforms
 
-## Failure and exit codes
+Identical hot-reload behavior on Android and iOS: the app's WebView loads
+a live Vite dev server instead of bundled assets, edits reflect on-device
+without a reinstall, and if the dev server becomes unreachable mid-session
+the app shows a clear in-app message rather than a browser-style
+connection error or a silent fallback to stale content. Restart `wefter
+run --watch` and reload if you see that message. See [Development
+Workflow](/docs/development-workflow) for the full day-to-day loop.
 
-Any failure — unsupported platform, unknown environment, stale sync, a
-missing Vite binary, a failed `adb install`/`adb shell` — prints `Run
-failed: <reason>` and sets `process.exitCode = 1`.
+## Failure modes
+
+Sync freshness first, the most common reason `run` refuses to start at all:
+
+```
+Run failed: Project has never been synced. Run `wefter sync` first.
+```
+
+```
+Run failed: wefter.config.json has changed since the last `wefter sync`. Run `wefter sync` before building.
+```
+
+(That message says "before building" even here — it's the same shared
+freshness check `build` uses, word for word.)
+
+An unrecognized `<platform>` fails immediately, before the sync-freshness
+check — and isn't prefixed `Run failed:`, it's rejected by the CLI's own
+argument handling:
+
+```
+Unsupported platform "windows". Use "android" or "ios".
+```
+
+Android install/launch failures surface via the underlying `adb` exit code:
+
+```
+Run failed: adb install -r /path/to/app.apk failed with exit code 1
+```
+
+```
+Run failed: adb shell am start -n com.example.app.dev/dev.wefter.bridge.MainActivity failed with exit code 1
+```
+
+iOS Simulator resolution and install/launch failures:
+
+```
+Run failed: No simulator found matching "iPhone 99". Run `xcrun simctl list devices` to see available simulators.
+```
+
+```
+Run failed: No available iPhone simulator found. Create one in Xcode (Window > Devices and Simulators) or pass --simulator explicitly.
+```
+
+```
+Run failed: xcrun simctl launch iPhone 15 com.example.app.dev failed with exit code 1
+```
+
+<Callout type="info">
+  Like `wefter build`, this targets the Simulator on iOS, not a physical device.
+  Device installs are a follow-up capability, not yet covered by this command.
+</Callout>

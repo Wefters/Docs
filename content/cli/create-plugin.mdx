@@ -18,7 +18,8 @@ wefter create-plugin secure-storage
 
 ## What gets scaffolded
 
-A working, buildable-as-is starting point at `<targetDir>/<name>/`:
+A working, buildable-as-is starting point at `<targetDir>/<name>/`,
+covering **both** platforms:
 
 ```
 secure-storage/
@@ -27,8 +28,10 @@ secure-storage/
 ├── README.md
 ├── src/
 │   └── index.ts
-└── android/
-    └── SecureStoragePlugin.kt
+├── android/
+│   └── SecureStoragePlugin.kt
+└── ios/
+    └── SecureStoragePlugin.swift
 ```
 
 **`package.json`** — `name` set to `@yourorg/<name>` (edit the scope to
@@ -47,17 +50,24 @@ your own), depends on `@wefter/core`:
 
 **`plugin.json`** — the manifest [`wefter plugin
 validate`](/cli/plugin-validate) and [`wefter sync`](/cli/sync) both read,
-starting empty:
+starting empty for both platforms:
 
 ```json
 {
   "name": "secure-storage",
-  "permissions": { "android": [] },
+  "permissions": { "android": [], "ios": {} },
   "methods": [],
   "hooks": [],
   "events": []
 }
 ```
+
+`permissions.android` is a plain string array of Android permission
+constants; `permissions.ios` is a record from Info.plist usage-description
+key to the string you want shown in the OS permission prompt — different
+shapes because that's what each platform's manifest format actually
+needs. Both start empty here; there's nothing to fill in until the plugin
+actually touches something that needs a permission.
 
 **`src/index.ts`** — the JS-side export your app will import, with a
 commented example call ready to uncomment:
@@ -89,9 +99,35 @@ class SecureStoragePlugin(context: Context, dispatcher: BridgeDispatcher) : Weft
 }
 ```
 
+**`ios/SecureStoragePlugin.swift`** — the iOS side of the same example
+method, with its `@WefterMethod` annotation commented out as scaffolded:
+
+```swift
+import Foundation
+
+// Never force-unwrap (!) or directly subscript a dictionary/array in here — Swift traps
+// (force-unwrap, out-of-bounds) crash the whole app and can't be caught the way a thrown
+// WefterError can. Use guard let / optional chaining / safe subscripting throughout.
+final class SecureStoragePlugin: WefterPlugin {
+    // @WefterMethod
+    func example(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        resolve(callback, data: ["ok": true])
+    }
+}
+```
+
+<Callout type="info">
+  The Swift method's `@WefterMethod` annotation ships commented out, the
+  Kotlin one doesn't. Uncomment it once you're ready for `wefter plugin
+  validate`/`wefter sync` to actually pick this method up on iOS — until
+  then, `example` compiles and exists in the file but isn't part of the
+  plugin's real surface on that platform, letting you scaffold both
+  platforms at once without being forced to finish both immediately.
+</Callout>
+
 **`README.md`** — a one-line stub pointing at the plugin-authoring guide.
 
-## The namespace constraint — don't change that `package` line
+## The namespace constraint — Android only, don't change that `package` line
 
 <Callout type="warn">
   Leave `package dev.wefter.bridge` at the top of every `.kt` file under
@@ -99,7 +135,7 @@ class SecureStoragePlugin(context: Context, dispatcher: BridgeDispatcher) : Weft
   real package and never will be.
 </Callout>
 
-Every Wefter plugin's native source is authored against this one fixed
+Every Wefter plugin's Android source is authored against this one fixed
 placeholder package, on purpose — a plugin author never needs to know
 which namespace any particular host app will actually use. When
 [`wefter sync`](/cli/sync) weaves your plugin's `android/` source into a
@@ -113,6 +149,15 @@ the host app's real one. The class ends up outside the namespace the
 generated registry expects it in, and the woven project won't build. The
 class name (`SecureStoragePlugin`) is yours to change freely; the
 `package` line at the top of each file is not.
+
+<Callout type="info">
+  There's no equivalent constraint on the `.swift` side, and nothing to
+  leave alone there. `sync` copies `ios/*.swift` files in verbatim, no
+  string replace of any kind — Swift plugin classes compile straight into
+  the one fixed `WefterBridge` app target regardless of which host app
+  they end up in, so there's no per-app identity for the source itself to
+  need rewriting into.
+</Callout>
 
 ## Next steps
 

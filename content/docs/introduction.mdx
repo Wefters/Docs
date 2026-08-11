@@ -3,41 +3,78 @@ title: Introduction
 description: What Wefter is, and how it's built.
 ---
 
-Wefter renders your app inside an Android WebView and gives that app a
-direct line to native device features through a typed bridge between
-JavaScript and Kotlin. You don't rewrite anything for mobile, and you don't
-maintain a second codebase alongside your web app.
+Wefter renders your app inside a native WebView, on Android or iOS, and
+gives that app a direct line to native device features through a typed
+bridge between JavaScript and the native side (Kotlin on Android, Swift on
+iOS). You write one JS codebase, in whichever framework you already use,
+and ship it as a real native app on both platforms.
 
-## Three tiers, and where Wefter sits
+## What Wefter actually does
 
-Native mobile frameworks generally fall into one of three architectural
-categories. Wefter is built for one of them right now, and the other two
-aren't on the roadmap as a shipped feature yet.
+Your app's UI is ordinary web code: HTML, CSS, and JavaScript, running
+inside a WebView the same way it would in a browser tab. Where Wefter adds
+something a plain web app doesn't have is native device access: camera,
+storage, biometrics, and anything else exposed through a plugin, called
+directly from your JS through a single typed bridge function.
 
-| Tier                     | What it means                                                                                                                                                     | Status                                   |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 1. WebView + bridge      | Your app renders in a WebView. Native features like the camera, storage, or sensors are exposed as plugins your JS calls through `@wefter/core`'s `invokeNative`. | Built and shipped. This is Wefter today. |
-| 2. Custom rendering      | Native `<canvas>` or surface rendering embedded next to the WebView, for graphics work the DOM handles badly.                                                     | Not built.                               |
-| 3. Native widget driving | Your app controls real native UI widgets directly, skipping the WebView for specific screens.                                                                     | Not built.                               |
+```ts
+import { invokeNative } from "@wefter/core";
 
-If your app needs Tier 2 or 3 today, Wefter won't get you there yet.
+const info = await invokeNative("device-info", "getInfo");
+```
 
-## How a native call actually works
+There's no backend interpreter running underneath your app, no local
+server your UI talks to, and no framework runtime baked into the native
+shell. A native call goes straight from your JS to a native plugin and
+back, one hop each way.
 
-When your JS calls `invokeNative('scanner', 'open', {})`, that call goes
-straight to a Kotlin plugin on the native side and back, one hop each way.
-There's no local server your UI is talking to and nothing running
-underneath your app that needs to start up before a call can go through.
-Your app is JS in a WebView, plus whatever native plugins you've declared.
+## Framework-agnostic, genuinely
 
-That's also why the [splash screen](/docs/app-splash-screen) is optional
-and off by default. There's no framework startup cost to cover, so when you
-do configure a splash, it's there for branding, not because the app needs
-the time.
+`invokeNative` and `registerHook` are plain function exports, not tied to
+any component model. Vue, React, Angular, Svelte, or plain JS all call the
+exact same two functions the exact same way. Nothing about the bridge
+knows or cares what rendered the page.
+
+## One codebase, two native shells
+
+The same app code runs on Android and iOS without any per-platform
+branching in your own JS. Native plugins are written per platform (Kotlin
+for Android, Swift for iOS), but calling one from your app code looks
+identical either way, `invokeNative` resolves to whichever native bridge
+is actually present at runtime.
+
+## What you get, concretely
+
+- **A CLI that does the whole loop.** `wefter sync` weaves your config and
+  plugins into a real native project; `wefter build` produces a real
+  APK/`.app`; `wefter run --watch` builds, installs, launches, and gives
+  you hot reload against a live dev server, on either platform.
+- **A plugin system where nothing is implicit.** Plugins are never
+  auto-discovered from `node_modules`. Every native capability your app
+  can reach is something you explicitly added with `wefter add`, and `add`
+  validates a plugin, checking its manifest, its method signatures, and
+  that the two actually match, before it's ever allowed into your project.
+  A `wefter.lock.json` records exactly what was synced, so drift is caught
+  automatically, not discovered later.
+- **Per-environment builds.** `wefter.config.json` supports named
+  environments (development, production, or whatever you call them), each
+  with its own app ID and name, so a dev build and a production build are
+  genuinely separate, independently installable apps rather than one app
+  that overwrites itself.
+- **Icon and splash handled for you.** Set `icon`/`splash` in config and
+  `wefter sync` generates everything a platform needs, per density on
+  Android, per required slot on iOS, from one source. The splash screen
+  itself is plain HTML you author, not a proprietary format, and it's off
+  by default since there's nothing it needs to cover.
+- **A native project you can actually read.** The generated Kotlin/Swift
+  shell is small and readable, fully regenerated from your config on
+  every `sync`, so it never accumulates hand-edited drift you have to
+  reason about later. If you genuinely need to step outside it,
+  `wefter eject` hands you the real project directly.
 
 ## Next
 
 - [Environment setup](/docs/environment-setup) walks through getting your
-  machine ready.
+  machine ready, for Android, iOS, or both.
 - [Installing](/docs/installing) walks through putting together your first
   project.

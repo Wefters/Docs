@@ -75,6 +75,44 @@ This is deliberate. Production is treated as the canonical identity of the
 app, and dev/staging environments are variations on it, not the other way
 around.
 
+## Where the iOS bundle identifier comes from — a different rule
+
+Unlike the Android namespace, there's no single "canonical" iOS bundle
+identifier. Each environment resolves its own, independently, at
+build/run time: that environment's own `iosBundleId` if you set one,
+otherwise that same environment's `appId` reused as-is.
+
+```json
+{
+  "environments": {
+    "development": {
+      "appId": "com.yourcompany.app.dev",
+      "appName": "Your App (Dev)",
+      "iosBundleId": "com.yourcompany.app.dev.ios"
+    },
+    "production": { "appId": "com.yourcompany.app", "appName": "Your App" }
+  }
+}
+```
+
+Here, running against `development` resolves the iOS bundle ID to
+`com.yourcompany.app.dev.ios` (the explicit override), while running
+against `production` resolves it to `com.yourcompany.app` (falls back to
+that environment's `appId`, since no `iosBundleId` was set for it). There
+is no cross-environment fallback chain the way the Android namespace has
+— building `wefter build ios --env staging` with no `staging` entry at
+all fails outright:
+
+```
+Unknown environment "staging" — cannot derive an iOS bundle identifier.
+```
+
+`iosBundleId` exists at all because Android package names and iOS bundle
+identifiers follow different naming rules (Android's is validated as a
+dotted Java-style identifier; Apple's App Store has its own bundle ID
+conventions), so reusing `appId` verbatim isn't always valid or desired —
+set it per-environment only where it needs to actually differ.
+
 ## `pluginsDir` and where plugins actually resolve from
 
 `config.pluginsDir` (default `"node_modules"`) is joined with the project
@@ -87,6 +125,7 @@ matching the names in `config.plugins`, see
 ## Ejected projects still read config
 
 `wefter.config.json` keeps being read normally after [`wefter
-eject`](/cli/eject). Ejecting stops the native project from being
+eject`](/cli/eject). Ejecting stops the native projects from being
 regenerated, it doesn't stop the CLI from reading your config to know
-things like which environment maps to which `appId` at build/run time.
+things like which environment maps to which `appId`/iOS bundle ID at
+build/run time.

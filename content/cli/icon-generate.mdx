@@ -36,6 +36,15 @@ writes each as `ic_launcher.png`:
   Icon](/docs/app-icon) page.
 </Callout>
 
+<Callout type="info">
+  This standalone command is Android-only. It does not touch
+  `.wefter/native/ios/.../Assets.xcassets`. Setting `icon` in
+  `wefter.config.json` and running [`wefter sync`](/cli/sync) instead
+  generates icons for **both** platforms — this command exists purely for
+  a quick before-you-commit-to-config preview on Android, not as the iOS
+  equivalent of anything.
+</Callout>
+
 ## Standalone means it writes straight into the current native project
 
 Unlike setting `icon` in `wefter.config.json`, this command writes

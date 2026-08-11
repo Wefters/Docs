@@ -9,7 +9,7 @@ wefter plugin validate [pluginDir]
 
 | Argument | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `pluginDir` | positional, optional | current working directory | Directory to validate — a plugin package root, containing `plugin.json` and `android/`. |
+| `pluginDir` | positional, optional | current working directory | Directory to validate — a plugin package root, containing `plugin.json` and `android/` and/or `ios/`. |
 
 ```bash
 wefter plugin validate ./secure-storage
@@ -27,43 +27,58 @@ all.
    found — not a Wefter plugin.`
 2. **`plugin.json` matches the schema** — `name` (required string),
    `permissions.android` (string array, defaults to `[]`),
-   `nativeDependencies.android.gradle`/`proguardRules` (both optional),
-   `methods`, `hooks`, `events` (string arrays, all default `[]`).
-   Failure: `Invalid plugin.json: <schema error detail>`.
-3. **`android/` directory exists.** Missing fails with `No android/
-   directory found — a Wefter plugin must ship native source.`
-4. **Every `@WefterMethod` and `@WefterHook` signature is well-formed.**
-   All `.kt` files under `android/` are concatenated and scanned. A
-   well-formed method looks exactly like:
+   `permissions.ios` (a record of Info.plist key → usage-description
+   string, defaults to `{}`), `nativeDependencies.android.gradle`/
+   `proguardRules` (both optional) and `nativeDependencies.ios.spm` (an
+   optional array of `{ url, from, product }` Swift Package Manager
+   dependencies), `methods`, `hooks`, `events` (string arrays, all
+   default `[]`). Failure: `Invalid plugin.json: <schema error detail>`.
+3. **At least one of `android/` or `ios/` exists.** Neither present fails
+   with `No android/ or ios/ directory found — a Wefter plugin must ship
+   native source for at least one platform.` A plugin shipping only one
+   platform is valid — everything below runs only against whichever
+   directory(ies) actually exist.
+4. **Every `@WefterMethod` and `@WefterHook` signature is well-formed, per
+   platform.** All `.kt` files under `android/` are concatenated and
+   scanned (if `android/` exists); all `.swift` files under `ios/` are,
+   separately (if `ios/` exists). A well-formed Kotlin method looks
+   exactly like:
    ```kotlin
    @WefterMethod
    fun methodName(payload: JSONObject, callback: (Result<Any>) -> Unit) {
    ```
-   and a well-formed hook exactly like:
-   ```kotlin
-   @WefterHook("hookName")
-   fun methodName() {
+   and a well-formed Swift method exactly like:
+   ```swift
+   @WefterMethod
+   func methodName(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
    ```
-   Anything annotated `@WefterMethod`/`@WefterHook` that doesn't match
-   this shape fails with `Malformed @WefterMethod signature at line <n>`
-   or `Malformed @WefterHook signature at line <n>` — line numbers point
-   at the concatenated source, in file-read order, so with a single `.kt`
-   file per plugin (the common case) it lines up with that file directly.
-   Any malformed signature stops validation here; consistency (next step)
-   isn't checked until signatures are all clean.
-5. **`plugin.json` and source agree on `methods`/`hooks`.** The
-   `methods`/`hooks` actually found via `@WefterMethod`/`@WefterHook` in
-   source are compared against what `plugin.json` declares:
+   with hooks following the equivalent `@WefterHook("hookName")` shape on
+   each platform. Anything annotated `@WefterMethod`/`@WefterHook` that
+   doesn't match its platform's shape fails with `Malformed @WefterMethod
+   signature at line <n> (android/)` or `... (ios/)` — the suffix tells
+   you which platform's concatenated source the line number refers to.
+   Any malformed signature on either platform stops validation here;
+   consistency (next step) isn't checked until every signature found is
+   clean.
+5. **`plugin.json` and source agree on `methods`/`hooks`, per platform.**
+   For each of `android/`/`ios/` that exists, the `methods`/`hooks`
+   actually found via `@WefterMethod`/`@WefterHook` in *that platform's*
+   source are compared against the *same* full `plugin.json` declaration:
    ```
    Plugin "secure-storage": plugin.json's "methods" declares [store, retrieve] but source has [store]. Missing: [retrieve]. Undeclared: [].
    ```
    Both directions are checked — a method declared in `plugin.json` but
-   missing from source, and a method present in source but never declared.
+   missing from source, and a method present in source but never
+   declared. Because the same declared list is checked against each
+   platform independently, a method you declare in `plugin.json` must be
+   implemented on **every** platform the plugin ships native source for,
+   not just one — there's no way to declare a method as Android-only (or
+   iOS-only) in `plugin.json` itself.
 
 <Callout type="info">
-  Step 5 only runs once `plugin.json` actually declares at least one
-  method or hook. An empty `methods: []`/`hooks: []` doesn't force your
-  Kotlin source to have zero `@WefterMethod`/`@WefterHook` functions —
+  Step 5 only runs, per platform, once `plugin.json` actually declares at
+  least one method or hook. An empty `methods: []`/`hooks: []` doesn't
+  force your source to have zero `@WefterMethod`/`@WefterHook` functions —
   the check activates the moment you start declaring, not before.
 </Callout>
 
@@ -73,7 +88,7 @@ Failure lists every issue found and exits `1`:
 
 ```
 Plugin validation failed:
-  - No android/ directory found — a Wefter plugin must ship native source.
+  - No android/ or ios/ directory found — a Wefter plugin must ship native source for at least one platform.
 ```
 
 Success:

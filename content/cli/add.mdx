@@ -33,10 +33,10 @@ doesn't look like a valid npm package name.`
    whatever package manager your project otherwise uses.
 3. **The installed package is validated** — the exact same check
    [`wefter plugin validate`](/cli/plugin-validate) runs standalone: a
-   `plugin.json` that matches the schema, an `android/` directory, no
-   malformed `@WefterMethod`/`@WefterHook` signatures, and `plugin.json`'s
-   declared `methods`/`hooks` matching what's actually in the Kotlin
-   source.
+   `plugin.json` that matches the schema, at least one of `android/`/`ios/`
+   present, no malformed `@WefterMethod`/`@WefterHook` signatures on
+   whichever platform(s) it ships, and `plugin.json`'s declared
+   `methods`/`hooks` matching what's actually in each platform's source.
 4. **Only if validation passes** does `add` touch `wefter.config.json` at
    all — appending the plugin's bare package name (not the version spec)
    to the `plugins` array and writing the file back out.
@@ -48,7 +48,7 @@ npm install — but `wefter.config.json` is left completely untouched:
 
 ```
 @some/bad-plugin failed validation and will NOT be added:
-  - No android/ directory found — a Wefter plugin must ship native source.
+  - No android/ or ios/ directory found — a Wefter plugin must ship native source for at least one platform.
 The package was installed but NOT declared in wefter.config.json.
 ```
 
@@ -75,6 +75,6 @@ Run `wefter sync` to weave it into the native project.
 ```
 
 Note that `add` only declares the plugin — it doesn't run `sync` itself.
-The plugin isn't actually woven into the native project (Gradle deps,
-permissions, generated registry) until you run [`wefter
-sync`](/cli/sync).
+The plugin isn't actually woven into either native project (Gradle
+deps/permissions/registry on Android, Info.plist permissions/SPM
+deps/registry on iOS) until you run [`wefter sync`](/cli/sync).

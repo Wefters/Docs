@@ -61,8 +61,10 @@ run`/`yarn`) also resolves local bins without the `npx` prefix:
 ```json
 {
   "scripts": {
-    "wefter:watch": "wefter run android --watch --env development .",
-    "wefter:build": "pnpm run build && wefter build android --env production --release ."
+    "wefter:watch:android": "wefter run android --watch --env development .",
+    "wefter:watch:ios": "wefter run ios --watch --env development .",
+    "wefter:build:android": "pnpm run build && wefter build android --env production --release .",
+    "wefter:build:ios": "pnpm run build && wefter build ios --env production --release ."
   }
 }
 ```

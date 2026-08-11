@@ -5,7 +5,7 @@ const steps = [
     number: "01",
     title: "You write your app",
     description:
-      "Vue, React, Angular, Svelte, or plain JS. The same code you'd already write for the web, running inside an Android WebView.",
+      "Vue, React, Angular, Svelte, or plain JS. The same code you'd already write for the web, running inside a native WebView, on Android or iOS.",
   },
   {
     number: "02",
@@ -17,13 +17,13 @@ const steps = [
     number: "03",
     title: "wefter sync weaves it into a real native project",
     description:
-      "Native source gets copied in, Gradle dependencies and Android permissions get merged, and a typed registry gets generated, all inside a disposable project you never hand-edit.",
+      "Native source gets copied in, dependencies and permissions get merged, and a typed registry gets generated, all inside a disposable project you never hand-edit — for every platform you've configured.",
   },
   {
     number: "04",
     title: "wefter run builds, installs, and launches it",
     description:
-      "On a real device or emulator, with live reload while you're actively developing.",
+      "On a real device, emulator, or simulator, with live reload while you're actively developing.",
   },
 ];
 
@@ -39,18 +39,29 @@ const features = [
       "invokeNative and registerHook are plain function exports, not tied to any component model. Vue, React, Angular, Svelte, or plain JS all call the exact same two functions the exact same way.",
   },
   {
+    title: "One codebase, two platforms",
+    description:
+      "The same JS runs on Android and iOS with no per-platform branching in your app code. Plugins are written natively per platform, but calling one looks identical either way.",
+  },
+  {
     title: "Small on purpose",
     description:
       "No custom rendering engine, no framework runtime baked into the shell. Compiled app size is a tracked constraint, checked in CI, not an afterthought.",
   },
   {
+    title: "Nothing added without your say-so",
+    description:
+      "Plugins are never auto-discovered from node_modules. wefter add validates a plugin, its manifest, its methods, that they actually match, before it's ever declared in your project.",
+  },
+  {
     title: "Native code you can actually read",
     description:
-      "The generated Android project is a small, readable Kotlin shell plus whatever plugins you declare. Nothing hidden behind a compiled binary or proprietary format.",
+      "The generated project is a small, readable Kotlin shell on Android and Swift shell on iOS, plus whatever plugins you declare. Nothing hidden behind a compiled binary or proprietary format.",
   },
 ];
 
 const frameworks = ["Vue", "React", "Angular", "Svelte", "Plain JS"];
+const platforms = ["Android", "iOS"];
 
 const destinations = [
   {
@@ -76,12 +87,13 @@ export default function HomePage() {
       {/* Hero */}
       <section className="mx-auto max-w-3xl px-6 py-24 text-center sm:py-32">
         <h1 className="text-4xl font-semibold tracking-tight text-fd-foreground sm:text-5xl">
-          Build native Android apps with the JavaScript you already know
+          Build native Android and iOS apps with the JavaScript you already know
         </h1>
         <p className="mt-4 text-lg text-fd-muted-foreground">
           Wefter wraps your web app in a thin native shell and gives it
           typed, pluggable access to real device capability, camera,
-          storage, biometrics, and more, through a lean JS to Kotlin bridge.
+          storage, biometrics, and more, through a lean bridge between
+          JavaScript and the native side, Kotlin on Android, Swift on iOS.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -108,13 +120,29 @@ export default function HomePage() {
           <pre className="overflow-x-auto px-4 py-4 text-sm">
             <code className="text-fd-foreground">
               <span className="text-fd-muted-foreground">$</span> npx wefter add @wefter/plugin-device-info{"\n"}
-              <span className="text-fd-muted-foreground">$</span> npx wefter run android --watch
+              <span className="text-fd-muted-foreground">$</span> npx wefter run android --watch{"\n"}
+              <span className="text-fd-muted-foreground"># swap android for ios — same command</span>
             </code>
           </pre>
         </div>
 
-        {/* Framework badges */}
+        {/* Platform badges */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs uppercase tracking-wide text-fd-muted-foreground">
+            Ships to
+          </span>
+          {platforms.map((name) => (
+            <span
+              key={name}
+              className="rounded-full border border-fd-primary/40 bg-fd-primary/10 px-3 py-1 text-xs font-medium text-fd-foreground"
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+
+        {/* Framework badges */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           <span className="text-xs uppercase tracking-wide text-fd-muted-foreground">
             Works with
           </span>
@@ -155,8 +183,9 @@ export default function HomePage() {
           <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-fd-muted-foreground">
             At runtime, your JS calls a native method through a single typed
             bridge call, <code className="text-fd-foreground">invokeNative(&apos;scanner&apos;, &apos;open&apos;, {"{}"})</code>,
-            and gets a real Promise back. There&apos;s no local server sitting
-            between your UI and your native code.
+            and gets a real Promise back, the same call on either platform.
+            There&apos;s no local server sitting between your UI and your
+            native code.
           </p>
         </div>
       </section>

@@ -17,6 +17,15 @@ anything. No `wefter.lock.json` update, no native project regeneration, no
 `wefter.config.json` change. Safe to run anytime, including in CI as a
 pre-merge check.
 
+<Callout type="warn">
+  `audit` currently only reports the Android side: `permissions.android`
+  and `nativeDependencies.android.gradle`. It doesn't yet surface a
+  plugin's `permissions.ios` or `nativeDependencies.ios.spm`, even though
+  [`wefter sync`](/cli/sync) does weave both in for iOS. If you need to see
+  what a plugin declares for iOS before it's woven in, read its
+  `plugin.json` directly for now.
+</Callout>
+
 ## What it prints
 
 **Every resolved plugin**, with its declared permissions and Gradle

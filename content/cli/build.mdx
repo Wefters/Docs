@@ -1,100 +1,122 @@
 ---
 title: wefter build
-description: --release, --env, and what it actually requires before it'll run.
+description: Syncs, then produces a real build artifact via the native toolchain.
 ---
 
+## Synopsis
+
 ```bash
-wefter build <platform> [projectDir] [--release] [--env <environment>]
+wefter build <platform> [--release] [--env <name>] [projectDir]
 ```
 
-| Argument/Option | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `platform` | positional, required | — | Target platform. Only `"android"` is accepted right now — anything else fails immediately with `Unsupported platform "<x>". Only "android" is supported right now.` |
-| `projectDir` | positional, optional | current working directory | Project root. |
-| `--release` | boolean flag | `false` | Build a signed release artifact instead of a debug one. |
-| `--env <environment>` | string | `"development"` | Which entry under `config.environments` to build against. |
+`<platform>` is required and must be exactly `android` or `ios`, anything
+else fails immediately with a clear error before any other work starts.
+
+## What it does
+
+Requires the project to already be synced — see the sync-freshness note
+below — then hands the already-regenerated native project to the real
+platform toolchain:
+
+- **`android`**: invokes Gradle (`./gradlew assemble<Env><Debug|Release>`)
+  against `.wefter/native/android`.
+- **`ios`**: invokes `xcodebuild` against
+  `.wefter/native/ios/WefterBridge.xcodeproj`, targeting the iOS
+  Simulator, debug or release alike. Building for a physical device isn't
+  supported by this command yet, see the note at the bottom of this page.
+
+Neither path reimplements or shortcuts the real toolchain, `wefter build`
+is orchestration around Gradle/`xcodebuild`, not a replacement for either.
+
+<Callout type="warn">
+  `build` does **not** run `sync` for you. It checks a sync marker written
+  by the last successful [`wefter sync`](/cli/sync) and refuses to build at
+  all if it's missing or stale — see [Failure modes](#failure-modes) below.
+  Run `wefter sync` yourself first, and again any time you change
+  `wefter.config.json` or a declared plugin.
+</Callout>
+
+## Options
+
+| Flag                | Description                                                                                                                             | Default               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `--release`         | Produces a release artifact instead of a debug build. Requires signing config, see [App Configuration](/docs/app-configuration). | `false` (debug build) |
+| `--env <name>`      | Which entry under `wefter.config.json`'s `environments` to build against.                                                               | `development`         |
+| `--simulator <name>` | iOS only: the `xcrun simctl` device name or UDID to build against (affects the `-destination` xcodebuild is invoked with). Ignored for `android`. | unset — a generic Simulator destination, resolved by Xcode itself |
+
+## Examples
 
 ```bash
 wefter build android
-wefter build android --release --env production
 ```
 
-## Requires an already-fresh sync — it does not sync for you
+Debug APK, `development` environment.
 
-Before doing anything else, `build` checks that the project has already
-been synced and that `wefter.config.json` hasn't changed since. If either
-is untrue, it fails immediately without touching Gradle:
-
-```
-Project has never been synced. Run `wefter sync` first.
+```bash
+wefter build ios --release --env production
 ```
 
-or
+Release-configuration `.app`, `production` environment, still built for
+the Simulator (see the callout at the bottom of this page). Requires
+`iosSigning` configured in `wefter.config.json` (which supplies the team
+ID) and `WEFTER_IOS_SIGNING_IDENTITY` set — run `wefter doctor
+--release-readiness` first to confirm.
+
+## Output artifact location
+
+Both platforms only ever produce a Simulator-targeted artifact right now
+— `--release` changes the Xcode *configuration* name and applies signing
+build settings, it does not switch iOS to an archive/export flow:
+
+| Platform | Debug                                                              | Release                                                             |
+| -------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Android  | `.wefter/native/android/app/build/outputs/apk/<env>/debug/*.apk`    | `.wefter/native/android/app/build/outputs/apk/<env>/release/*.apk`     |
+| iOS      | `.wefter/native/ios/build/Build/Products/Debug-<Env>-iphonesimulator/*.app` | `.wefter/native/ios/build/Build/Products/Release-<Env>-iphonesimulator/*.app` |
+
+`<Env>` is your `--env` value with its first letter capitalized (e.g.
+`production` → `Production`), matching the Xcode configuration name
+`wefter build` invokes (`Debug-Production`, `Release-Production`, …).
+
+## Failure modes
+
+Sync freshness is checked before anything else, and is by far the most
+common reason `build` refuses to run at all:
 
 ```
-wefter.config.json has changed since the last `wefter sync`. Run `wefter sync` before building.
+Build failed: Project has never been synced. Run `wefter sync` first.
 ```
 
-<Callout type="warn">
-  This is a freshness *check*, not an implicit sync — `build` never
-  regenerates the native project itself. If you've just edited config or
-  a plugin, run [`wefter sync`](/cli/sync) first. [`wefter run`](/cli/run)
-  has the exact same requirement.
+```
+Build failed: wefter.config.json has changed since the last `wefter sync`. Run `wefter sync` before building.
+```
+
+An unrecognized `<platform>` fails immediately, before the sync-freshness
+check or anything else — note this one isn't prefixed `Build failed:`,
+it's rejected by the CLI's own argument handling:
+
+```
+Unsupported platform "windows". Use "android" or "ios".
+```
+
+Once past those, a real toolchain failure surfaces as:
+
+```
+Build failed: Gradle build failed with exit code 1
+```
+
+```
+Build failed: xcodebuild failed with exit code 65
+```
+
+`xcodebuild`'s own error output (printed above this line, since it streams
+live) is generally less actionable than Gradle's — if a release build
+fails at the signing step specifically, run `wefter doctor
+--release-readiness` first to rule out a config problem before digging
+into raw `xcodebuild` output.
+
+<Callout type="info">
+  Device installs (as opposed to Simulator) aren't covered by this command yet,
+  either an `xcrun devicectl` flow or a signed, provisioned build with a
+  registered device UDID, both real, meaningfully more setup than Simulator
+  builds. Treat Simulator as the primary target for now.
 </Callout>
-
-## `--release` runs a security lint first
-
-With `--release`, before invoking Gradle at all, `build` runs the same
-release security lint [`wefter doctor
---release-readiness`](/cli/doctor#--release-readiness-additional-checks)
-runs: the release build type's dev-server URL must be empty, no `.kt` file
-may hardcode `setWebContentsDebuggingEnabled(true)` outside a debug gate,
-the debug network security config must exist, and a `signing` block with
-an existing keystore file must be present in config. Any failure here
-stops the build before Gradle runs:
-
-```
-Release security check failed:
-  - No release signing config found in wefter.config.json
-```
-
-Running `wefter doctor --release-readiness` beforehand catches this (and
-the `WEFTER_KEYSTORE_PASSWORD` requirement below) without spending time on
-a Gradle invocation first.
-
-## What Gradle task actually runs
-
-`build` invokes `./gradlew assemble<Env><BuildType>` inside the generated
-(or ejected) native project — e.g. `--env production --release` runs
-`assembleProductionRelease`; plain `wefter build android` runs
-`assembleDevelopmentDebug`. For a release build, three environment
-variables are set for that Gradle invocation:
-`WEFTER_KEYSTORE_PATH`, `WEFTER_KEY_ALIAS`, and `WEFTER_KEYSTORE_PASSWORD`
-(read from your shell/`.env` — build fails with `WEFTER_KEYSTORE_PASSWORD
-not set...` if it's missing).
-
-## Finding the APK afterward
-
-The built artifact is read back from
-`app/build/outputs/apk/<env>/<debug|release>/*.apk` inside the native
-project. On success:
-
-```
-Built .wefter/native/android/app/build/outputs/apk/development/debug/app-development-debug.apk (18.4 MB)
-Using 2 registered plugin(s): device-info, ping-test
-```
-
-If a plugin is declared in `config.plugins` but isn't actually resolvable
-in `node_modules` right now, that's reported as a warning rather than a
-failure, since the last successful sync may have run before the plugin
-was removed:
-
-```
-Registered plugin(s) not found in node_modules: some-plugin. Run `wefter sync` to refresh the registry.
-```
-
-## Failure and exit codes
-
-Any failure — unsupported platform, stale sync, failed release lint, or a
-non-zero Gradle exit code — prints `Build failed: <reason>` and sets
-`process.exitCode = 1`. Success sets `0`.

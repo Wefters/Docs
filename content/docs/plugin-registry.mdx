@@ -4,8 +4,9 @@ description: How native plugins get woven into your app, and why nothing is auto
 ---
 
 A Wefter plugin pairs a JS package (what your web app imports) with native
-Kotlin source (what actually talks to the device). `wefter sync` is what
-fuses the two into your generated Android project.
+source for whichever platform(s) it supports (`android/*.kt`, `ios/*.swift`,
+or both). `wefter sync` is what fuses these into your generated native
+project, for every platform you've configured.
 
 ## Explicit-only — no auto-detection
 
@@ -14,8 +15,8 @@ resolves each entry from `node_modules`. It never scans `node_modules`
 looking for anything that looks like a plugin.
 
 A package sitting in `node_modules`, even one your web app directly
-imports, contributes zero native code, permissions, or Gradle dependencies
-unless its name is explicitly listed in `plugins`. This keeps a transitive
+imports, contributes zero native code, permissions, or dependencies unless
+its name is explicitly listed in `plugins`. This keeps a transitive
 dependency from silently gaining a native footprint in your app just
 because it happens to be installed somewhere in your tree.
 
@@ -25,20 +26,41 @@ because it happens to be installed somewhere in your tree.
 }
 ```
 
+## Platform support is per-plugin, not all-or-nothing
+
+A plugin only needs to ship native source for the platform(s) it actually
+supports:
+
+```
+plugins/scanner/
+├── plugin.json
+├── src/index.ts
+├── android/ScannerPlugin.kt   ← optional
+└── ios/ScannerPlugin.swift     ← optional, at least one of the two required
+```
+
+`sync` weaves in whichever platform folders are present, for whichever
+platform you're currently building. A plugin declaring only `android/`
+still works fine in an Android-only project; calling that plugin's method
+from an iOS build it doesn't implement rejects with a clear
+`UNKNOWN_PLUGIN` error rather than silently doing nothing.
+
 ## What `sync` actually does
 
-For each declared plugin, `sync`:
+For each declared plugin, per configured platform, `sync`:
 
 1. Resolves the package directory and reads `plugin.json`.
 2. Verifies the package against `wefter.lock.json` (see below).
-3. Scans the plugin's `android/*.kt` source for `@WefterMethod`/`@WefterHook`
-   and cross-checks them against `plugin.json`'s declared `methods`/`hooks`.
-   A mismatch fails the sync loudly.
-4. Regenerates the native Android project's plugin registry from scratch.
+3. Scans the plugin's native source for method/hook markers (`@WefterMethod`
+   annotations on Android, `// @WefterMethod` comments on iOS) and
+   cross-checks them against `plugin.json`'s declared `methods`/`hooks`. A
+   mismatch fails the sync loudly.
+4. Regenerates the native project's plugin registry from scratch, for
+   every configured platform.
 
 `sync` is not incremental or additive. Every run rebuilds the generated
-registry from your current config, so there's no persistent state that can
-drift from what's actually declared.
+registry from your current config, for every platform, so there's no
+persistent state that can drift from what's actually declared.
 
 ## `wefter add`
 
@@ -46,31 +68,39 @@ drift from what's actually declared.
 wefter add @yourorg/some-plugin
 ```
 
-Installs the package, validates it, and declares it in
-`wefter.config.json`, all or nothing. If validation fails, the package is
-still installed on disk but `wefter.config.json` is left untouched, so a
-bad plugin never silently becomes part of your app.
+Installs the package, validates it against every platform it declares
+support for, and declares it in `wefter.config.json`, all or nothing. If
+validation fails on any platform the plugin claims to support, the package
+is still installed on disk but `wefter.config.json` is left untouched, so
+a bad plugin never silently becomes part of your app.
 
 ## `wefter.lock.json`
 
 ```json
 {
   "plugins": {
-    "device-info": { "resolved": "0.0.1", "integrity": "sha256-..." },
-    "ping-test": { "resolved": "0.0.1", "integrity": "sha256-..." }
+    "device-info": {
+      "resolved": "0.0.1",
+      "integrity": "sha256-b74045472a2336e36fe54a6c9310507e5968064b597a269d963fbd296ebb2403"
+    }
   },
-  "syncedAt": "2026-08-07T07:49:27.830Z"
+  "syncedAt": "2026-08-07T09:44:05.704Z"
 }
 ```
+
+The `integrity` hash covers a plugin's `plugin.json`, its resolved version,
+and every native source file across whichever platforms it supports (both
+`android/*.kt` and `ios/*.swift`, if both are present), sorted by filename.
+A plugin adding iOS support to an existing Android-only implementation
+produces a new integrity hash, since real source changed, even if the
+declared version string didn't, exactly the "integrity changed but
+resolved didn't" case worth double-checking when reading a diff.
 
 Records the exact resolved version and content hash of every synced
 plugin, and is meant to be committed to version control. `sync` fails if a
 plugin's installed content no longer matches its lock entry. Pass
-`--update-lock` to intentionally accept the drift and re-lock. Reading a
-diff: a changed `integrity` hash means the plugin's native source or
-manifest changed since it was last synced, and a changed `resolved` version
-means it was upgraded or downgraded.
+`--update-lock` to intentionally accept the drift and re-lock.
 
-Plugin-authoring depth, the `WefterPlugin` base class,
-`@WefterMethod`/`@WefterHook`, and `plugin.json`'s full schema, lives on the
+Plugin-authoring depth, the native base classes, method/hook annotations,
+and `plugin.json`'s full schema for both platforms, lives on the
 [Plugin tab](/plugin).
