@@ -1,0 +1,265 @@
+---
+title: "Tutorial: a flashlight plugin"
+description: A complete build, both platforms, from wefter create-plugin to a real device.
+---
+
+The most-copied page on this tab, so it aims to be genuinely complete —
+every file shown in full, every step included, nothing assumed as
+obvious. By the end, a button in your app turns a real device's
+flashlight on and off through a plugin you built yourself. This assumes
+you already have a working Wefter app project — [Installing](/docs/installing)
+if you don't yet.
+
+A flashlight is a deliberately simple choice: plain call-and-response,
+`on()` and `off()`, and — unlike most native capability — genuinely no
+permission handling required on either platform, since toggling a torch
+doesn't touch the camera's capture pipeline at all. That keeps this
+tutorial about the plugin mechanics themselves.
+[`tutorial-event-driven-plugin`](/plugin/tutorial-event-driven-plugin) is
+the second tutorial, for the push-data-to-JS shape this one doesn't
+cover.
+
+<Steps>
+<Step>
+
+## Scaffold it
+
+Wefter doesn't auto-discover plugins from `node_modules` — see
+[Plugin Registry](/docs/plugin-registry) — so for a plugin that isn't
+published to npm yet, the simplest setup is a local `plugins/` folder
+sitting next to your app, resolved via `pluginsDir` in
+`wefter.config.json` instead of the `node_modules` default.
+
+```bash
+wefter create-plugin flashlight ./plugins
+```
+
+This generates `./plugins/flashlight/` with a working, empty-methods
+scaffold on both platforms — full breakdown of every generated file on
+[`scaffolding`](/plugin/scaffolding).
+
+</Step>
+<Step>
+
+## Point your project at it
+
+In `wefter.config.json`:
+
+```json
+{
+  "pluginsDir": "plugins",
+  "plugins": ["flashlight"]
+}
+```
+
+`pluginsDir` tells `wefter sync` to resolve declared plugin names from
+`./plugins` instead of `node_modules` — exactly how this repo's own
+internal `device-info`/`ping-test` example plugins are set up. No `npm
+publish` and no `wefter add` needed for a plugin that only exists inside
+your own project; [`validating-and-publishing`](/plugin/validating-and-publishing)
+covers publishing for real once you're ready to share it.
+
+</Step>
+<Step>
+
+## Write `plugin.json`
+
+```json
+{
+  "name": "flashlight",
+  "permissions": { "android": [], "ios": {} },
+  "methods": ["on", "off"],
+  "hooks": [],
+  "events": []
+}
+```
+
+Both permission blocks stay empty — there's genuinely nothing to
+declare here.
+
+</Step>
+<Step>
+
+## Write the Android side
+
+`plugins/flashlight/android/FlashlightPlugin.kt`:
+
+```kotlin
+package dev.wefter.bridge
+
+import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
+import org.json.JSONObject
+
+class FlashlightPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
+    private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+    @WefterMethod
+    fun on(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        setTorch(true, callback)
+    }
+
+    @WefterMethod
+    fun off(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        setTorch(false, callback)
+    }
+
+    private fun setTorch(on: Boolean, callback: (Result<Any>) -> Unit) {
+        val id = findFlashCameraId()
+        if (id == null) {
+            reject(callback, "NOT_AVAILABLE", "No camera with a flash unit on this device")
+            return
+        }
+        try {
+            cameraManager.setTorchMode(id, on)
+            resolve(callback, JSONObject().put("on", on))
+        } catch (e: Exception) {
+            reject(callback, "NOT_AVAILABLE", "Could not toggle torch: ${e.message}")
+        }
+    }
+
+    private fun findFlashCameraId(): String? =
+        cameraManager.cameraIdList.firstOrNull { id ->
+            cameraManager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+        }
+}
+```
+
+`CameraManager.setTorchMode` doesn't require a runtime permission to
+toggle the flash unit, so there's no `hasPermission`/`requestPermission`
+here — `NOT_AVAILABLE` is a custom error code (see
+[`structured-errors`](/plugin/structured-errors) for how that's allowed)
+for the one real failure mode: a device or emulator with no flash unit
+at all.
+
+</Step>
+<Step>
+
+## Write the iOS side
+
+`plugins/flashlight/ios/FlashlightPlugin.swift`:
+
+```swift
+import Foundation
+import AVFoundation
+
+final class FlashlightPlugin: WefterPlugin {
+    // @WefterMethod
+    func on(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        setTorch(true, callback)
+    }
+
+    // @WefterMethod
+    func off(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        setTorch(false, callback)
+    }
+
+    private func setTorch(_ on: Bool, _ callback: (Result<Any, Error>) -> Void) {
+        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else {
+            reject(callback, code: "NOT_AVAILABLE", message: "No torch available on this device")
+            return
+        }
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = on ? .on : .off
+            device.unlockForConfiguration()
+            resolve(callback, data: ["on": on])
+        } catch {
+            reject(callback, code: "NOT_AVAILABLE", message: "Could not toggle torch: \(error.localizedDescription)")
+        }
+    }
+}
+```
+
+Same story on iOS: locking the device for configuration to flip
+`torchMode` doesn't require `NSCameraUsageDescription` or any
+`AVCaptureDevice.requestAccess` call, since no image or video is ever
+captured. No permission handling needed here either — see
+[`permissions`](/plugin/permissions) for what a plugin that *does* need
+it looks like.
+
+</Step>
+<Step>
+
+## Write the JS side
+
+`plugins/flashlight/src/index.ts`:
+
+```ts
+import { definePlugin } from "@wefter/core";
+
+export interface TorchState {
+  on: boolean;
+}
+
+export const Flashlight = definePlugin<{
+  on: () => Promise<TorchState>;
+  off: () => Promise<TorchState>;
+}>("flashlight", { on: true, off: true });
+```
+
+Two plain call-and-response methods, so `definePlugin` covers the whole
+wrapper — see [`core-for-plugin-authors`](/plugin/core-for-plugin-authors)
+for what it's doing under the hood.
+
+</Step>
+<Step>
+
+## Validate, sync, and wire it into your app
+
+```bash
+wefter plugin validate ./plugins/flashlight
+wefter sync
+```
+
+Then, anywhere in your app's UI:
+
+```ts
+import { Flashlight } from "flashlight";
+
+let isOn = false;
+
+button.addEventListener("click", async () => {
+  const result = isOn ? await Flashlight.off() : await Flashlight.on();
+  isOn = result.on;
+});
+```
+
+</Step>
+<Step>
+
+## Test it for real
+
+```bash
+wefter run android --watch
+wefter run ios --watch
+```
+
+<Callout type="warn">
+  **This one genuinely needs real hardware, on both platforms, not a
+  Simulator/emulator.** The iOS Simulator has no camera hardware at all —
+  `AVCaptureDevice.default(for: .video)` returns a device whose `hasTorch`
+  is always `false` there, so `on()` will cleanly reject with
+  `NOT_AVAILABLE` every time, correctly, but you'll never see light. Most
+  Android emulators report no flash-capable camera either, for the same
+  reason. Neither is a bug in this plugin — it's a hardware limitation of
+  virtual devices. Run it on a real phone to actually see it work.
+</Callout>
+
+Tap the button. The flashlight turns on. Tap it again. It turns off. That's
+the whole loop, JS to native and back, on real hardware.
+
+</Step>
+</Steps>
+
+## What you just built, in terms of the rest of this tab
+
+Two `@WefterMethod` functions, no permissions, one custom error code
+(`NOT_AVAILABLE`), and a `definePlugin`-based JS wrapper — the simplest
+complete shape a plugin can take. Every piece here is covered in more
+depth elsewhere: [`wefter-method`](/plugin/wefter-method) for the
+signature rules, [`structured-errors`](/plugin/structured-errors) for
+error codes, [`writing-the-kotlin-side`](/plugin/writing-the-kotlin-side)
+and [`writing-the-swift-side`](/plugin/writing-the-swift-side) for the
+native conventions this example followed.

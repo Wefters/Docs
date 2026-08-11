@@ -1,0 +1,87 @@
+---
+title: plugin.json reference
+description: Every field in the plugin manifest, both platforms, what it controls and what it defaults to.
+---
+
+The manifest [`wefter plugin validate`](/cli/plugin-validate), [`wefter
+add`](/cli/add), and [`wefter sync`](/cli/sync) all read, via the same
+`validatePluginDirectory` function underneath every one of them.
+
+## Fields
+
+| Field | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `name` | `string`, required | — | The plugin's identifier — what `invokeNative`'s first argument and `wefter.config.json`'s `plugins` array both refer to it as. |
+| `permissions.android` | `string[]` | `[]` | Android manifest permission constants, e.g. `"android.permission.CAMERA"`. |
+| `permissions.ios` | `Record<string, string>` | `{}` | Info.plist usage-description key → the human-readable string shown in the OS permission prompt. |
+| `nativeDependencies.android.gradle` | `string`, optional | — | A single Gradle dependency coordinate, e.g. `"androidx.camera:camera-core:1.3.0"`. |
+| `nativeDependencies.android.proguardRules` | `string`, optional | — | Raw ProGuard rule text, merged into the host app's `proguard-rules.pro`. |
+| `nativeDependencies.ios.spm` | `{ url, from, product }[]`, optional | — | Swift Package Manager dependencies, merged into the generated `NativeDependencies` package. |
+| `methods` | `string[]` | `[]` | Every `@WefterMethod` name your source implements, checked against what's actually found in source — see below. |
+| `hooks` | `string[]` | `[]` | Every `@WefterHook` name your source implements, same cross-check. |
+| `events` | `string[]` | `[]` | Names your plugin `emit`s. Documentation only — nothing validates these against source, since `emit` calls aren't statically scanned the way `@WefterMethod`/`@WefterHook` are. |
+
+## Why `permissions.android` and `permissions.ios` are different shapes
+
+This isn't an inconsistency — it's what each platform's own manifest
+format actually needs. Android's manifest just needs a flat list of
+permission constants:
+
+```json
+{ "permissions": { "android": ["android.permission.CAMERA"] } }
+```
+
+iOS requires the app itself to supply the permission dialog's explanation
+text, or the app risks App Store rejection on top of the crash risk
+covered on [`permissions`](/plugin/permissions) — so `permissions.ios` is
+a map from the `Info.plist` key to that exact string:
+
+```json
+{
+  "permissions": {
+    "ios": { "NSCameraUsageDescription": "Used to scan barcodes." }
+  }
+}
+```
+
+Both default to empty; there's nothing to fill in until your plugin
+actually touches something that needs a permission.
+
+## `methods`/`hooks` are checked against source, `events` isn't
+
+`methods` and `hooks` aren't just documentation — `wefter plugin
+validate` scans your native source for every `@WefterMethod`/`@WefterHook`
+it can find, per platform, and fails if the two lists disagree in either
+direction (declared but missing from source, or present in source but
+never declared). Full mechanics on
+[`validating-and-publishing`](/plugin/validating-and-publishing). `events`
+has no such check — it's a courtesy to whoever reads your `plugin.json`,
+since an `emit("scanner:result", ...)` call anywhere in your source isn't
+statically discoverable the way an annotated method is.
+
+## Full example
+
+```json
+{
+  "name": "scanner",
+  "permissions": {
+    "android": ["android.permission.CAMERA"],
+    "ios": { "NSCameraUsageDescription": "Used to scan barcodes." }
+  },
+  "nativeDependencies": {
+    "android": {
+      "gradle": "androidx.camera:camera-core:1.3.0",
+      "proguardRules": "-keep class androidx.camera.** { *; }"
+    },
+    "ios": {
+      "spm": [{ "url": "https://github.com/example/SomeSDK", "from": "1.0.0", "product": "SomeSDK" }]
+    }
+  },
+  "methods": ["open", "close"],
+  "hooks": [],
+  "events": ["scanner:result"]
+}
+```
+
+`wefter create-plugin` scaffolds the empty-everywhere starting point this
+grows from — see [`scaffolding`](/plugin/scaffolding).

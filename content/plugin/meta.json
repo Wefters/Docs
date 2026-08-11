@@ -1,0 +1,31 @@
+{
+  "title": "Plugin",
+  "pages": [
+    "index",
+    "---Overview---",
+    "what-is-a-plugin",
+    "architecture-flow",
+    "---APIs---",
+    "wefter-plugin-class",
+    "wefter-method",
+    "wefter-hook",
+    "structured-errors",
+    "permissions",
+    "plugin-json-reference",
+    "core-for-plugin-authors",
+    "---Creating Plugins---",
+    "plugin-anatomy",
+    "scaffolding",
+    "writing-the-js-side",
+    "writing-the-kotlin-side",
+    "writing-the-swift-side",
+    "testing-your-plugin",
+    "validating-and-publishing",
+    "---Tutorials---",
+    "tutorial-flashlight-plugin",
+    "tutorial-event-driven-plugin"
+  ],
+  "root": true,
+  "description": "Plugin anatomy, the native API surface, and a full worked tutorial.",
+  "icon": "Puzzle"
+}

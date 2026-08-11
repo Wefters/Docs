@@ -1,0 +1,150 @@
+---
+title: Architecture & call flow
+description: What really happens between invokeNative and a resolved Promise, step by step.
+---
+
+Three separate mechanisms move things across the JS/native boundary, and
+they're easy to conflate because two of them both involve the word
+"hook." This page keeps them apart, in the order you'll actually use
+them: a method call and its response, a plugin pushing an event to JS on
+its own schedule, and native lifecycle signals a plugin method can
+subscribe to. Every step below uses the real name involved, not a
+generic "JS talks to native" box.
+
+## The call path: `invokeNative` to a resolved Promise
+
+Tracing `await invokeNative('scanner', 'open', {})`:
+
+<Steps>
+<Step>
+
+**JS calls `invokeNative`.** (`packages/core`) generates a `callId`,
+stores a pending `{ resolve, reject }` pair keyed by it, starts a
+10-second timeout (configurable via `options.timeoutMs`), and hands the
+call to whichever bridge exists.
+
+</Step>
+<Step>
+
+**The call crosses the bridge.** On Android, `window.AndroidBridge.invoke(callId,
+plugin, method, payloadJson)` — a `@JavascriptInterface` method on
+`BridgeDispatcher`. On iOS,
+`window.webkit.messageHandlers.WefterBridge.postMessage({ callId, plugin,
+method, payload })`, received by `BridgeDispatcher.userContentController(
+_:didReceive:)`.
+
+</Step>
+<Step>
+
+**The dispatcher finds the plugin by name.** Both dispatchers keep a
+`plugin name → NativeModule` map, populated once at startup by
+`GeneratedRegistry.registerAll(...)` — the file `wefter sync` writes,
+one registration line per plugin declared in `wefter.config.json`. No
+match rejects immediately with `UNKNOWN_PLUGIN`.
+
+</Step>
+<Step>
+
+**The generated dispatch class routes to your method.** Each plugin gets
+its own generated `<Name>PluginDispatch`, a `switch`/`when` over the
+method name that calls straight into the method whose `@WefterMethod`
+marker matched during `sync` — `plugin.open(payload, callback)` on
+Android, `try plugin.open(payload: payload, callback: callback)` on iOS.
+An unmatched method name rejects with `UNKNOWN_METHOD`.
+
+</Step>
+<Step>
+
+**Your method resolves or rejects.** Calling `resolve(callback, data)` or
+`reject(callback, code, message)` — both inherited from `WefterPlugin`,
+see [`wefter-plugin-class`](/plugin/wefter-plugin-class) — settles the
+`Result`/`Result<Any, Error>` the dispatcher is holding.
+
+</Step>
+<Step>
+
+**The result crosses back and settles the Promise.** The dispatcher calls
+`webView.evaluateJavascript(...)` /
+`webView.evaluateJavaScript(...)` running
+`window.__wefterNative.resolve(callId, ...)` or `.reject(callId, ...)` on
+the JS side, which looks the `callId` up in the pending map and settles
+the real `Promise` your app is `await`ing. A rejection always arrives as
+a [`WefterBridgeError`](/plugin/structured-errors) with a `.code`.
+
+</Step>
+</Steps>
+
+If your native method throws instead of calling `reject`, the dispatcher
+catches it and rejects with `PLUGIN_THREW` (Android: a `try/catch` around
+`module.invoke(...)`; iOS: the `do/catch` around `try
+module.invoke(...)`, both described further on
+[`structured-errors`](/plugin/structured-errors)).
+
+## The event path: `emit` to a JS listener
+
+This is a completely different shape, and it's genuinely different, not
+just a variant of the call path: a plugin can push data to JS *whenever
+it wants*, not only as a response to something JS asked for. `ping-test`
+is the clearest real example — every two seconds, its native timer
+callback calls `emit("tick", ...)` with no JS call having triggered it:
+
+```kotlin
+private val tickRunnable = object : Runnable {
+    override fun run() {
+        tickCount++
+        emit("tick", JSONObject().apply { put("count", tickCount) })
+        handler.postDelayed(this, TICK_INTERVAL_MS)
+    }
+}
+```
+
+`emit(hookName, data)`, inherited from `WefterPlugin`, calls
+`dispatcher.emit(...)`, which runs
+`window.__wefterNative.emit(hookName, dataJson)` on the JS side. Any
+listener registered with `registerHook("tick", callback)` (from
+`@wefter/core`) fires with the parsed data. There's no `callId`, no
+pending Promise, nothing waiting — a plugin can call `emit` from inside a
+sensor listener, a timer, a scan-result callback, anywhere, with **no
+`@WefterHook` annotation required or involved**. `emit`/`registerHook` is
+the only mechanism a plugin needs for "push data to JS on its own
+schedule."
+
+<Callout type="warn">
+  Don't confuse this with `@WefterHook`, below. `emit` is a plain method
+  call your plugin code makes any time it wants; `@WefterHook` is an
+  annotation that subscribes a method to a *native-side* lifecycle
+  signal. They share the word "hook" and nothing else.
+</Callout>
+
+## Native lifecycle hooks: `@WefterHook`, `subscribeHook`, `dispatchHook`
+
+A third, separate mechanism: a plugin method marked `@WefterHook("name")`
+gets wired, during `sync`, into
+`dispatcher.subscribeHook("name") { plugin.method() }`. Nothing calls
+that method until some native code elsewhere calls
+`dispatcher.dispatchHook("name")` — this is native code signaling other
+native code, with no data payload and no JS involvement at either end.
+
+**Status, checked directly against the current shells, not assumed:**
+`"appReady"` is the only hook name either native shell actually
+dispatches today — once from the WebView finishing its first page load,
+and once from an explicit `__system.appReady` call your JS can make
+itself (the same call `invokeNative('__system', 'appReady', {})`
+signals for splash-screen dismissal). `onPause`/`onResume` are **not**
+wired to anything real yet — the plumbing (`subscribeHook`/`dispatchHook`
+themselves) is implemented and unit-tested, but no Android `Activity`
+lifecycle callback or iOS `Scene`/`AppDelegate` method calls
+`dispatchHook("onPause")` or `dispatchHook("onResume")` anywhere in the
+current shells. A plugin can declare `@WefterHook("onPause")` today — it
+will validate and wire into `subscribeHook` correctly — but nothing will
+ever fire it until a real consumer (a camera plugin needing to release
+hardware on pause is the anticipated one) justifies actually wiring that
+`dispatchHook` call into the shells. Full mechanics on
+[`wefter-hook`](/plugin/wefter-hook).
+
+<Callout type="info">
+  This status note and [`wefter-hook`](/plugin/wefter-hook)'s describe the
+  same fact from two angles. If this changes in the real codebase, update
+  both pages together — a reader who reads one and then the other should
+  never come away with two different impressions of what's live today.
+</Callout>

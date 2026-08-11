@@ -100,7 +100,10 @@ class SecureStoragePlugin(context: Context, dispatcher: BridgeDispatcher) : Weft
 ```
 
 **`ios/SecureStoragePlugin.swift`** — the iOS side of the same example
-method, with its `@WefterMethod` annotation commented out as scaffolded:
+method, using the `// @WefterMethod` comment marker Swift always uses for
+this (Swift has no source-retention annotation to borrow, so a plain
+comment is the one correct, permanent form the marker takes — not a
+disabled state to enable later):
 
 ```swift
 import Foundation
@@ -117,12 +120,14 @@ final class SecureStoragePlugin: WefterPlugin {
 ```
 
 <Callout type="info">
-  The Swift method's `@WefterMethod` annotation ships commented out, the
-  Kotlin one doesn't. Uncomment it once you're ready for `wefter plugin
-  validate`/`wefter sync` to actually pick this method up on iOS — until
-  then, `example` compiles and exists in the file but isn't part of the
-  plugin's real surface on that platform, letting you scaffold both
-  platforms at once without being forced to finish both immediately.
+  Both platforms' `example` method are already fully active as
+  scaffolded. Kotlin's `@WefterMethod` and Swift's `// @WefterMethod` are
+  equally real markers to `wefter plugin validate`/`wefter sync` — they're
+  just expressed differently because Swift has no source-retention
+  annotation to borrow (full explanation on the Plugin tab's
+  [`@WefterMethod`](/plugin/wefter-method) page). There's no "uncomment to
+  activate" step on either side, which is exactly what lets a freshly
+  scaffolded plugin pass validation as-is, on both platforms, immediately.
 </Callout>
 
 **`README.md`** — a one-line stub pointing at the plugin-authoring guide.

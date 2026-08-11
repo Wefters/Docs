@@ -1,0 +1,101 @@
+---
+title: Testing your plugin
+description: Unit-test the JS wrapper with a mock bridge, then verify for real — neither tier is optional.
+---
+
+Two tiers. Neither is optional in its own way: the first catches JS-side
+mistakes fast, with no device involved; the second is the only thing that
+actually proves your native code runs correctly at all.
+
+## Tier 1: unit-test the JS wrapper
+
+`@wefter/core/testing` exports `installMockBridge`/`uninstallMockBridge`
+— no device or emulator anywhere in the loop, just your plugin's own
+`src/index.ts` running against a fake bridge:
+
+```ts
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from "vitest";
+import { installMockBridge, uninstallMockBridge } from "@wefter/core/testing";
+import { Scanner } from "../src/index.js";
+
+afterEach(() => {
+  uninstallMockBridge();
+});
+
+describe("Scanner.open against the mock bridge", () => {
+  it("resolves with whatever the mock handler returns", async () => {
+    installMockBridge({
+      scanner: (method) => {
+        if (method === "open") return { started: true };
+        throw new Error(`unexpected method ${method}`);
+      },
+    });
+
+    const result = await Scanner.open();
+
+    expect(result).toEqual({ started: true });
+  });
+
+  it("surfaces a denial the same way the real bridge would", async () => {
+    installMockBridge({
+      scanner: () => {
+        throw new Error("simulated permission denial");
+      },
+    });
+
+    await expect(Scanner.open()).rejects.toMatchObject({
+      code: "MOCK_ERROR",
+      message: "simulated permission denial",
+    });
+  });
+});
+```
+
+Each key in the object you pass to `installMockBridge` is a plugin name;
+its handler receives `(method, payload)` for every call made to that
+plugin and can return or throw whatever your test needs. Two failure
+modes are built in and worth testing against directly: a handler that
+throws rejects with `code: "MOCK_ERROR"`, and calling a plugin with no
+handler registered at all rejects with `code: "NO_MOCK_HANDLER"` — useful
+for confirming your wrapper doesn't swallow an error it should propagate.
+Call `uninstallMockBridge()` in `afterEach`, every time, so a later test
+doesn't silently inherit a mock it never set up itself.
+
+This tier is fast and catches real mistakes — a typo'd method name, a
+payload shape your TS types claim but never actually send, error
+propagation that doesn't match what you intended. It proves nothing
+about your Kotlin or Swift.
+
+## Tier 2: a real device or Simulator, every time
+
+<Callout type="warn">
+  Unit tests against a mock bridge are never sufficient proof a plugin
+  actually works. This standard has held throughout this framework's own
+  development — verified repeatedly, not assumed — and it applies the
+  same way to a plugin you're writing.
+</Callout>
+
+A mock bridge tests your JS wrapper's logic; it cannot tell you whether
+`AVCaptureDevice.authorizationStatus` returns what you expect, whether
+your `@WefterMethod` signature actually matches what
+[`wefter plugin validate`](/plugin/validating-and-publishing) requires,
+or whether a permission dialog genuinely appears and your
+`requestPermission` callback genuinely fires with the user's real answer.
+None of that is reachable from a JS test running in Node or `jsdom`.
+
+Before calling a plugin done, run it for real, on both platforms it
+claims to support:
+
+```bash
+wefter sync
+wefter run android --watch
+wefter run ios --watch
+```
+
+Exercise every method your plugin declares, and specifically exercise
+the permission-denial path if it has one — grant it once, deny it once,
+on a real device or a fresh Simulator/emulator instance where the
+permission hasn't already been decided. A permission flow that only gets
+tested in the already-granted state has only tested half of what
+[`permissions`](/plugin/permissions) requires from it.

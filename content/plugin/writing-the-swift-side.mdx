@@ -1,0 +1,118 @@
+---
+title: Writing the Swift side
+description: throws and what it does/doesn't catch, the no-force-unwrap rule, and a real permission example.
+---
+
+The Swift side gets its own page rather than a section tacked onto
+[`writing-the-kotlin-side`](/plugin/writing-the-kotlin-side), because the
+concerns here are genuinely different, not just a syntax translation.
+
+## `throws` is required, and it's not decorative
+
+```swift
+final class ScannerPlugin: WefterPlugin {
+    // @WefterMethod
+    func open(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            startScanning(callback)
+
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self?.startScanning(callback)
+                    } else {
+                        self?.reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied")
+                    }
+                }
+            }
+
+        case .denied, .restricted:
+            reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied")
+
+        @unknown default:
+            reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied")
+        }
+    }
+
+    // @WefterMethod
+    func close(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        resolve(callback, data: ["stopped": true])
+    }
+
+    // @WefterHook("appReady")
+    func onAppReady() {
+        warmUpCamera()
+    }
+
+    private func startScanning(_ callback: (Result<Any, Error>) -> Void) {
+        resolve(callback, data: ["started": true])
+    }
+
+    private func warmUpCamera() {
+        // Pre-initialize whatever's expensive to set up, once, when the
+        // WebView signals it's ready — not on every open() call.
+    }
+}
+```
+
+Every `@WefterMethod` function is wrapped in a `do/catch` inside
+`BridgeDispatcher.userContentController(_:didReceive:)` — `throws` is
+what makes that catch reachable at all. Without it, a `Malformed
+@WefterMethod signature` failure stops you at
+[`wefter plugin validate`](/plugin/validating-and-publishing) before it
+ever becomes a runtime problem.
+
+**What that `do/catch` actually catches:** a deliberately thrown `Error`
+— your own type, or `WefterError` for a specific code, both covered on
+[`structured-errors`](/plugin/structured-errors). **What it can never
+catch:** a Swift runtime trap. This is the one hard rule on this page.
+
+## Never force-unwrap, never subscript directly
+
+<Callout type="warn">
+  A force-unwrapped `nil` (`!`) or an out-of-bounds array/dictionary
+  access **terminates the process immediately.** No `do/catch` anywhere
+  in the app can intercept it — that's Apple's own design, not something
+  Wefter can work around. This is a hard rule for plugin method bodies,
+  not a stylistic preference.
+</Callout>
+
+```swift
+// Don't — a payload missing "code" crashes the whole app, not just this call.
+func scan(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+    let code = payload["code"] as! String
+    resolve(callback, data: ["scanned": code])
+}
+```
+
+```swift
+// Do — a missing or wrong-typed field becomes a clean rejection instead.
+func scan(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+    guard let code = payload["code"] as? String else {
+        reject(callback, code: "INVALID_PAYLOAD", message: "\"code\" must be a string")
+        return
+    }
+    resolve(callback, data: ["scanned": code])
+}
+```
+
+`guard let`, optional chaining (`payload["code"] as? String`), and safe
+subscripting are the only patterns that keep a malformed payload or an
+unexpected `nil` inside the error-handling path this framework actually
+gives you, instead of outside it entirely.
+`wefter create-plugin` scaffolds this exact reminder as a comment at the
+top of every generated Swift file — it's worth leaving in place.
+
+## The permission example, matching `permissions.mdx` exactly
+
+The `open` method above is the same `AVCaptureDevice` flow shown in full
+on [`permissions`](/plugin/permissions) — check
+`authorizationStatus(for:)` for the already-decided cases,
+`requestAccess(for:completionHandler:)` for the undecided one, every
+branch resolving or rejecting. There's no `hasPermission`/
+`requestPermission` to reach for on this platform at all — see
+[`wefter-plugin-class`](/plugin/wefter-plugin-class) for why that's
+intentional. Seeing the identical pattern in both places is the point:
+copy it from either page and land on working code.

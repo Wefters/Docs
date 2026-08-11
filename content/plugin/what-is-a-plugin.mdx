@@ -1,0 +1,52 @@
+---
+title: What is a plugin?
+description: What a plugin physically is, and when to actually reach for one.
+---
+
+## What a plugin physically is
+
+A Wefter plugin is a JS package containing a `plugin.json` manifest, a
+`src/index.ts` wrapper your app imports, and native source for whichever
+platform(s) it supports:
+
+```
+some-plugin/
+├── plugin.json
+├── src/index.ts
+├── android/   ← Kotlin, optional
+└── ios/       ← Swift, optional
+```
+
+At least one of `android/` or `ios/` has to exist; neither is mandatory on
+its own. A camera plugin that only works on Android today is a complete,
+valid plugin — it simply doesn't have an `ios/` folder yet, and nothing in
+the system treats that as broken or half-finished. `wefter plugin
+validate` passes it. `wefter add` installs it. Calling it from an iOS
+build just rejects with `UNKNOWN_PLUGIN`, the same clean rejection you'd
+get for any plugin name that isn't declared at all — see
+[Plugin anatomy](/plugin/plugin-anatomy) for all three valid shapes.
+
+## When to actually build one
+
+The temptation to reach for a plugin when a plugin isn't needed is real,
+and worth resisting. Anything that's just talking to a remote API doesn't
+need one — that's what `fetch()` is for, running in your own JS, no
+bridge involved at all.
+
+A plugin exists specifically for the boundary between JavaScript and
+something only the operating system can do: reading a sensor, accessing
+the camera, writing to secure device storage, showing a native permission
+dialog. If a feature doesn't cross that boundary, it doesn't belong in a
+plugin — it belongs in your app's own JS, same as it would on the web.
+
+<Callout type="info">
+  A useful test: could this run, unmodified, in a plain browser tab? If
+  yes, it doesn't need a plugin. `invokeNative` and `registerHook` exist
+  for the cases where the answer is genuinely no.
+</Callout>
+
+## Next
+
+[Architecture &amp; call flow](/plugin/architecture-flow) walks through
+what actually happens, step by step, from a JS call to a resolved
+Promise, and from a plugin's own `emit` to a JS listener receiving data.

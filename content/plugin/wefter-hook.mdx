@@ -1,0 +1,84 @@
+---
+title: "@WefterHook"
+description: Native lifecycle hooks a plugin method can subscribe to — not the JS event-push mechanism.
+---
+
+<Callout type="warn">
+  `@WefterHook` is not how a plugin pushes data to JS — that's `emit`,
+  covered on [`wefter-plugin-class`](/plugin/wefter-plugin-class) and
+  [architecture-flow's event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener),
+  and it needs no annotation at all. `@WefterHook` subscribes a no-argument
+  method to a *native-side* lifecycle signal — one native component
+  telling another "this happened," with no JS involved and no data
+  payload. The two mechanisms share the word "hook" and nothing else.
+</Callout>
+
+## The signature
+
+```kotlin
+@WefterHook("appReady")
+fun onAppReady() {
+    // ...
+}
+```
+
+```swift
+// @WefterHook("appReady")
+func onAppReady() {
+    // ...
+}
+```
+
+The method takes no parameters on either platform — a hook is a plain
+signal, not a data channel. During `wefter sync`, every extracted hook
+gets wired into the generated registry as:
+
+```kotlin
+dispatcher.subscribeHook("appReady") { pluginInstance.onAppReady() }
+```
+
+Nothing calls `onAppReady()` until some native code elsewhere calls
+`dispatcher.dispatchHook("appReady")`. That call, and the resulting fan-out
+to every subscriber registered under that name, is the entire mechanism —
+there's no queuing, no data, no cross-platform JS visibility.
+
+## What's actually live today
+
+**`"appReady"` is the only hook name either native shell dispatches right
+now.** It fires once when the WebView finishes its first page load
+(`WebViewClient.onPageFinished` on Android, the equivalent iOS navigation
+callback), and again any time your JS explicitly calls
+`invokeNative('__system', 'appReady', {})` — the same call used to signal
+splash-screen readiness. Both shells' own splash-dismissal logic
+subscribes to it internally (`dispatcher.subscribeHook("appReady") {
+dismissSplash() }`), which is why the mechanism exists at all today.
+
+**General lifecycle hooks — `onPause`, `onResume` — are not wired to
+anything real yet.** The `subscribeHook`/`dispatchHook` plumbing itself is
+implemented and unit-tested (Android's `BridgeDispatcherTest.kt` proves
+subscribers fire correctly, using `"onPause"` purely as an illustrative
+hook name), but no Android `Activity` lifecycle callback and no iOS
+`Scene`/`AppDelegate` method actually calls `dispatchHook("onPause")` or
+`dispatchHook("onResume")` in the current shells. You can declare
+`@WefterHook("onPause")` on a plugin today — it validates, extracts, and
+wires into `subscribeHook` exactly like `"appReady"` does — but nothing
+will ever call it. This is deliberately deferred, waiting on a real
+consumer (a camera plugin needing to release hardware when the app
+backgrounds is the anticipated one) to justify wiring the actual
+`dispatchHook` calls into `MainActivity`/`ViewController`.
+
+<Callout type="info">
+  This status is also stated on
+  [architecture-flow](/plugin/architecture-flow#native-lifecycle-hooks-wefterhook-subscribehook-dispatchhook).
+  The two pages describe the same fact from two angles and need to be
+  updated together the moment it changes in the real codebase — never
+  just one.
+</Callout>
+
+## Malformed hooks
+
+Same validation posture as `@WefterMethod`: an extra parameter, a missing
+quoted hook name, or the annotation and function separated wrong all fail
+with `Malformed @WefterHook signature at line <n> (android/)` or
+`(ios/)`. Full validation sequence:
+[`validating-and-publishing`](/plugin/validating-and-publishing).
