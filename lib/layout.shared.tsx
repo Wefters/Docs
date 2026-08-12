@@ -15,8 +15,8 @@ const DiscordIcon = () => (
 function NavTitle() {
   return (
     <>
-      <img src="/logo/banner-light.svg" alt="Wefter" className="h-6 w-auto dark:hidden" />
-      <img src="/logo/banner-dark.svg" alt="Wefter" className="h-6 w-auto hidden dark:block" />
+      <img src="/Logo/Dark/Logo.svg" alt="Wefter" className="h-6 w-auto dark:hidden" />
+      <img src="/Logo/Light/Logo.svg" alt="Wefter" className="h-6 w-auto hidden dark:block" />
     </>
   );
 }
