@@ -1,8 +1,8 @@
 <div align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="/Logo/Dark/Logo.svg">
-    <source media="(prefers-color-scheme: light)" srcset="/Logo/Light/Logo.svg">
-    <img alt="Wefter Docs" src="/Logo/Light/Logo.svg" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="public/Logo/Dark/Logo.svg">
+    <source media="(prefers-color-scheme: light)" srcset="public/Logo/Light/Logo.svg">
+    <img alt="Wefter Docs" src="public/Logo/Light/Logo.svg" width="420">
   </picture>
 
   <p><strong>Documentation site for Wefter, live at <a href="https://wefter.dev">wefter.dev</a>.</strong></p>
