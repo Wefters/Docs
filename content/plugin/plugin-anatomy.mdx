@@ -1,11 +1,11 @@
 ---
 title: Plugin anatomy
-description: The real, minimal file structure — Android-only, iOS-only, and both.
+description: The real, minimal file structure, Android-only, iOS-only, and both.
 ---
 
 A plugin needs a `plugin.json` manifest, a `src/index.ts` your app
 imports, and native source for at least one platform. All three shapes
-below are equally valid and equally complete — none of them is "the
+below are equally valid and equally complete; none of them is "the
 default" with the others treated as exceptions.
 
 ## Android only
@@ -22,7 +22,7 @@ scanner/
 ```
 
 `plugin.json`'s `permissions.ios` and `nativeDependencies.ios` are simply
-absent or empty — there's no `ios/` folder for them to describe. Calling
+absent or empty, there's no `ios/` folder for them to describe. Calling
 this plugin from an iOS build rejects with `UNKNOWN_PLUGIN`, the same
 clean rejection any undeclared plugin name gets.
 
@@ -39,7 +39,7 @@ scanner/
     └── ScannerPlugin.swift
 ```
 
-The mirror image — `permissions.android` and `nativeDependencies.android`
+The mirror image: `permissions.android` and `nativeDependencies.android`
 absent or empty, no `android/` folder, and the same clean
 `UNKNOWN_PLUGIN` rejection calling it from an Android build.
 
@@ -58,23 +58,23 @@ scanner/
     └── ScannerPlugin.swift
 ```
 
-What [`wefter create-plugin`](/plugin/scaffolding) generates by default —
+What [`wefter create-plugin`](/plugin/scaffolding) generates by default:
 both platform folders, ready to fill in independently. Nothing requires
 you to finish both at the same time; a plugin can genuinely ship one
-platform now and grow the other later; See
+platform now and grow the other later. See
 [What is a plugin?](/plugin/what-is-a-plugin) for why that's a complete,
 valid plugin at every stage, not a half-finished one.
 
 ## What's in each file
 
-- **`package.json`** — a normal npm package manifest. `name`, a `dist/`
-  build output, and a dependency on `@wefter/core`.
-- **`plugin.json`** — the manifest every validation step reads. Full
+- **`package.json`**: a normal npm package manifest. `name`, a `dist/`
+  build output, and a dependency on `@wefterjs/core`.
+- **`plugin.json`**: the manifest every validation step reads. Full
   field-by-field reference: [`plugin-json-reference`](/plugin/plugin-json-reference).
-- **`src/index.ts`** — what an app actually imports. See
+- **`src/index.ts`**: what an app actually imports. See
   [`writing-the-js-side`](/plugin/writing-the-js-side) and
   [`core-for-plugin-authors`](/plugin/core-for-plugin-authors).
-- **`android/*.kt`** — one or more Kotlin files, all extending
+- **`android/*.kt`**: one or more Kotlin files, all extending
   `WefterPlugin`. See [`writing-the-kotlin-side`](/plugin/writing-the-kotlin-side).
-- **`ios/*.swift`** — one or more Swift files, all extending
+- **`ios/*.swift`**: one or more Swift files, all extending
   `WefterPlugin`. See [`writing-the-swift-side`](/plugin/writing-the-swift-side).

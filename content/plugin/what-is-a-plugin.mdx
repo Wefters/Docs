@@ -19,25 +19,25 @@ some-plugin/
 
 At least one of `android/` or `ios/` has to exist; neither is mandatory on
 its own. A camera plugin that only works on Android today is a complete,
-valid plugin — it simply doesn't have an `ios/` folder yet, and nothing in
+valid plugin: it simply doesn't have an `ios/` folder yet, and nothing in
 the system treats that as broken or half-finished. `wefter plugin
 validate` passes it. `wefter add` installs it. Calling it from an iOS
 build just rejects with `UNKNOWN_PLUGIN`, the same clean rejection you'd
-get for any plugin name that isn't declared at all — see
+get for any plugin name that isn't declared at all. See
 [Plugin anatomy](/plugin/plugin-anatomy) for all three valid shapes.
 
 ## When to actually build one
 
 The temptation to reach for a plugin when a plugin isn't needed is real,
 and worth resisting. Anything that's just talking to a remote API doesn't
-need one — that's what `fetch()` is for, running in your own JS, no
+need one, that's what `fetch()` is for, running in your own JS, no
 bridge involved at all.
 
 A plugin exists specifically for the boundary between JavaScript and
 something only the operating system can do: reading a sensor, accessing
 the camera, writing to secure device storage, showing a native permission
 dialog. If a feature doesn't cross that boundary, it doesn't belong in a
-plugin — it belongs in your app's own JS, same as it would on the web.
+plugin, it belongs in your app's own JS, same as it would on the web.
 
 <Callout type="info">
   A useful test: could this run, unmodified, in a plain browser tab? If

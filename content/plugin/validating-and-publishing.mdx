@@ -6,19 +6,19 @@ description: One validation core behind three commands, what failure actually co
 ## One implementation, three entry points
 
 `wefter plugin validate`, `wefter add`, and `wefter sync` all run the
-exact same function — `validatePluginDirectory` in
-`@wefter/registry-codegen` — not three versions of similar logic that
+exact same function, `validatePluginDirectory` in
+`@wefterjs/registry-codegen`, not three versions of similar logic that
 could quietly drift apart from each other over time. Full step-by-step
 breakdown of what it checks, in order, with the exact failure messages
 for each step: [`wefter plugin validate`](/cli/plugin-validate) on the
 CLI tab. In short, in order:
 
 1. `plugin.json` exists.
-2. `plugin.json` matches the schema — see
+2. `plugin.json` matches the schema. See
    [`plugin-json-reference`](/plugin/plugin-json-reference).
 3. At least one of `android/`/`ios/` exists.
 4. Every `@WefterMethod`/`@WefterHook` signature is well-formed, per
-   platform that exists — see [`@WefterMethod`](/plugin/wefter-method)
+   platform that exists. See [`@WefterMethod`](/plugin/wefter-method)
    and [`@WefterHook`](/plugin/wefter-hook).
 5. `plugin.json`'s declared `methods`/`hooks` agree with what's actually
    in source, checked independently per platform.
@@ -26,23 +26,23 @@ CLI tab. In short, in order:
 Android also gets one more check folded into this same validation: if
 `permissions.android` declares anything from Android's own
 dangerous-permission list, your Kotlin source must contain the literal
-string `"PERMISSION_DENIED"` somewhere, or validation fails — the
-enforced half of [`permissions`](/plugin/permissions)'s working loop.
+string `"PERMISSION_DENIED"` somewhere, or validation fails. That's
+the enforced half of [`permissions`](/plugin/permissions)'s working loop.
 
 ## What failure actually costs you
 
 Run `wefter plugin validate ./your-plugin` standalone, any time, with no
-app project required around it at all — the fast local loop while you're
+app project required around it at all, the fast local loop while you're
 still writing the plugin.
 
 The real stakes show up at `wefter add`. It installs your package first,
 *then* validates it, then declares it in the consuming app's
-`wefter.config.json` — all or nothing. If validation fails on any
+`wefter.config.json`, all or nothing. If validation fails on any
 platform your plugin claims to support, the package is still sitting in
 `node_modules`, but `wefter.config.json` is left completely untouched. No
 partial declaration, no half-added state for a bad plugin to sneak into
 a real app through. This is the actual bar your published package has to
-clear before anyone can use it — not a soft recommendation a plugin
+clear before anyone can use it, not a soft recommendation a plugin
 author can choose to skip past.
 
 <Callout type="info">
@@ -58,7 +58,7 @@ author can choose to skip past.
 Once your plugin passes validation standalone, on every platform it
 claims to support, publishing it is ordinary npm:
 
-- **Scope your package name** — `@yourorg/plugin-name`, matching what
+- **Scope your package name**: `@yourorg/plugin-name`, matching what
   `wefter create-plugin` scaffolds into `package.json` by default. This
   is what an app author will actually run `wefter add @yourorg/plugin-name`
   against.
@@ -66,11 +66,11 @@ claims to support, publishing it is ordinary npm:
   `ios/`, `README.md`. Everything `wefter add`/`wefter sync` actually
   read has to ship in the published package, not just exist in your
   repo.
-- **Exclude:** `src/`, tests, and anything under your own build tooling —
-  none of it is read by `wefter add`/`wefter sync`, and shipping it just
+- **Exclude:** `src/`, tests, and anything under your own build tooling.
+  None of it is read by `wefter add`/`wefter sync`, and shipping it just
   adds install size for no benefit to whoever consumes your plugin.
 - **Version deliberately.** `wefter.lock.json` records the exact resolved
-  version and a content-integrity hash of every synced plugin — see the
+  version and a content-integrity hash of every synced plugin. See the
   Docs tab's [Plugin Registry](/docs/plugin-registry#wefterlockjson) page
   for exactly what that hash covers and what triggers drift on the
   consuming side.

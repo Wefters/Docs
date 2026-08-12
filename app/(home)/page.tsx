@@ -17,7 +17,7 @@ const steps = [
     number: "03",
     title: "wefter sync weaves it into a real native project",
     description:
-      "Native source gets copied in, dependencies and permissions get merged, and a typed registry gets generated, all inside a disposable project you never hand-edit — for every platform you've configured.",
+      "Native source gets copied in, dependencies and permissions get merged, and a typed registry gets generated, all inside a disposable project you never hand-edit, for both platforms.",
   },
   {
     number: "04",
@@ -119,9 +119,9 @@ export default function HomePage() {
           </div>
           <pre className="overflow-x-auto px-4 py-4 text-sm">
             <code className="text-fd-foreground">
-              <span className="text-fd-muted-foreground">$</span> npx wefter add @wefter/plugin-device-info{"\n"}
+              <span className="text-fd-muted-foreground">$</span> npx wefter add @yourorg/scanner-plugin{"\n"}
               <span className="text-fd-muted-foreground">$</span> npx wefter run android --watch{"\n"}
-              <span className="text-fd-muted-foreground"># swap android for ios — same command</span>
+              <span className="text-fd-muted-foreground"># swap android for ios, same command</span>
             </code>
           </pre>
         </div>

@@ -18,9 +18,9 @@ device or emulator ready to go.
 
 ## 1. Install the CLI and core package
 
-Two separate packages doing two separate jobs. `@wefter/cli` is the
-command-line tool itself, the thing that reads your config and drives
-`sync`, `build`, and `run`. `@wefter/core` is the runtime library that
+These are two separate packages doing two separate jobs. `@wefterjs/cli` is
+the command-line tool itself, the thing that reads your config and drives
+`sync`, `build`, and `run`. `@wefterjs/core` is the runtime library that
 actually ships inside your compiled app, giving your JS code `invokeNative`
 and `registerHook` to talk to native plugins. The CLI is a dev dependency
 since it never runs on the device, and core is a real dependency since your
@@ -29,8 +29,8 @@ app needs it at runtime.
 In your web app's project, or a fresh one:
 
 ```bash
-pnpm add -D @wefter/cli
-pnpm add @wefter/core
+pnpm add -D @wefterjs/cli
+pnpm add @wefterjs/core
 ```
 
 ## 2. Create `wefter.config.json`

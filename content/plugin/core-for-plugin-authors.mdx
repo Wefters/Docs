@@ -1,87 +1,86 @@
 ---
-title: "@wefter/core for plugin authors"
-description: invokeNative, registerHook, and definePlugin — from the angle of writing your own wrapper.
+title: "@wefterjs/core for plugin authors"
+description: invokeNative, registerHook, and definePlugin, from the angle of writing your own wrapper.
 ---
 
 `invokeNative` and `registerHook` are already documented on the Docs
 tab's [JavaScript APIs](/docs/javascript-apis) page, from the angle of an
 app calling into a plugin. This page is the other angle: you're the one
-writing the wrapper an app will call. Cross-link freely — a reader
+writing the wrapper an app will call. Cross-link freely, a reader
 landing on either page should be able to find the other without
 guessing which tab it lives on.
 
 ## The shortcut: `definePlugin`
 
-For the common case — a plugin whose methods are all plain
-call-and-response, no events — `@wefter/core` ships a helper that skips
+For the common case, a plugin whose methods are all plain
+call-and-response, no events, `@wefterjs/core` ships a helper that skips
 writing `invokeNative` calls by hand entirely:
 
 ```ts
-import { definePlugin } from "@wefter/core";
+import { definePlugin } from "@wefterjs/core";
 
-export interface DeviceInfo {
-  platform: string;
-  osVersion: string;
+export interface SensorReading {
+  value: number;
 }
 
-export const Device = definePlugin<{ getInfo: () => Promise<DeviceInfo> }>(
-  "device-info",
-  { getInfo: true },
+export const Sensor = definePlugin<{ read: () => Promise<SensorReading> }>(
+  "sensor",
+  { read: true },
 );
 ```
 
 `definePlugin(pluginName, methodSignatures)` takes your plugin's name and
 an object whose keys are the method names you want exposed (each mapped
-to `true` — the value itself doesn't matter, only the key), and returns
+to `true`, the value itself doesn't matter, only the key), and returns
 an object with one function per key, each just a thin call to
 `invokeNative(pluginName, methodName, payload)`. A method typed to take
-no arguments is genuinely callable with no arguments — you're never
+no arguments is genuinely callable with no arguments; you're never
 forced to pass `undefined` just to satisfy the type. This is the
 recommended starting point for a plugin whose JS surface is nothing but
 request/response methods.
 
 ## When you still need to write it by hand: events
 
-`definePlugin` only covers `invokeNative`-backed methods — it has no
+`definePlugin` only covers `invokeNative`-backed methods, it has no
 concept of hooks or events, so a plugin that pushes data to JS (see
 [architecture-flow's event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener))
 still needs a manually-added `.on()`-style method built on `registerHook`.
 Spread `definePlugin`'s output and add the rest yourself:
 
 ```ts
-import { definePlugin, registerHook } from "@wefter/core";
+import { definePlugin, registerHook } from "@wefterjs/core";
 
-export interface PingResult {
-  pong: boolean;
+export interface SensorReading {
+  value: number;
 }
 
-export interface TickEvent {
-  count: number;
+export interface SensorEvent {
+  value: number;
 }
 
-export const PingTest = {
-  ...definePlugin<{ ping: () => Promise<PingResult> }>("ping-test", { ping: true }),
+export const Sensor = {
+  ...definePlugin<{ read: () => Promise<SensorReading> }>("sensor", { read: true }),
 
-  on(event: "tick", callback: (data: TickEvent) => void): { remove(): void } {
-    return registerHook("tick", callback as (data: unknown) => void);
+  on(event: "reading", callback: (data: SensorEvent) => void): { remove(): void } {
+    return registerHook("reading", callback as (data: unknown) => void);
   },
 };
 ```
 
-`registerHook(hookName, callback)` returns `{ remove(): void }` —
-forward that return value out of your own `.on()` method rather than
+`registerHook(hookName, callback)` returns `{ remove(): void }`.
+Forward that return value out of your own `.on()` method rather than
 swallowing it, so whoever calls your plugin can clean up their listener
 the same way they'd clean up any other subscription.
 
 ## Reaching for `invokeNative` directly
 
-For anything `definePlugin`'s all-or-nothing method list doesn't fit —
+For anything `definePlugin`'s all-or-nothing method list doesn't fit,
 per-call `AbortSignal`/`timeoutMs` options, or a method whose payload
-shape needs runtime validation before it goes over the bridge — call
+shape needs runtime validation before it goes over the bridge, call
 `invokeNative` yourself, exactly as `definePlugin` does internally:
 
 ```ts
-import { invokeNative } from "@wefter/core";
+import { invokeNative } from "@wefterjs/core";
 
 export const Scanner = {
   open(options: { timeoutMs?: number } = {}): Promise<{ started: boolean }> {
@@ -92,5 +91,5 @@ export const Scanner = {
 
 Every rejection from either approach is the same
 [`WefterBridgeError`](/plugin/structured-errors) an app calling your
-plugin can branch on — your wrapper doesn't need to translate or wrap
+plugin can branch on. Your wrapper doesn't need to translate or wrap
 errors itself; let them pass through.

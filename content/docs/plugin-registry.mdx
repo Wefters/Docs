@@ -6,9 +6,9 @@ description: How native plugins get woven into your app, and why nothing is auto
 A Wefter plugin pairs a JS package (what your web app imports) with native
 source for whichever platform(s) it supports (`android/*.kt`, `ios/*.swift`,
 or both). `wefter sync` is what fuses these into your generated native
-project, for every platform you've configured.
+project, for both platforms.
 
-## Explicit-only — no auto-detection
+## Explicit only, no auto-detection
 
 `sync` reads exactly the `plugins` array in `wefter.config.json` and
 resolves each entry from `node_modules`. It never scans `node_modules`
@@ -22,7 +22,7 @@ because it happens to be installed somewhere in your tree.
 
 ```json
 {
-  "plugins": ["@wefter/plugin-device-info", "@wefter/plugin-ping-test"]
+  "plugins": ["@yourorg/scanner-plugin", "@yourorg/storage-plugin"]
 }
 ```
 
@@ -39,15 +39,15 @@ plugins/scanner/
 └── ios/ScannerPlugin.swift     ← optional, at least one of the two required
 ```
 
-`sync` weaves in whichever platform folders are present, for whichever
-platform you're currently building. A plugin declaring only `android/`
-still works fine in an Android-only project; calling that plugin's method
-from an iOS build it doesn't implement rejects with a clear
-`UNKNOWN_PLUGIN` error rather than silently doing nothing.
+`sync` weaves in whichever platform folders each plugin ships, into both
+the Android and iOS projects it generates. A plugin declaring only
+`android/` still works fine in an Android-only project; calling that
+plugin's method from an iOS build it doesn't implement rejects with a
+clear `UNKNOWN_PLUGIN` error rather than silently doing nothing.
 
 ## What `sync` actually does
 
-For each declared plugin, per configured platform, `sync`:
+For each declared plugin, `sync`:
 
 1. Resolves the package directory and reads `plugin.json`.
 2. Verifies the package against `wefter.lock.json` (see below).
@@ -56,7 +56,7 @@ For each declared plugin, per configured platform, `sync`:
    cross-checks them against `plugin.json`'s declared `methods`/`hooks`. A
    mismatch fails the sync loudly.
 4. Regenerates the native project's plugin registry from scratch, for
-   every configured platform.
+   both platforms.
 
 `sync` is not incremental or additive. Every run rebuilds the generated
 registry from your current config, for every platform, so there's no
@@ -79,7 +79,7 @@ a bad plugin never silently becomes part of your app.
 ```json
 {
   "plugins": {
-    "device-info": {
+    "scanner": {
       "resolved": "0.0.1",
       "integrity": "sha256-b74045472a2336e36fe54a6c9310507e5968064b597a269d963fbd296ebb2403"
     }
@@ -98,8 +98,10 @@ resolved didn't" case worth double-checking when reading a diff.
 
 Records the exact resolved version and content hash of every synced
 plugin, and is meant to be committed to version control. `sync` fails if a
-plugin's installed content no longer matches its lock entry. Pass
-`--update-lock` to intentionally accept the drift and re-lock.
+plugin's installed version no longer matches its lock entry (the
+`integrity` hash is recorded for you to check by hand, not compared
+automatically). Pass `--update-lock` to intentionally accept the drift and
+re-lock.
 
 Plugin-authoring depth, the native base classes, method/hook annotations,
 and `plugin.json`'s full schema for both platforms, lives on the

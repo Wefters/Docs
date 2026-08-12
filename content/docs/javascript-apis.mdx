@@ -1,9 +1,9 @@
 ---
 title: JavaScript APIs
-description: "@wefter/core's public surface — everything your app code can call directly."
+description: "@wefterjs/core's public surface: everything your app code can call directly."
 ---
 
-`@wefter/core` is what your app imports to talk to native plugins and check
+`@wefterjs/core` is what your app imports to talk to native plugins and check
 on the state of the bridge itself. Most of the time, you won't call these
 functions directly. A plugin you've added, like a camera or storage plugin,
 exposes its own functions (`Scanner.open()`, `Storage.get()`) that call into
@@ -28,14 +28,12 @@ Calls a single native method and returns its result as a Promise. This is
 the function every plugin's own wrapper calls internally, so you'll mostly
 encounter it secondhand through a plugin's own API, but it's fully public
 and safe to call yourself for anything that doesn't have a dedicated
-wrapper. [`hideSplash`](#hidesplash), below, is one such built-in system
-call with its own wrapper.
+wrapper. [`hideSplash`](#hidesplash) and [`getDeviceInfo`](#getdeviceinfo),
+below, are built-in system calls with their own wrapper; `isDebug` isn't,
+so it's a real example of reaching for `invokeNative` directly:
 
 ```ts
-const info = await invokeNative<{ platform: string; osVersion: string }>(
-  "device-info",
-  "getInfo",
-);
+const { debug } = await invokeNative<{ debug: boolean }>("__system", "isDebug");
 ```
 
 The call rejects, never hangs, in three situations: the native side takes
@@ -74,18 +72,47 @@ same way any other `invokeNative` call does, most notably with
 when no splash is configured; the native side just no-ops.
 
 ```ts
-import { hideSplash } from "@wefter/core";
+import { hideSplash } from "@wefterjs/core";
 
 renderApp();
 await hideSplash();
 ```
 
 Call it from your main app once your first screen has actually
-rendered, not from inside the splash HTML itself — the splash WebView
+rendered, not from inside the splash HTML itself. The splash WebView
 has no bridge access, so it has no way to call this on its own. See
 [App Splash Screen](/docs/app-splash-screen#dismissal) for the full
 dismissal model, including `minDuration`/`maxDuration` and the
 `dismissOn: "timer"` alternative that ignores this call entirely.
+
+## `getDeviceInfo`
+
+```ts
+interface DeviceInfo {
+  platform: string;
+  osVersion: string;
+}
+
+function getDeviceInfo(): Promise<DeviceInfo>;
+```
+
+Returns the OS platform and version straight from the native side:
+`android.os.Build.VERSION.RELEASE` on Android, `UIDevice.current.systemVersion`
+on iOS. This is a built-in system capability, not a plugin: it works in
+every Wefter app with no `wefter add` and no entry in `wefter.config.json`.
+A thin wrapper around `invokeNative("__system", "getDeviceInfo", {})`.
+
+```ts
+import { getDeviceInfo } from "@wefterjs/core";
+
+const { platform, osVersion } = await getDeviceInfo();
+```
+
+This is different from [`getPlatformInfo`](#getplatforminfo), below:
+`getPlatformInfo` is a synchronous, JS-only check with no native round-trip,
+and doesn't know the real OS version. `getDeviceInfo` actually asks the
+native side, so it's async and returns the version that's actually
+installed on the device.
 
 ## `registerHook`
 
@@ -146,7 +173,7 @@ feature or show a fallback instead of letting a call to it fail.
 
 ```ts
 if (isNativeBridgeAvailable()) {
-  const info = await invokeNative("device-info", "getInfo");
+  const info = await getDeviceInfo();
 } else {
   console.log("Running in browser preview, native features unavailable");
 }
@@ -163,7 +190,7 @@ function getPlatformInfo(): {
 ```
 
 Returns three things about the environment your app is currently running
-in: which platform it's on, the installed version of `@wefter/core`, and
+in: which platform it's on, the installed version of `@wefterjs/core`, and
 which entry from your `wefter.config.json` `environments` block the current
 build was made for, `development` or `production`, or whatever names you've
 configured. That last one is useful for anything you want to behave
@@ -223,21 +250,22 @@ try {
 
 ## Testing your app's plugin usage
 
-From `@wefter/core/testing`, for testing your own components that call
+From `@wefterjs/core/testing`, for testing your own components that call
 plugins, without needing a real device or emulator running:
 
 ```ts
-import { installMockBridge, uninstallMockBridge } from "@wefter/core/testing";
+import { installMockBridge, uninstallMockBridge } from "@wefterjs/core/testing";
+import { getDeviceInfo } from "@wefterjs/core";
 
 installMockBridge({
-  "device-info": async (method, payload) => {
-    if (method === "getInfo") return { platform: "android", osVersion: "14" };
+  __system: async (method, payload) => {
+    if (method === "getDeviceInfo") return { platform: "android", osVersion: "14" };
     throw new Error(`unhandled method ${method}`);
   },
 });
 
 // render your component, trigger the call, assert against the mocked response
-const result = await invokeNative("device-info", "getInfo");
+const result = await getDeviceInfo();
 expect(result.platform).toBe("android");
 
 uninstallMockBridge();

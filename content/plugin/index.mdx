@@ -7,16 +7,16 @@ description: Plugin anatomy, the native API surface, and a full worked tutorial.
 
 A Wefter plugin pairs a small JS package with real Kotlin and/or Swift
 source, and gives your app a typed, Promise-based call into whatever the
-OS actually offers, a sensor, the camera, secure storage, a native
+OS actually offers: a sensor, the camera, secure storage, a native
 permission dialog. This tab is where that native side lives: how a call
 actually travels from JavaScript to native code and back, every method the
 base classes give you on each platform, and a full worked build from
 nothing to a working plugin.
 
 ```ts
-import { invokeNative } from "@wefter/core";
+import { invokeNative } from "@wefterjs/core";
 
-const info = await invokeNative("device-info", "getInfo");
+const result = await invokeNative("scanner", "open", {});
 ```
 
 If you're building an *app* and just need to add an existing plugin,
@@ -41,7 +41,7 @@ for writing the plugin itself.
   <Card
     title="Plugin anatomy"
     href="/plugin/plugin-anatomy"
-    description="The real, minimal file structure — Android-only, iOS-only, and both."
+    description="The real, minimal file structure: Android-only, iOS-only, and both."
   />
   <Card
     title="Flashlight tutorial"
@@ -54,20 +54,20 @@ for writing the plugin itself.
 
 ## The four groups on this tab
 
-**Overview** — what a plugin is, when to build one, and how a single call
+**Overview**: what a plugin is, when to build one, and how a single call
 or event actually crosses the JS/native boundary, with real function
 names at every step.
 
-**APIs** — the base class every plugin extends on each platform, the
+**APIs**: the base class every plugin extends on each platform, the
 `@WefterMethod`/`@WefterHook` conventions, the structured error codes,
 the permission story (including the one iOS mistake that will crash your
 app, not just fail a call), and the full `plugin.json` schema.
 
-**Creating Plugins** — the practical, hands-on pages: scaffolding a new
+**Creating Plugins**: the practical, hands-on pages, scaffolding a new
 plugin, writing each side (JS, Kotlin, Swift), testing it, and validating
 it before anyone else installs it.
 
-**Tutorials** — two complete builds. One plain call-and-response
+**Tutorials**: two complete builds. One plain call-and-response
 (flashlight), one event-driven (a plugin that pushes data to JS on its
 own schedule), so you have a working reference for both shapes a plugin
 can take.
@@ -88,5 +88,5 @@ describing a false parity you'd only discover was wrong once you went
 looking for the Swift equivalent of something that doesn't exist.
 
 A plugin doesn't have to support both platforms to be complete. One
-shipping only `android/` or only `ios/` is a valid, finished plugin —
-see [What is a plugin?](/plugin/what-is-a-plugin).
+shipping only `android/` or only `ios/` is a valid, finished plugin. See
+[What is a plugin?](/plugin/what-is-a-plugin).

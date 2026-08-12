@@ -1,6 +1,6 @@
 ---
 title: Wefter Docs
-description: Ship native Android and iOS apps as a WebView + native bridge — no interpreter, no separate mobile codebase.
+description: Ship native Android and iOS apps as a WebView + native bridge, no interpreter, no separate mobile codebase.
 ---
 
 # Build native Android and iOS apps with the JavaScript you already know
@@ -14,7 +14,7 @@ maintain. Vue, React, Angular, Svelte, or plain JS, the bridge doesn't
 care which one you bring.
 
 ```bash
-npx wefter add @wefter/plugin-device-info
+npx wefter add @yourorg/scanner-plugin
 npx wefter run android --watch
 ```
 
@@ -64,7 +64,7 @@ through.
   <Card
     title="Environment Setup"
     href="/docs/environment-setup"
-    description="Get your machine ready — Node, JDK, Android SDK, Xcode if you're targeting iOS."
+    description="Get your machine ready: Node, JDK, Android SDK, Xcode if you're targeting iOS."
   />
   <Card
     title="Installing"
@@ -74,7 +74,7 @@ through.
   <Card
     title="App Configuration"
     href="/docs/app-configuration"
-    description="The full wefter.config.json reference — every field, what it controls, and what it defaults to."
+    description="The full wefter.config.json reference: every field, what it controls, and what it defaults to."
   />
 </Cards>
 
@@ -98,8 +98,8 @@ no per-platform branching in your app code. Plugins are written natively
 per platform, but calling one looks identical either way.
 
 **Small on purpose.** No custom rendering engine, no framework runtime
-baked into the shell. The compiled app size is a tracked constraint,
-checked in CI, not an afterthought bolted on after the fact.
+baked into the shell. What ships is your app plus a thin native bridge,
+not a bundled browser or interpreter.
 
 **Native code you can actually read.** The generated project isn't a
 black box, it's a small, readable Kotlin shell on Android and Swift shell

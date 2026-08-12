@@ -1,6 +1,6 @@
 ---
 title: wefter plugin validate
-description: Standalone usage — the same validation core wefter add and wefter sync both run.
+description: Standalone usage, the same validation core wefter add and wefter sync both run.
 ---
 
 ```bash
@@ -9,7 +9,7 @@ wefter plugin validate [pluginDir]
 
 | Argument | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `pluginDir` | positional, optional | current working directory | Directory to validate — a plugin package root, containing `plugin.json` and `android/` and/or `ios/`. |
+| `pluginDir` | positional, optional | current working directory | Directory to validate: a plugin package root, containing `plugin.json` and `android/` and/or `ios/`. |
 
 ```bash
 wefter plugin validate ./secure-storage
@@ -17,7 +17,7 @@ wefter plugin validate ./secure-storage
 
 This is the exact same validation function [`wefter add`](/cli/add) runs
 on a freshly-installed package and [`wefter sync`](/cli/sync) runs on
-every declared plugin before weaving — exposed standalone so a plugin
+every declared plugin before weaving, exposed standalone so a plugin
 author can check their work without a full host app project around it at
 all.
 
@@ -25,7 +25,7 @@ all.
 
 1. **`plugin.json` exists.** Missing entirely fails with `No plugin.json
    found — not a Wefter plugin.`
-2. **`plugin.json` matches the schema** — `name` (required string),
+2. **`plugin.json` matches the schema**: `name` (required string),
    `permissions.android` (string array, defaults to `[]`),
    `permissions.ios` (a record of Info.plist key → usage-description
    string, defaults to `{}`), `nativeDependencies.android.gradle`/
@@ -36,7 +36,7 @@ all.
 3. **At least one of `android/` or `ios/` exists.** Neither present fails
    with `No android/ or ios/ directory found — a Wefter plugin must ship
    native source for at least one platform.` A plugin shipping only one
-   platform is valid — everything below runs only against whichever
+   platform is valid. Everything below runs only against whichever
    directory(ies) actually exist.
 4. **Every `@WefterMethod` and `@WefterHook` signature is well-formed, per
    platform.** All `.kt` files under `android/` are concatenated and
@@ -49,17 +49,20 @@ all.
    ```
    and a well-formed Swift method exactly like:
    ```swift
-   @WefterMethod
+   // @WefterMethod
    func methodName(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
    ```
-   with hooks following the equivalent `@WefterHook("hookName")` shape on
-   each platform. Anything annotated `@WefterMethod`/`@WefterHook` that
-   doesn't match its platform's shape fails with `Malformed @WefterMethod
-   signature at line <n> (android/)` or `... (ios/)` — the suffix tells
-   you which platform's concatenated source the line number refers to.
-   Any malformed signature on either platform stops validation here;
-   consistency (next step) isn't checked until every signature found is
-   clean.
+   Note the `//` on the Swift side: Swift methods and hooks are marked
+   with a plain comment, not a bare annotation, the same convention
+   [`wefter create-plugin`](/cli/create-plugin) scaffolds. Hooks follow
+   the equivalent shape on each platform: Kotlin's
+   `@WefterHook("hookName")` and Swift's `// @WefterHook("hookName")`.
+   Anything annotated `@WefterMethod`/`@WefterHook` that doesn't match its
+   platform's shape fails with `Malformed @WefterMethod signature at line
+   <n> (android/)` or `... (ios/)`, the suffix tells you which platform's
+   concatenated source the line number refers to. Any malformed signature
+   on either platform stops validation here; consistency (next step)
+   isn't checked until every signature found is clean.
 5. **`plugin.json` and source agree on `methods`/`hooks`, per platform.**
    For each of `android/`/`ios/` that exists, the `methods`/`hooks`
    actually found via `@WefterMethod`/`@WefterHook` in *that platform's*
@@ -67,19 +70,31 @@ all.
    ```
    Plugin "secure-storage": plugin.json's "methods" declares [store, retrieve] but source has [store]. Missing: [retrieve]. Undeclared: [].
    ```
-   Both directions are checked — a method declared in `plugin.json` but
+   Both directions are checked: a method declared in `plugin.json` but
    missing from source, and a method present in source but never
    declared. Because the same declared list is checked against each
    platform independently, a method you declare in `plugin.json` must be
    implemented on **every** platform the plugin ships native source for,
-   not just one — there's no way to declare a method as Android-only (or
+   not just one. There's no way to declare a method as Android-only (or
    iOS-only) in `plugin.json` itself.
+6. **(Android only) Dangerous permissions have a rejection handler.** If
+   `plugin.json` declares any Android permission from an internal list of
+   sensitive permissions (camera, precise/coarse/background location,
+   contacts, SMS, call log, body sensors, and similar), the plugin's
+   Kotlin source must contain the literal string `PERMISSION_DENIED`
+   somewhere, or validation fails with:
+   ```
+   Plugin "<name>" declares dangerous Android permission(s) (<list>) but no method rejects with "PERMISSION_DENIED" — a denied permission would likely hang or crash instead of failing cleanly. (This is a string match on the source, not a guarantee the handling is correct.)
+   ```
+   As that message says, this is a plain string match, not proof the
+   handling actually does the right thing. There's no iOS equivalent of
+   this check.
 
 <Callout type="info">
   Step 5 only runs, per platform, once `plugin.json` actually declares at
   least one method or hook. An empty `methods: []`/`hooks: []` doesn't
-  force your source to have zero `@WefterMethod`/`@WefterHook` functions —
-  the check activates the moment you start declaring, not before.
+  force your source to have zero `@WefterMethod`/`@WefterHook` functions.
+  The check activates the moment you start declaring, not before.
 </Callout>
 
 ## Output
@@ -102,7 +117,7 @@ with `process.exitCode = 0`.
 ## Where this fits
 
 [`wefter create-plugin`](/cli/create-plugin) scaffolds a plugin that
-passes this validation as-shipped — running `plugin validate` right after
+passes this validation as-shipped. Running `plugin validate` right after
 scaffolding (or after any edit) is the fast standalone check, before
 ever installing the plugin into a real app with [`wefter
 add`](/cli/add).

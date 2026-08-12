@@ -1,6 +1,6 @@
 ---
 title: wefter add
-description: The validation-gate explanation — install, validate, then declare or reject.
+description: The validation-gate explanation, install, validate, then declare or reject.
 ---
 
 ```bash
@@ -9,18 +9,18 @@ wefter add <plugin> [projectDir]
 
 | Argument | Type | Purpose |
 | --- | --- | --- |
-| `plugin` | positional, required | An npm package spec: `name` or `name@version` (e.g. `@wefter/plugin-device-info` or `some-plugin@1.2.0`). Scoped and unscoped names both accepted. |
+| `plugin` | positional, required | An npm package spec: `name` or `name@version` (e.g. `@yourorg/scanner-plugin` or `some-plugin@1.2.0`). Scoped and unscoped names both accepted. |
 | `projectDir` | positional, optional, default current working directory | Project root. |
 
 ```bash
-wefter add @wefter/plugin-device-info
+wefter add @yourorg/scanner-plugin
 wefter add some-plugin@1.2.0
 ```
 
 An invalid-looking spec is rejected before anything runs: `"<spec>"
 doesn't look like a valid npm package name.`
 
-## Install → validate → declare, or reject — never partial
+## Install → validate → declare, or reject: never partial
 
 `add` is deliberately all-or-nothing about what ends up in
 `wefter.config.json`, in this exact order:
@@ -29,22 +29,22 @@ doesn't look like a valid npm package name.`
    and validated before `add` touches anything, so a broken config fails
    immediately rather than after an npm install.
 2. **The package is installed** with `npm install <spec>` inside
-   `projectDir` — note this shells out to `npm` specifically, not
+   `projectDir`. Note this shells out to `npm` specifically, not
    whatever package manager your project otherwise uses.
-3. **The installed package is validated** — the exact same check
+3. **The installed package is validated**, the exact same check
    [`wefter plugin validate`](/cli/plugin-validate) runs standalone: a
    `plugin.json` that matches the schema, at least one of `android/`/`ios/`
    present, no malformed `@WefterMethod`/`@WefterHook` signatures on
    whichever platform(s) it ships, and `plugin.json`'s declared
    `methods`/`hooks` matching what's actually in each platform's source.
 4. **Only if validation passes** does `add` touch `wefter.config.json` at
-   all — appending the plugin's bare package name (not the version spec)
+   all, appending the plugin's bare package name (not the version spec)
    to the `plugins` array and writing the file back out.
 
 ## If validation fails
 
-The package stays installed in `node_modules` — `add` doesn't undo the
-npm install — but `wefter.config.json` is left completely untouched:
+The package stays installed in `node_modules` (`add` doesn't undo the
+npm install), but `wefter.config.json` is left completely untouched:
 
 ```
 @some/bad-plugin failed validation and will NOT be added:
@@ -64,17 +64,17 @@ nothing further and exits `0` with a warning rather than duplicating the
 entry:
 
 ```
-@wefter/plugin-device-info is already declared in wefter.config.json — nothing to add.
+@yourorg/scanner-plugin is already declared in wefter.config.json — nothing to add.
 ```
 
 ## On success
 
 ```
-Validated and added @wefter/plugin-device-info to wefter.config.json.
+Validated and added @yourorg/scanner-plugin to wefter.config.json.
 Run `wefter sync` to weave it into the native project.
 ```
 
-Note that `add` only declares the plugin — it doesn't run `sync` itself.
+Note that `add` only declares the plugin. It doesn't run `sync` itself.
 The plugin isn't actually woven into either native project (Gradle
 deps/permissions/registry on Android, Info.plist permissions/SPM
 deps/registry on iOS) until you run [`wefter sync`](/cli/sync).

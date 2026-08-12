@@ -1,14 +1,14 @@
 ---
 title: "@WefterHook"
-description: Native lifecycle hooks a plugin method can subscribe to — not the JS event-push mechanism.
+description: Native lifecycle hooks a plugin method can subscribe to, not the JS event-push mechanism.
 ---
 
 <Callout type="warn">
-  `@WefterHook` is not how a plugin pushes data to JS — that's `emit`,
+  `@WefterHook` is not how a plugin pushes data to JS, that's `emit`,
   covered on [`wefter-plugin-class`](/plugin/wefter-plugin-class) and
   [architecture-flow's event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener),
   and it needs no annotation at all. `@WefterHook` subscribes a no-argument
-  method to a *native-side* lifecycle signal — one native component
+  method to a *native-side* lifecycle signal: one native component
   telling another "this happened," with no JS involved and no data
   payload. The two mechanisms share the word "hook" and nothing else.
 </Callout>
@@ -29,7 +29,7 @@ func onAppReady() {
 }
 ```
 
-The method takes no parameters on either platform — a hook is a plain
+The method takes no parameters on either platform, a hook is a plain
 signal, not a data channel. During `wefter sync`, every extracted hook
 gets wired into the generated registry as:
 
@@ -39,7 +39,7 @@ dispatcher.subscribeHook("appReady") { pluginInstance.onAppReady() }
 
 Nothing calls `onAppReady()` until some native code elsewhere calls
 `dispatcher.dispatchHook("appReady")`. That call, and the resulting fan-out
-to every subscriber registered under that name, is the entire mechanism —
+to every subscriber registered under that name, is the entire mechanism:
 there's no queuing, no data, no cross-platform JS visibility.
 
 ## What's actually live today
@@ -49,8 +49,8 @@ there's no queuing, no data, no cross-platform JS visibility.
 WebView finishes its first page load (`WebViewClient.onPageFinished` on
 Android, the equivalent iOS navigation callback), and again any time
 your JS explicitly calls `invokeNative('__system', 'appReady', {})`.
-`"hideSplash"` is narrower and never automatic — it fires only when your
-JS calls `hideSplash()` from `@wefter/core` (a thin wrapper around
+`"hideSplash"` is narrower and never automatic, it fires only when your
+JS calls `hideSplash()` from `@wefterjs/core` (a thin wrapper around
 `invokeNative('__system', 'hideSplash', {})`). Both shells' own
 splash-dismissal logic subscribes to `"hideSplash"` internally
 (`dispatcher.subscribeHook("hideSplash") { dismissSplash() }`), which is
@@ -58,15 +58,15 @@ why that hook exists at all; `"appReady"` predates it and stays the
 general-purpose one available to any plugin. See [App Splash
 Screen](/docs/app-splash-screen#dismissal) for the full dismissal model.
 
-**General lifecycle hooks — `onPause`, `onResume` — are not wired to
+**General lifecycle hooks, `onPause`, `onResume`, are not wired to
 anything real yet.** The `subscribeHook`/`dispatchHook` plumbing itself is
 implemented and unit-tested (Android's `BridgeDispatcherTest.kt` proves
 subscribers fire correctly, using `"onPause"` purely as an illustrative
 hook name), but no Android `Activity` lifecycle callback and no iOS
 `Scene`/`AppDelegate` method actually calls `dispatchHook("onPause")` or
 `dispatchHook("onResume")` in the current shells. You can declare
-`@WefterHook("onPause")` on a plugin today — it validates, extracts, and
-wires into `subscribeHook` exactly like `"appReady"` does — but nothing
+`@WefterHook("onPause")` on a plugin today, it validates, extracts, and
+wires into `subscribeHook` exactly like `"appReady"` does, but nothing
 will ever call it. This is deliberately deferred, waiting on a real
 consumer (a camera plugin needing to release hardware when the app
 backgrounds is the anticipated one) to justify wiring the actual
@@ -76,7 +76,7 @@ backgrounds is the anticipated one) to justify wiring the actual
   This status is also stated on
   [architecture-flow](/plugin/architecture-flow#native-lifecycle-hooks-wefterhook-subscribehook-dispatchhook).
   The two pages describe the same fact from two angles and need to be
-  updated together the moment it changes in the real codebase — never
+  updated together the moment it changes in the real codebase, never
   just one.
 </Callout>
 

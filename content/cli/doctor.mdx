@@ -26,7 +26,7 @@ together at the end, not one at a time.
 - JDK version (17 required)
 - A device or emulator is currently connected
 
-**iOS checks — run every time, on every platform:**
+**iOS checks (run every time, on every platform):**
 
 - Running on macOS at all
 - Xcode is installed (`xcodebuild -version`)
@@ -40,7 +40,7 @@ Each failing check prints a concrete fix, not just a pass or fail.
   These four checks run unconditionally, they are **not** skipped on
   Linux/Windows. Off macOS, `checkMacOS` fails, and the three Xcode/Simulator
   checks each short-circuit straight to `passed: false` with `fix: "requires
-  macOS"` — a fix you can't actually act on. Since `wefter doctor`'s overall
+  macOS"`, a fix you can't actually act on. Since `wefter doctor`'s overall
   pass/fail requires every check to pass, **`wefter doctor` currently always
   exits `1` on a non-macOS machine**, even with a perfectly working
   Android-only setup. There's no "Android-only mode" that silences these yet.
@@ -54,22 +54,22 @@ Extends the base checks with the release-signing checks for **both**
 platforms, unconditionally, not only the platform(s) you've actually
 configured signing for:
 
-- **Release security lint** (Android) and **iOS release security lint** —
-  runs regardless of signing config; see [`wefter sync`](/cli/sync).
-- **Android**: fails on "Signing config" if `wefter.config.json` has no
-  `signing` block at all (`keystorePath`, `keyAlias`). If it does, also
-  checks the keystore file exists at `keystorePath`, and that
-  `WEFTER_KEYSTORE_PASSWORD` is set.
-- **iOS**: fails on "iOS signing config" if `wefter.config.json` has no
-  `iosSigning` block at all (`teamId`, optional `provisioningProfile`). If
-  it does, also checks `WEFTER_IOS_SIGNING_IDENTITY` is set.
+Both platforms' release security lints run regardless of signing config
+(see [`wefter sync`](/cli/sync)). Beyond that, each platform checks its
+own signing setup. Android fails on "Signing config" if
+`wefter.config.json` has no `signing` block at all (`keystorePath`,
+`keyAlias`); if it does, it also checks that the keystore file exists at
+`keystorePath` and that `WEFTER_KEYSTORE_PASSWORD` is set. iOS fails on
+"iOS signing config" if `wefter.config.json` has no `iosSigning` block at
+all (`teamId`, optional `provisioningProfile`); if it does, it also
+checks that `WEFTER_IOS_SIGNING_IDENTITY` is set.
 
 ```bash
 wefter doctor --release-readiness
 ```
 
 <Callout type="info">
-  There's no per-platform opt-out — if you only ship Android and have never
+  There's no per-platform opt-out. If you only ship Android and have never
   configured `iosSigning`, `--release-readiness` still reports "iOS signing
   config" as a failure demanding one. `iosSigning.teamId` is a config value,
   not an env var: nothing here reads a `WEFTER_IOS_TEAM_ID` env var, the CLI

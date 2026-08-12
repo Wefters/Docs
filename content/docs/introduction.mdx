@@ -18,9 +18,9 @@ storage, biometrics, and anything else exposed through a plugin, called
 directly from your JS through a single typed bridge function.
 
 ```ts
-import { invokeNative } from "@wefter/core";
+import { invokeNative } from "@wefterjs/core";
 
-const info = await invokeNative("device-info", "getInfo");
+const result = await invokeNative("scanner", "open", {});
 ```
 
 There's no backend interpreter running underneath your app, no local

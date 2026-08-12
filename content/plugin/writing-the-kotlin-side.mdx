@@ -1,6 +1,6 @@
 ---
 title: Writing the Kotlin side
-description: One complete, real plugin — base class, @WefterMethod, @WefterHook, and a full permission flow together.
+description: One complete, real plugin, base class, @WefterMethod, @WefterHook, and a full permission flow together.
 ---
 
 One file, everything together, meant to be copied and actually work, not
@@ -62,16 +62,16 @@ class ScannerPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlug
 ## What each piece is actually doing
 
 `open` is the permission flow from [`permissions`](/plugin/permissions)
-verbatim — check `hasPermission` first, `requestPermission` only if
+verbatim: check `hasPermission` first, `requestPermission` only if
 needed, resolve or reject with `PERMISSION_DENIED` from the real
 callback result, never a request code you invented yourself. `close` is
 the simplest possible `@WefterMethod`: no branching, just `resolve`.
 
 `onAppReady`, marked `@WefterHook("appReady")`, is unrelated to
-`open`/`close` entirely — it's not called in response to anything JS
+`open`/`close` entirely, it's not called in response to anything JS
 asks for. It fires once `wefter sync` has wired it into
 `dispatcher.subscribeHook("appReady") { scannerPlugin.onAppReady() }`,
-and something native calls `dispatcher.dispatchHook("appReady")` — which,
+and something native calls `dispatcher.dispatchHook("appReady")`, which,
 right now, is the only hook name either shell actually dispatches. See
 [`@WefterHook`](/plugin/wefter-hook) for exactly what is and isn't wired
 today before reaching for a different hook name.
@@ -82,12 +82,12 @@ This one file uses two of the three mechanisms
 [architecture-flow](/plugin/architecture-flow) covers, deliberately kept
 distinct:
 
-- **`@WefterMethod`** (`open`, `close`) — JS calls it, gets a Promise
+- **`@WefterMethod`** (`open`, `close`): JS calls it, gets a Promise
   back. Request/response.
-- **`@WefterHook`** (`onAppReady`) — native code calls it, no JS
+- **`@WefterHook`** (`onAppReady`): native code calls it, no JS
   involved, no data. A lifecycle signal, not a data channel.
-- **`emit`** — not used in this example, but available on every
-  `WefterPlugin` regardless of `@WefterHook` — push data to JS whenever
+- **`emit`**: not used in this example, but available on every
+  `WefterPlugin` regardless of `@WefterHook`, push data to JS whenever
   your own code decides to, with no annotation needed at all. See
   [`tutorial-event-driven-plugin`](/plugin/tutorial-event-driven-plugin)
   for a plugin built around it.
@@ -95,12 +95,12 @@ distinct:
 ## Never let a permission-gated call hang
 
 Every branch in `open` above calls exactly one of `resolve`/`reject`. A
-path that does neither — an early `return` inside the
+path that does neither, an early `return` inside the
 `requestPermission` callback, a missed `else`, an exception before
-either is reached — leaves the JS-side `Promise` pending until its
+either is reached, leaves the JS-side `Promise` pending until its
 timeout fires, ten seconds later, with a generic `TIMEOUT` instead of the
 real reason. If you throw instead of calling `reject`, that's still
-handled — the dispatcher's own `try/catch` turns it into `PLUGIN_THREW` —
+handled (the dispatcher's own `try/catch` turns it into `PLUGIN_THREW`),
 but an explicit `reject(callback, "SOME_CODE", "...")` always
 communicates more than a caught throw does; prefer it wherever you can
 see the failure coming.

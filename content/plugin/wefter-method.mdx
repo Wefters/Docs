@@ -6,7 +6,7 @@ description: The required signature, both platforms, and what happens when you g
 `@WefterMethod` (Kotlin) and `// @WefterMethod` (Swift) mark which methods
 on your plugin class are callable from JS. Both are read by a plain
 text-scanning step, not runtime reflection, and both require an exact
-signature — get it wrong and `wefter plugin validate` / `wefter sync`
+signature: get it wrong and `wefter plugin validate` / `wefter sync`
 fail loudly, at the line, before your code ever ships.
 
 ## Kotlin: a real annotation, erased before it matters
@@ -18,11 +18,11 @@ annotation class WefterMethod
 ```
 
 `@Retention(AnnotationRetention.SOURCE)` means the Kotlin compiler erases
-`@WefterMethod` entirely once compilation finishes — nothing about it
+`@WefterMethod` entirely once compilation finishes; nothing about it
 survives into the compiled `.class` bytecode. You can confirm this
 yourself: disassemble a compiled plugin class with `javap` and there's no
 trace of the annotation left to find. This is exactly why the framework
-never uses runtime reflection to discover these methods — there's
+never uses runtime reflection to discover these methods, there's
 nothing left at runtime to reflect on. Instead, `wefter sync` and `wefter
 plugin validate` concatenate every `.kt` file under a plugin's `android/`
 and scan the raw text for the pattern.
@@ -36,9 +36,9 @@ fun methodName(payload: JSONObject, callback: (Result<Any>) -> Unit) {
 }
 ```
 
-Anything else — a missing `payload: JSONObject`, a different callback
+Anything else, a missing `payload: JSONObject`, a different callback
 type, the annotation and `fun` separated by something other than
-whitespace — fails validation with:
+whitespace, fails validation with:
 
 ```
 Malformed @WefterMethod signature at line <n> (android/)
@@ -58,7 +58,7 @@ func methodName(payload: [String: Any], callback: @escaping (Result<Any, Error>)
 ```
 
 This isn't a downgrade or a stopgap. Kotlin's annotation was never doing
-anything at runtime either — a comment marker achieves the identical
+anything at runtime either; a comment marker achieves the identical
 practical result through a simpler mechanism, without requiring Swift
 macros, which would have been considerably heavier and more fragile
 across compiler versions for no real benefit. `// @WefterMethod` is the
@@ -67,7 +67,7 @@ one correct, permanent form this marker takes on Swift; there's no
 
 The Swift signature carries one requirement Kotlin's doesn't: `throws`.
 This ties directly into the synchronous-throw guard covered on
-[`structured-errors`](/plugin/structured-errors) — briefly, it's what
+[`structured-errors`](/plugin/structured-errors), briefly, it's what
 lets the dispatcher's `do/catch` turn an unexpected thrown error into a
 clean `PLUGIN_THREW` rejection instead of the call simply never
 responding. Leaving it off fails validation the same way a wrong
@@ -79,7 +79,7 @@ Malformed @WefterMethod signature at line <n> (ios/)
 
 ## What "well-formed" actually means
 
-Validation doesn't try to understand your code — it matches the literal
+Validation doesn't try to understand your code; it matches the literal
 annotation-then-signature pattern shown above, per platform. A method
 correctly written but reachable only through a typo in the annotation
 (`@WeftterMethod`) isn't "malformed," it's simply invisible: it's neither
@@ -87,5 +87,5 @@ extracted nor flagged, and won't appear in `plugin.json`
 consistency-checking at all until the annotation itself is spelled right.
 `wefter plugin validate` only flags a signature as **malformed** when the
 annotation is present and correctly spelled but what follows it doesn't
-match — see [`validating-and-publishing`](/plugin/validating-and-publishing)
+match. See [`validating-and-publishing`](/plugin/validating-and-publishing)
 for the full validation sequence this fits into.

@@ -1,6 +1,6 @@
 ---
 title: wefter run
-description: Syncs, builds, installs, and launches — optionally with hot reload.
+description: Syncs, builds, installs, and launches, optionally with hot reload.
 ---
 
 ## Synopsis
@@ -14,17 +14,15 @@ wefter run <platform> [--watch] [--env <name>] [--simulator <name>] [projectDir]
 
 ## What it does
 
-Requires the project to already be synced — same sync-freshness check and
-refusal as [`wefter build`](/cli/build) if it's missing or stale. `run`
+Requires the project to already be synced (same sync-freshness check and
+refusal as [`wefter build`](/cli/build) if it's missing or stale). `run`
 does **not** call `sync` or the `build` command for you; it builds via the
 same lower-level Gradle/`xcodebuild` invocation `build` uses, then
-installs and launches directly:
-
-- **`android`**: `adb install -r` onto whatever device or emulator is
-  currently connected, then `adb shell am start`.
-- **`ios`**: resolves a Simulator (see `--simulator` below), boots it if
-  it isn't already, then `xcrun simctl install`, then `xcrun simctl
-  launch`.
+installs and launches directly. For `android`, that means `adb install -r`
+onto whatever device or emulator is currently connected, then `adb shell
+am start`. For `ios`, it resolves a Simulator (see `--simulator` below),
+boots it if it isn't already, then `xcrun simctl install`, then `xcrun
+simctl launch`.
 
 ## Options
 
@@ -32,7 +30,7 @@ installs and launches directly:
 | ---------------------- | ----------------------------------------------------------------------------------------------------| ------------- |
 | `--watch`              | Points the app's WebView at a live local dev server instead of the bundled build, for hot reload.   | off           |
 | `--env <name>`         | Which entry under `wefter.config.json`'s `environments` to run.                                     | `development` |
-| `--simulator <name>`  | iOS only: the `xcrun simctl` device name or UDID to boot/install/launch on. Ignored for `android`.  | unset — picks the first available simulator whose name starts with `iPhone` |
+| `--simulator <name>`  | iOS only: the `xcrun simctl` device name or UDID to boot/install/launch on. Ignored for `android`.  | unset (picks the first available simulator whose name starts with `iPhone`) |
 
 ## Examples
 
@@ -74,11 +72,11 @@ Run failed: Project has never been synced. Run `wefter sync` first.
 Run failed: wefter.config.json has changed since the last `wefter sync`. Run `wefter sync` before building.
 ```
 
-(That message says "before building" even here — it's the same shared
+(That message says "before building" even here, it's the same shared
 freshness check `build` uses, word for word.)
 
 An unrecognized `<platform>` fails immediately, before the sync-freshness
-check — and isn't prefixed `Run failed:`, it's rejected by the CLI's own
+check, and isn't prefixed `Run failed:`, it's rejected by the CLI's own
 argument handling:
 
 ```

@@ -1,20 +1,20 @@
 ---
 title: "Tutorial: an event-driven plugin"
-description: A second, deliberately different build — @WefterHook and emit, not call-and-response.
+description: A second, deliberately different build, @WefterHook and emit, not call-and-response.
 ---
 
 [`tutorial-flashlight-plugin`](/plugin/tutorial-flashlight-plugin) was
 pure call-and-response: JS asks, native answers, done. This one is the
-other shape a plugin takes — pushing data to JS on its own schedule,
+other shape a plugin takes: pushing data to JS on its own schedule,
 using `emit`, plus `@WefterHook` for a real reason to use it, not just as
 a demonstration. If you haven't read
-[architecture-flow](/plugin/architecture-flow), read that first — this
+[architecture-flow](/plugin/architecture-flow), read that first. This
 tutorial assumes you already know `@WefterHook` and `emit` are two
 unrelated mechanisms, not variants of each other.
 
 The plugin: **`battery-monitor`**. One method (`getLevel`, plain
 request/response) and one event (`level-changed`, pushed to JS every
-time the OS reports the battery level actually changed) — a realistic
+time the OS reports the battery level actually changed), a realistic
 shape for anything that reports a value once on demand *and* streams
 updates: a sensor, a connection-status watcher, a download-progress
 reporter.
@@ -28,7 +28,7 @@ reporter.
 wefter create-plugin battery-monitor ./plugins
 ```
 
-Same local-folder setup as the flashlight tutorial —
+Same local-folder setup as the flashlight tutorial:
 `"pluginsDir": "plugins"` and `"battery-monitor"` added to
 `wefter.config.json`'s `plugins` array. See
 [Scaffold it](/plugin/tutorial-flashlight-plugin#scaffold-it) if you
@@ -50,7 +50,7 @@ skipped that tutorial.
 ```
 
 `hooks: ["appReady"]` is declared here for a real reason, covered in the
-next step — not because every plugin needs it. Battery level isn't
+next step, not because every plugin needs it. Battery level isn't
 permission-gated on either platform, so both permission blocks stay
 empty, same as the flashlight tutorial.
 
@@ -100,15 +100,15 @@ class BatteryMonitorPlugin(context: Context, dispatcher: BridgeDispatcher) : Wef
 ```
 
 `getLevel` reads Android's sticky `ACTION_BATTERY_CHANGED` intent
-directly — a plain, synchronous request/response, nothing streaming
+directly, a plain, synchronous request/response, nothing streaming
 about it. `onAppReady`, marked `@WefterHook("appReady")`, is where the
-persistent receiver gets registered — deliberately *not* in the
+persistent receiver gets registered, deliberately *not* in the
 constructor. Registering it here means it starts only once the WebView
 has actually signaled ready, which is the real reason to reach for
 `@WefterHook` at all: avoiding work (and battery-changed broadcasts
 emitted into a void) before there's any JS listener around to receive
 them. `emit` itself needs no annotation and isn't tied to the hook in any
-way — the hook just decided *when* to start calling it.
+way; the hook just decided *when* to start calling it.
 
 </Step>
 <Step>
@@ -150,9 +150,9 @@ final class BatteryMonitorPlugin: WefterPlugin {
 ```
 
 Same split: `getLevel` reads `UIDevice.current.batteryLevel` directly,
-`onAppReady` is where the `NotificationCenter` observer — the thing that
-actually calls `emit` — gets installed, for the identical reason as the
-Android side.
+and `onAppReady` is where the `NotificationCenter` observer (the thing
+that actually calls `emit`) gets installed, for the identical reason as
+the Android side.
 
 </Step>
 <Step>
@@ -160,7 +160,7 @@ Android side.
 ## The JS side: a method and a subscription, together
 
 ```ts
-import { definePlugin, registerHook } from "@wefter/core";
+import { definePlugin, registerHook } from "@wefterjs/core";
 
 export interface BatteryLevel {
   percent: number;
@@ -179,7 +179,7 @@ export const BatteryMonitor = {
 
 This is the same pattern
 [`core-for-plugin-authors`](/plugin/core-for-plugin-authors) shows in the
-abstract — `definePlugin` for the request/response half, a hand-written
+abstract: `definePlugin` for the request/response half, a hand-written
 `.on()`-style method wrapping `registerHook` for the streamed half,
 combined in one exported object.
 
@@ -215,13 +215,13 @@ wefter run ios --watch
 <Callout type="warn">
   **The two platforms diverge on what you can actually test without real
   hardware, and for different reasons than the flashlight tutorial.**
-  Android's Emulator genuinely simulates battery state — Extended
+  Android's Emulator genuinely simulates battery state. Extended
   Controls → Battery lets you change the percentage while the app runs,
   and `getLevel`/the live stream both respond to it correctly. The **iOS
-  Simulator does not** — `UIDevice.current.batteryLevel` reliably returns
+  Simulator does not**: `UIDevice.current.batteryLevel` reliably returns
   `-1` there regardless of your Mac's actual battery, so `getLevel` will
   correctly reject with `NOT_AVAILABLE` and the stream will simply never
-  fire. That's a Simulator limitation, not a bug in this plugin — a real
+  fire. That's a Simulator limitation, not a bug in this plugin, a real
   iOS device is the only way to see the iOS side genuinely work.
 </Callout>
 

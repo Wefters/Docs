@@ -14,16 +14,14 @@ else fails immediately with a clear error before any other work starts.
 
 ## What it does
 
-Requires the project to already be synced — see the sync-freshness note
-below — then hands the already-regenerated native project to the real
-platform toolchain:
-
-- **`android`**: invokes Gradle (`./gradlew assemble<Env><Debug|Release>`)
-  against `.wefter/native/android`.
-- **`ios`**: invokes `xcodebuild` against
-  `.wefter/native/ios/WefterBridge.xcodeproj`, targeting the iOS
-  Simulator, debug or release alike. Building for a physical device isn't
-  supported by this command yet, see the note at the bottom of this page.
+Requires the project to already be synced (see the sync-freshness note
+below), then hands the already-regenerated native project to the real
+platform toolchain. For `android`, it invokes Gradle
+(`./gradlew assemble<Env><Debug|Release>`) against `.wefter/native/android`.
+For `ios`, it invokes `xcodebuild` against
+`.wefter/native/ios/WefterBridge.xcodeproj`, targeting the iOS Simulator,
+debug or release alike; building for a physical device isn't supported by
+this command yet, see the note at the bottom of this page.
 
 Neither path reimplements or shortcuts the real toolchain, `wefter build`
 is orchestration around Gradle/`xcodebuild`, not a replacement for either.
@@ -31,7 +29,7 @@ is orchestration around Gradle/`xcodebuild`, not a replacement for either.
 <Callout type="warn">
   `build` does **not** run `sync` for you. It checks a sync marker written
   by the last successful [`wefter sync`](/cli/sync) and refuses to build at
-  all if it's missing or stale — see [Failure modes](#failure-modes) below.
+  all if it's missing or stale (see [Failure modes](#failure-modes) below).
   Run `wefter sync` yourself first, and again any time you change
   `wefter.config.json` or a declared plugin.
 </Callout>
@@ -42,7 +40,7 @@ is orchestration around Gradle/`xcodebuild`, not a replacement for either.
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | `--release`         | Produces a release artifact instead of a debug build. Requires signing config, see [App Configuration](/docs/app-configuration). | `false` (debug build) |
 | `--env <name>`      | Which entry under `wefter.config.json`'s `environments` to build against.                                                               | `development`         |
-| `--simulator <name>` | iOS only: the `xcrun simctl` device name or UDID to build against (affects the `-destination` xcodebuild is invoked with). Ignored for `android`. | unset — a generic Simulator destination, resolved by Xcode itself |
+| `--simulator <name>` | iOS only: the `xcrun simctl` device name or UDID to build against (affects the `-destination` xcodebuild is invoked with). Ignored for `android`. | unset (a generic Simulator destination, resolved by Xcode itself) |
 
 ## Examples
 
@@ -59,14 +57,14 @@ wefter build ios --release --env production
 Release-configuration `.app`, `production` environment, still built for
 the Simulator (see the callout at the bottom of this page). Requires
 `iosSigning` configured in `wefter.config.json` (which supplies the team
-ID) and `WEFTER_IOS_SIGNING_IDENTITY` set — run `wefter doctor
+ID) and `WEFTER_IOS_SIGNING_IDENTITY` set. Run `wefter doctor
 --release-readiness` first to confirm.
 
 ## Output artifact location
 
-Both platforms only ever produce a Simulator-targeted artifact right now
-— `--release` changes the Xcode *configuration* name and applies signing
-build settings, it does not switch iOS to an archive/export flow:
+Both platforms only ever produce a Simulator-targeted artifact right now.
+`--release` changes the Xcode *configuration* name and applies signing
+build settings; it does not switch iOS to an archive/export flow:
 
 | Platform | Debug                                                              | Release                                                             |
 | -------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -91,7 +89,7 @@ Build failed: wefter.config.json has changed since the last `wefter sync`. Run `
 ```
 
 An unrecognized `<platform>` fails immediately, before the sync-freshness
-check or anything else — note this one isn't prefixed `Build failed:`,
+check or anything else. Note this one isn't prefixed `Build failed:`,
 it's rejected by the CLI's own argument handling:
 
 ```
@@ -109,7 +107,7 @@ Build failed: xcodebuild failed with exit code 65
 ```
 
 `xcodebuild`'s own error output (printed above this line, since it streams
-live) is generally less actionable than Gradle's — if a release build
+live) is generally less actionable than Gradle's. If a release build
 fails at the signing step specifically, run `wefter doctor
 --release-readiness` first to rule out a config problem before digging
 into raw `xcodebuild` output.

@@ -3,7 +3,7 @@ title: Writing the JS side
 description: Typing conventions for methods, and the event-naming convention that stops two plugins colliding.
 ---
 
-`src/index.ts` is what an app actually imports — everything native your
+`src/index.ts` is what an app actually imports. Everything native your
 plugin does is only reachable through whatever this file exports. See
 [`core-for-plugin-authors`](/plugin/core-for-plugin-authors) for the
 `definePlugin`/`invokeNative`/`registerHook` mechanics; this page is
@@ -11,7 +11,7 @@ about the conventions around them.
 
 ## Type every payload and every return value
 
-`invokeNative`/`definePlugin` are generic — nothing forces you to type
+`invokeNative`/`definePlugin` are generic. Nothing forces you to type
 either side, but nothing about the bridge is typed for you either, since
 payloads cross as plain JSON. Export a real interface for both:
 
@@ -32,7 +32,7 @@ export const Scanner = {
 ```
 
 An app calling `Scanner.open({ facing: "back" })` gets real autocomplete
-and a real compile error for a typo'd option — none of which exists if
+and a real compile error for a typo'd option, none of which exists if
 `open` is left as `(payload: unknown) => Promise<unknown>`. This matters
 more for a plugin than for typical app code, since the actual shape
 enforcement only exists on the native side, in a different language
@@ -41,8 +41,8 @@ author gets.
 
 ## Name events `pluginName:eventName`
 
-A hook/event name is global across every plugin an app has installed —
-`registerHook("tick", ...)` from `@wefter/core` doesn't know or care
+A hook/event name is global across every plugin an app has installed.
+`registerHook("tick", ...)` from `@wefterjs/core` doesn't know or care
 which plugin emitted `"tick"`. Two plugins that both pick a generic name
 like `"tick"` or `"result"` collide silently: whichever plugin's `emit`
 fires, every listener registered under that name receives it, regardless
@@ -60,7 +60,7 @@ export const Scanner = {
 
 The native side emits under the same prefixed name
 (`emit("scanner:result", data)`), and the JS wrapper's own public
-API — the string an app author actually passes to `.on()` — can stay
+API, the string an app author actually passes to `.on()`, can stay
 short (`"result"`), with the prefixing handled once, internally, where
 `registerHook` is actually called. An app author never needs to type the
 prefix themselves; they only ever see it if they read your plugin's

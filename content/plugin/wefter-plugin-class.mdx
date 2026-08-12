@@ -5,12 +5,12 @@ description: Every base-class helper, both platforms, and the honest asymmetry b
 
 Every plugin class extends `WefterPlugin`. What it hands you is not the
 same on both platforms, and this page states that plainly rather than
-smoothing it into a false parity — a developer who reads a claim of
+smoothing it into a false parity. A developer who reads a claim of
 parity here will go looking for something on iOS that was never built,
 lose time, and only then find the real pattern on
 [`permissions`](/plugin/permissions).
 
-## Android — five things
+## Android: five things
 
 ```kotlin
 abstract class WefterPlugin(
@@ -23,7 +23,7 @@ abstract class WefterPlugin(
 | --- | --- | --- |
 | `resolve` | `resolve(callback, data: JSONObject = JSONObject())` | Answer a call successfully. |
 | `reject` | `reject(callback, code: String, message: String)` | Answer with a [structured error](/plugin/structured-errors). |
-| `emit` | `emit(hookName: String, data: JSONObject)` | Push an event to JS — see [the event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener). |
+| `emit` | `emit(hookName: String, data: JSONObject)` | Push an event to JS, see [the event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener). |
 | `hasPermission` | `hasPermission(permission: String): Boolean` | Check whether an Android runtime permission is already granted. |
 | `requestPermission` | `requestPermission(activity: Activity, permission: String, onResult: (granted: Boolean) -> Unit)` | Ask for a permission and receive the real answer. |
 
@@ -42,10 +42,10 @@ permission request code and had no way to ever learn the result. It now
 generates the request code internally and calls `onResult` with a real
 `Boolean` once Android actually answers, wired all the way through
 `BridgeDispatcher.requestPermission` and the hosting `Activity`'s
-`onRequestPermissionsResult`. The full working loop, check → request →
+`onRequestPermissionsResult`. The full working loop, check, request,
 resolve/reject, is on [`permissions`](/plugin/permissions).
 
-## iOS — three things
+## iOS: three things
 
 ```swift
 open class WefterPlugin {
@@ -72,10 +72,10 @@ final class ScannerPlugin: WefterPlugin {
 That's the whole class. There is no `hasPermission` and no
 `requestPermission` on iOS, and this is a deliberate design choice, not a
 gap waiting to be filled in later. Every iOS permission has its own type
-and its own asynchronous flow — `AVCaptureDevice.authorizationStatus` /
+and its own asynchronous flow, `AVCaptureDevice.authorizationStatus` /
 `.requestAccess(for:completionHandler:)` for camera,
 `CLLocationManager`'s delegate methods for location,
-`PHPhotoLibrary.requestAuthorization` for the photo library — and none of
+`PHPhotoLibrary.requestAuthorization` for the photo library, and none of
 them resemble each other closely enough for one generic wrapper to serve
 all of them honestly. A plugin author writing Swift calls the real
 framework API directly, inside their own method body, the same way
@@ -86,7 +86,7 @@ they'd write any other piece of iOS code. See
 <Callout type="warn">
   Don't design a plugin's iOS side around a `hasPermission`-shaped helper
   that doesn't exist. Every permission type on iOS gets its own
-  hand-written check against its own framework API — there's no shortcut,
+  hand-written check against its own framework API, there's no shortcut,
   and manufacturing one yourself just re-adds the complexity the missing
   helper was avoiding.
 </Callout>

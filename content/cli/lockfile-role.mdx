@@ -17,7 +17,7 @@ per resolved plugin:
 ```json
 {
   "plugins": {
-    "device-info": {
+    "storage": {
       "resolved": "0.0.1",
       "integrity": "sha256-b74045472a2336e36fe54a6c9310507e5968064b597a269d963fbd296ebb2403"
     }
@@ -32,7 +32,7 @@ per resolved plugin:
 - `integrity`: a `sha256-` hash over the raw bytes of the plugin's
   `plugin.json`, its resolved version string, every `.kt` file under its
   `android/` directory (if present), and every `.swift` file under its
-  `ios/` directory (if present) — each set sorted by filename, name and
+  `ios/` directory (if present). Each set is sorted by filename, name and
   contents both hashed. A plugin that only ships one platform's native
   source only contributes that platform's files to the hash.
 
@@ -55,7 +55,7 @@ CLI recomputes the installed version and compares it against the locked
 
 ```
 Plugin version drift detected against wefter.lock.json:
-  - device-info: locked at 0.0.1, found 0.1.0
+  - storage: locked at 0.0.1, found 0.1.0
 Run `wefter sync --update-lock` if this is expected.
 ```
 

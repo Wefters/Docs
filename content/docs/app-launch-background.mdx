@@ -5,14 +5,14 @@ description: The OS-level background shown before your WebView and splash screen
 
 Before your app's WebView (and your HTML splash screen) has loaded, the OS
 itself shows a background the instant your app icon is tapped. This is
-separate from your [App Splash Screen](/docs/app-splash-screen) — it's a
+separate from your [App Splash Screen](/docs/app-splash-screen): it's a
 native-level color, not HTML, and it renders before any of your JS or
 splash assets are ready.
 
-Without setting this, you'll get whatever default background color the
-native shell falls back to — usually plain white or black — which can
-visibly flash against your actual splash screen for a moment before it's
-replaced.
+Without setting this, you get whatever `launchBackground` resolves to by
+default: your splash folder's own background color if `wefter` can detect
+one, otherwise plain white. See [Default resolution](#default-resolution)
+below for exactly how that detection works.
 
 ## Configuration
 
@@ -27,13 +27,29 @@ Wefter config:
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `launchBackground` | string (hex color) | matches `splash.source`'s background if detectable, otherwise `#FFFFFF` | Background color shown natively before your WebView and splash screen have loaded. |
+| `launchBackground` | string, a 6-digit hex color like `#14161C` | matches `splash.source`'s background if detectable, otherwise `#FFFFFF` | Background color shown natively before your WebView and splash screen have loaded. |
+
+Setting anything other than a 6-digit `#RRGGBB` hex color fails config
+validation at `sync` time.
+
+## Default resolution
+
+If `launchBackground` isn't set and `splash` is configured, `sync` looks at
+your splash folder's `index.html` for a `background` or `background-color`
+declaration on a `body`, `:root`, or `html` CSS rule, checking both an
+inline `<style>` block and any local stylesheet linked from `index.html`.
+The first hex color it finds there becomes the launch background.
+
+This is a direct pattern match, not a real CSS engine: it doesn't resolve
+the cascade, specificity, media queries, or anything loaded by JS. If your
+splash background is set some other way, or `splash` isn't configured at
+all, `launchBackground` falls back to `#FFFFFF`.
 
 ## Why this is separate from `splash`
 
 `splash` controls what's shown once your HTML splash screen has loaded and
 rendered inside the WebView. `launchBackground` controls what's shown
-*before that* — at the OS level, before there's a WebView to render
+*before that*, at the OS level, before there's a WebView to render
 anything into. They serve different moments in the startup sequence and
 are implemented through entirely different mechanisms per platform, so
 they're kept as distinct config values rather than nested under one
@@ -43,19 +59,22 @@ another.
 
 If `launchBackground` doesn't match the background color your splash HTML
 actually uses, you'll get a visible color flash the moment your HTML
-splash screen appears and replaces the native background. Set
-`launchBackground` to the same color as your splash screen's background
-for a seamless handoff.
+splash screen appears and replaces the native background. If auto-detection
+already picked it up from your splash folder, you don't need to do
+anything; otherwise, set `launchBackground` to the same color yourself.
 
 ## How it's applied per platform
 
-- **Android** — written into the generated `styles.xml`. On Android 12+,
-  this maps to `windowSplashScreenBackground` under the newer
-  `SplashScreen` API; on earlier versions, it's applied via
-  `windowBackground` in the app's theme. Both are handled automatically so
-  you only need to set one value.
-- **iOS** — written into the generated launch screen configuration
-  (`UILaunchScreen` background).
+- **Android**: written into the generated `colors.xml`'s `splashBackground`
+  color value, every `sync`. The generated `themes.xml` already references
+  `@color/splashBackground` from both `windowBackground` (the fallback
+  `View`-based theme) and `windowSplashScreenBackground` (the Android 12+
+  `SplashScreen` API), so updating the one color value covers both, no
+  matter which API the device's Android version actually uses.
+- **iOS**: written directly into the generated `LaunchScreen.storyboard`'s
+  background `<color>` element, converting the hex value to the red/green/blue
+  floats (0 to 1) that Interface Builder's XML format expects.
 
 This is applied at `sync` time, the same as your splash folder and other
-native shell configuration.
+native shell configuration, so it's always in sync with your current
+config, never something you hand-edit in the generated project.

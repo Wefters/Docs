@@ -5,13 +5,13 @@ description: npx wefter vs. a local devDependency install.
 
 ## It's a devDependency, not a global install
 
-`@wefter/cli` is meant to sit in your project's own `devDependencies`, not
+`@wefterjs/cli` is meant to sit in your project's own `devDependencies`, not
 installed globally. It never ships inside your compiled app (that's
-`@wefter/core`'s job), it only runs on your machine during development and
+`@wefterjs/core`'s job), it only runs on your machine during development and
 in CI.
 
 ```bash
-pnpm add -D @wefter/cli
+pnpm add -D @wefterjs/cli
 ```
 
 The package declares one bin:
@@ -27,30 +27,30 @@ dependency.
 
 ## The very first time, before it's installed at all
 
-If you run `npx wefter` in a project that's never installed `@wefter/cli`
+If you run `npx wefter` in a project that's never installed `@wefterjs/cli`
 as a devDependency, `npx` doesn't fail, it offers to fetch the package
 temporarily and run it once:
 
 ```
 Need to install the following packages:
-@wefter/cli@1.x.x
+@wefterjs/cli@1.x.x
 Ok to proceed? (y)
 ```
 
 That's fine for a one-off command, but it's not what you want for actual
 development, since it re-downloads on every invocation and isn't pinned to
-a specific version. Run `pnpm add -D @wefter/cli` once, and every `npx
+a specific version. Run `pnpm add -D @wefterjs/cli` once, and every `npx
 wefter` after that resolves the local, pinned install instead.
 
 ## Two ways to invoke it
 
 **`npx wefter <command>`.** `npx` checks `node_modules/.bin` first before
-it would ever reach out to the registry, so once `@wefter/cli` is a local
+it would ever reach out to the registry, so once `@wefterjs/cli` is a local
 devDependency this runs the local install, not a fresh download. This is
 what every example on the Docs tab uses.
 
 ```bash
-npx wefter add @wefter/plugin-device-info
+npx wefter add @yourorg/scanner-plugin
 npx wefter run android --watch
 ```
 

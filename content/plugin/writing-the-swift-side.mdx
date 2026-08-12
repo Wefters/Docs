@@ -58,14 +58,14 @@ final class ScannerPlugin: WefterPlugin {
 ```
 
 Every `@WefterMethod` function is wrapped in a `do/catch` inside
-`BridgeDispatcher.userContentController(_:didReceive:)` — `throws` is
+`BridgeDispatcher.userContentController(_:didReceive:)`. `throws` is
 what makes that catch reachable at all. Without it, a `Malformed
 @WefterMethod signature` failure stops you at
 [`wefter plugin validate`](/plugin/validating-and-publishing) before it
 ever becomes a runtime problem.
 
-**What that `do/catch` actually catches:** a deliberately thrown `Error`
-— your own type, or `WefterError` for a specific code, both covered on
+**What that `do/catch` actually catches:** a deliberately thrown `Error`,
+your own type, or `WefterError` for a specific code, both covered on
 [`structured-errors`](/plugin/structured-errors). **What it can never
 catch:** a Swift runtime trap. This is the one hard rule on this page.
 
@@ -74,7 +74,7 @@ catch:** a Swift runtime trap. This is the one hard rule on this page.
 <Callout type="warn">
   A force-unwrapped `nil` (`!`) or an out-of-bounds array/dictionary
   access **terminates the process immediately.** No `do/catch` anywhere
-  in the app can intercept it — that's Apple's own design, not something
+  in the app can intercept it, that's Apple's own design, not something
   Wefter can work around. This is a hard rule for plugin method bodies,
   not a stylistic preference.
 </Callout>
@@ -103,16 +103,16 @@ subscripting are the only patterns that keep a malformed payload or an
 unexpected `nil` inside the error-handling path this framework actually
 gives you, instead of outside it entirely.
 `wefter create-plugin` scaffolds this exact reminder as a comment at the
-top of every generated Swift file — it's worth leaving in place.
+top of every generated Swift file, and it's worth leaving in place.
 
 ## The permission example, matching `permissions.mdx` exactly
 
 The `open` method above is the same `AVCaptureDevice` flow shown in full
-on [`permissions`](/plugin/permissions) — check
+on [`permissions`](/plugin/permissions): check
 `authorizationStatus(for:)` for the already-decided cases,
 `requestAccess(for:completionHandler:)` for the undecided one, every
 branch resolving or rejecting. There's no `hasPermission`/
-`requestPermission` to reach for on this platform at all — see
+`requestPermission` to reach for on this platform at all. See
 [`wefter-plugin-class`](/plugin/wefter-plugin-class) for why that's
 intentional. Seeing the identical pattern in both places is the point:
 copy it from either page and land on working code.

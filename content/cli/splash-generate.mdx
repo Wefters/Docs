@@ -1,6 +1,6 @@
 ---
 title: wefter splash generate
-description: Scaffolds an example splash folder — no image source involved.
+description: Scaffolds an example splash folder, no image source involved.
 ---
 
 ```bash
@@ -23,14 +23,14 @@ Fails rather than overwriting if something's already at the destination:
 <resolved path> already exists — remove it first or choose a different path.
 ```
 
-## No image source — this scaffolds HTML, not icons
+## No image source: this scaffolds HTML, not icons
 
 Unlike [`wefter icon generate`](/cli/icon-generate), this command takes
 no source asset. Wefter's splash screen is developer-authored HTML, not
 generated from an image, so what this command produces is a working
 starting point you're expected to edit by hand, not a final asset. See
 [App Splash Screen](/docs/app-splash-screen) on the Docs tab for the
-full system this folder plugs into — two stages, folder validation, the
+full system this folder plugs into: two stages, folder validation, the
 `hideSplash()` dismissal signal, `minDuration`/`maxDuration`/`dismissOn`.
 
 ## The exact scaffold written
@@ -74,7 +74,7 @@ body {
 }
 ```
 
-A centered, pulsing mark on a solid teal background — meant to be
+A centered, pulsing mark on a solid teal background, meant to be
 replaced, not shipped as-is.
 
 ## Wiring it up

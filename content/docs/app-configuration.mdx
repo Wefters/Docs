@@ -7,14 +7,15 @@ description: Full wefter.config.json field reference.
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `webDir` | `string` | `"dist"` | Where your built web app lives; copied into every configured platform's native assets on every `sync`. |
+| `webDir` | `string` | `"dist"` | Where your built web app lives; copied into both platforms' native assets on every `sync`. |
 | `plugins` | `string[]` | `[]` | Explicit list of plugin package names to weave in. See [Plugin Registry](/docs/plugin-registry), nothing outside this array is ever included. |
 | `pluginsDir` | `string` | `"node_modules"` | Where declared plugin packages are resolved from. |
 | `environments` | `Record<string, Environment>` | `{ development: {...} }` | Named build environments (see below). |
-| `icon` | `string` (optional) | — | Path to a source icon image. See [App Icon](/docs/app-icon). |
-| `splash` | `false \| SplashConfig` (optional) | — (disabled) | Splash screen config. See [App Splash Screen](/docs/app-splash-screen). |
-| `signing` | `SigningConfig` (optional) | — | Android release signing config (see below). |
-| `iosSigning` | `IosSigningConfig` (optional) | — | iOS signing config (see below). |
+| `icon` | `string` (optional) | none | Path to a source icon image. See [App Icon](/docs/app-icon). |
+| `splash` | `false \| SplashConfig` (optional) | none (disabled) | Splash screen config. See [App Splash Screen](/docs/app-splash-screen). |
+| `launchBackground` | `string` (optional), a 6-digit hex color | matches `splash.source`'s background if detectable, otherwise `#FFFFFF` | OS-level background shown before your WebView loads. See [Native Launch Background](/docs/app-launch-background). |
+| `signing` | `SigningConfig` (optional) | none | Android release signing config (see below). |
+| `iosSigning` | `IosSigningConfig` (optional) | none | iOS signing config (see below). |
 
 ### `environments.<name>`
 
@@ -30,9 +31,9 @@ Referenced via `--env` on `wefter build`/`wefter run` (defaults to `development`
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `source` | `string` | — (required when splash is enabled) | Path to your splash folder. Same folder, both platforms. |
-| `minDuration` | `number` (0–20000ms) | `0` | Minimum time the splash stays up, even if the app is ready sooner. |
-| `maxDuration` | `number` (0–20000ms) | `5000` | Hard cap — dismisses automatically after this long even if the app never signals ready. |
+| `source` | `string` | none (required when splash is enabled) | Path to your splash folder. Same folder, both platforms. |
+| `minDuration` | `number` (0-20000ms) | `0` | Minimum time the splash stays up, even if the app is ready sooner. |
+| `maxDuration` | `number` (0-20000ms) | `5000` | Hard cap: dismisses automatically after this long even if the app never signals ready. |
 | `dismissOn` | `"ready" \| "timer"` | `"ready"` | `"ready"` waits for `hideSplash()`; `"timer"` dismisses purely on `minDuration`. |
 | `transition` | `"fade" \| "none"` | `"fade"` | How the splash disappears once dismissed. |
 
@@ -61,11 +62,14 @@ attempt a `--release` build for Android.
 | `teamId` | `string` | Your Apple Developer Team ID. |
 | `provisioningProfile` | `string` (optional) | A specific provisioning profile name. Omit for automatic signing. |
 
-The signing identity itself is not stored in config; set
-`WEFTER_IOS_SIGNING_IDENTITY`, `WEFTER_IOS_TEAM_ID`, and
-`WEFTER_IOS_PROVISIONING_PROFILE` in a gitignored `.env` file. `wefter
-doctor --release-readiness` checks these the same way it checks Android's
-signing config, before you attempt a `--release` build for iOS.
+The signing identity itself is not stored in config: set
+`WEFTER_IOS_SIGNING_IDENTITY` in a gitignored `.env` file. Wefter derives
+`WEFTER_IOS_TEAM_ID` and `WEFTER_IOS_PROVISIONING_PROFILE` automatically
+from `teamId` and `provisioningProfile` above and passes them to the
+build, so you don't set those two yourself. `wefter doctor
+--release-readiness` checks that an `iosSigning` block is present and that
+`WEFTER_IOS_SIGNING_IDENTITY` is set, before you attempt a `--release`
+build for iOS.
 
 ## Full example
 
@@ -84,6 +88,7 @@ signing config, before you attempt a `--release` build for iOS.
     "dismissOn": "ready",
     "transition": "fade"
   },
+  "launchBackground": "#14161C",
   "signing": {
     "keystorePath": "./release.keystore",
     "keyAlias": "release"
@@ -91,6 +96,6 @@ signing config, before you attempt a `--release` build for iOS.
   "iosSigning": {
     "teamId": "ABCDE12345"
   },
-  "plugins": ["@wefter/plugin-device-info"]
+  "plugins": ["@yourorg/scanner-plugin"]
 }
 ```

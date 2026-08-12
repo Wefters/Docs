@@ -1,6 +1,6 @@
 ---
 title: wefter eject
-description: The strongest warning on this tab — and what actually still works afterward.
+description: The strongest warning on this tab, and what actually still works afterward.
 ---
 
 ```bash
@@ -18,7 +18,7 @@ wefter eject
 <Callout type="warn">
   This is a one-way door. There is no `wefter un-eject`, no CLI command
   that reverses it. Once a project is ejected, `wefter sync` permanently
-  stops regenerating **both** native project shells for it — every future
+  stops regenerating **both** native project shells for it. Every future
   `wefter sync`/`build`/`run` in this project operates on `android/`
   and/or `ios/` as hand-owned directories, forever. Only run this once
   you're actually ready to hand-edit native code, not to "just take a
@@ -27,19 +27,19 @@ wefter eject
 
 ## What it does
 
-1. Refuses to run twice — if the project is already ejected, it fails
+1. Refuses to run twice: if the project is already ejected, it fails
    immediately with `Already ejected — android/ and ios/ are already
    yours.` instead of silently doing nothing.
 2. Runs a full [`wefter sync`](/cli/sync) first, so the project being
    copied out is fully up to date with your current config and declared
-   plugins — not whatever the last sync happened to leave behind. This
+   plugins, not whatever the last sync happened to leave behind. This
    means a `sync` failure (a permission audit violation, lockfile drift,
    a plugin that fails validation) blocks `eject` too, the same as it
    would block a plain `sync`.
 3. Copies whichever of `.wefter/native/android` and `.wefter/native/ios`
    currently exist to `<projectDir>/android` and `<projectDir>/ios`
-   respectively — both, in practice, since step 2's `sync` just
-   regenerated both shells. Each is copied independently; nothing here
+   respectively (both, in practice, since step 2's `sync` just
+   regenerated both shells). Each is copied independently; nothing here
    requires both platforms to be present.
 4. Writes a `.wefter-ejected` marker file at the project root containing
    `true`. Every path-resolution helper in the CLI checks this marker
@@ -59,12 +59,12 @@ directory existed to copy.)
 
 This is the part worth being precise about: after ejecting, `wefter
 sync` keeps running against both `android/` and `ios/`, and keeps being
-useful — it just skips the steps that would blow away hand-edits.
+useful. It just skips the steps that would blow away hand-edits.
 Specifically, once ejected, `sync` no longer:
 
 - wipes and recreates either native shell from Wefter's templates, or
 - rewrites the Android namespace across the Android project (there was
-  never an equivalent rewrite step for iOS to skip — see [`wefter
+  never an equivalent rewrite step for iOS to skip, see [`wefter
   sync`](/cli/sync#what-it-does-in-the-actual-order-it-happens)).
 
 Everything else in [the sync sequence](/cli/sync#what-it-does-in-the-actual-order-it-happens)
@@ -76,18 +76,18 @@ all still get merged, both plugin registries still get regenerated, and
 `wefter.lock.json` still gets written. All of it runs inside a
 snapshot-and-restore transaction covering both platforms' generated
 files, so if any step fails, everything `sync` touched is restored to its
-pre-sync state rather than left half-modified — your other hand-edits
+pre-sync state rather than left half-modified. Your other hand-edits
 elsewhere in `android/` or `ios/` are never touched by `sync` at all,
 ejected or not.
 
 [`wefter build`](/cli/build) and [`wefter run`](/cli/run) behave exactly
-the same post-eject as before, for either platform — they just now
+the same post-eject as before, for either platform. They just now
 compile whatever's sitting in `android/`/`ios/`, hand-edits included.
 
 ## Why you'd actually do this
 
 Reach for this the moment you need something Wefter's generated project
-genuinely can't express — custom Gradle configuration, a native
+genuinely can't express: custom Gradle configuration, a native
 dependency with awkward setup, hand-written Kotlin outside the plugin
 system. It's explicitly not the default path; the [Installing](/docs/installing)
 and [Development Workflow](/docs/development-workflow) guides on the Docs

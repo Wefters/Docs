@@ -3,12 +3,12 @@ title: Wefter CLI
 description: Every command, every flag, every failure mode, documented.
 ---
 
-# `wefter` — the CLI
+# `wefter`, the CLI
 
 One binary, one job: read `wefter.config.json`, weave it into real Android
 and iOS projects, and drive whichever one you ask for through build,
 install, and launch. Everything below is the actual command surface as of
-this package's current version, nothing aspirational — including the
+this package's current version, nothing aspirational. That includes the
 rough edges, like `doctor`'s iOS checks currently failing unconditionally
 on non-macOS (see [`wefter doctor`](/cli/doctor)) and a few commands
 (`audit`, the standalone `icon generate`) still only covering Android.
@@ -31,17 +31,17 @@ running it against a project elsewhere just means passing the path.
 
 | Command                                          | What it does                                                                                                  |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| [`wefter doctor`](/cli/doctor)                   | Checks your machine is set up to build Wefter apps — Node, Android SDK/adb/JDK/device, Xcode/Simulator.       |
+| [`wefter doctor`](/cli/doctor)                   | Checks your machine is set up to build Wefter apps: Node, Android SDK/adb/JDK/device, Xcode/Simulator.       |
 | [`wefter sync`](/cli/sync)                       | Resolves declared plugins and regenerates **both** native projects from `wefter.config.json`.                |
 | [`wefter build <platform>`](/cli/build)          | `android` or `ios`. Requires a prior `sync`; produces a real APK via Gradle, or a `.app` via `xcodebuild`.   |
 | [`wefter run <platform>`](/cli/run)              | `android` or `ios`. Requires a prior `sync`; builds, installs on a device/Simulator, launches, optionally with hot reload. |
-| [`wefter add`](/cli/add)                         | Installs an npm plugin package, validates it (for whichever platform(s) it ships), declares it in config — all or nothing. |
-| [`wefter audit`](/cli/audit)                     | Read-only: prints exactly what the next `sync` would weave in — Android side only, for now.                  |
-| [`wefter icon generate`](/cli/icon-generate)     | Previews Android launcher icons from a source image — Android only; `sync` with `icon` set covers both platforms. |
+| [`wefter add`](/cli/add)                         | Installs an npm plugin package, validates it (for whichever platform(s) it ships), declares it in config, all or nothing. |
+| [`wefter audit`](/cli/audit)                     | Read-only: prints exactly what the next `sync` would weave in, Android side only, for now.                  |
+| [`wefter icon generate`](/cli/icon-generate)     | Previews Android launcher icons from a source image (Android only); `sync` with `icon` set covers both platforms. |
 | [`wefter splash generate`](/cli/splash-generate) | Scaffolds a working example splash folder, shared by both platforms.                                          |
 | [`wefter create-plugin`](/cli/create-plugin)     | Scaffolds a new plugin package with working Android **and** iOS boilerplate.                                  |
 | [`wefter plugin validate`](/cli/plugin-validate) | Validates a plugin directory against the plugin schema and source conventions, standalone, for whichever platform(s) it ships. |
-| [`wefter eject`](/cli/eject)                     | Copies the generated native project(s) — `android/` and/or `ios/` — for hand-editing, a one-way door.        |
+| [`wefter eject`](/cli/eject)                     | Copies the generated native project(s), `android/` and/or `ios/`, for hand-editing, a one-way door.        |
 
 ## Three things worth understanding before the individual pages
 

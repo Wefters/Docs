@@ -5,7 +5,7 @@ description: The full working loop on both platforms, and the iOS mistake that c
 
 This is the single most important page on this tab. Get the two loops
 below right and your plugin behaves correctly when a user says no.
-Get the iOS warning at the bottom wrong and your plugin doesn't fail —
+Get the iOS warning at the bottom wrong and your plugin doesn't fail:
 it crashes the entire app, unconditionally, the instant its permission
 API is touched.
 
@@ -37,28 +37,28 @@ class ScannerPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlug
 
 Check `hasPermission` first, and if it's already granted, proceed
 immediately. If not, call `requestPermission` and wait for the real
-result through its callback — not a request code you invented yourself
+result through its callback, not a request code you invented yourself
 and had no way to resolve. If the user grants it, do the work and
 resolve. If they deny it, reject with `PERMISSION_DENIED`.
 
 **This used to be broken, and it's worth saying plainly that it's fixed
 now.** Before the permission-result wiring was completed, that final
-`else` branch existed in plugin code but could never actually run —
+`else` branch existed in plugin code but could never actually run:
 nothing connected Android's own `onRequestPermissionsResult` callback
 back to the plugin that had asked. `requestPermission` now generates its
 own request code internally, and the hosting `Activity`'s
 `onRequestPermissionsResult` forwards straight into
 `BridgeDispatcher.handlePermissionResult`, which resolves the exact
 callback that made the request. This path is real and exercised, not
-aspirational — see [`wefter-plugin-class`](/plugin/wefter-plugin-class)
+aspirational. See [`wefter-plugin-class`](/plugin/wefter-plugin-class)
 for the full method signatures.
 
 <Callout type="info">
   This isn't just a convention the framework hopes you follow. If your
   `plugin.json` declares a permission from Android's own dangerous-permission
   list (`CAMERA`, `ACCESS_FINE_LOCATION`, `READ_CONTACTS`, `RECORD_AUDIO`,
-  and roughly thirty others), `wefter plugin validate` — and therefore
-  `wefter add` and `wefter sync` too — fails unless your Kotlin source
+  and roughly thirty others), `wefter plugin validate` (and therefore
+  `wefter add` and `wefter sync` too) fails unless your Kotlin source
   contains the literal string `"PERMISSION_DENIED"` somewhere. It's a
   string match, not a guarantee your handling is actually correct, but it
   catches the specific mistake of declaring a sensitive permission and
@@ -104,7 +104,7 @@ Same shape, real framework call:
 `AVCaptureDevice.authorizationStatus(for:)` for the already-decided cases,
 `.requestAccess(for:completionHandler:)` for the undecided one, each
 branch resolving or rejecting correctly. There's no `hasPermission`/
-`requestPermission` to reach for here — see
+`requestPermission` to reach for here. See
 [`wefter-plugin-class`](/plugin/wefter-plugin-class) for why that's a
 deliberate omission, not a gap.
 
@@ -117,21 +117,21 @@ call simply fails and your code handles it.
 **On iOS, the equivalent mistake is not graceful.** Calling a permission
 API when `Info.plist` is missing the required usage-description key for
 it **crashes the app immediately and unconditionally.** Not a rejected
-call, not an error your `do/catch` can intercept — a hard, unrecoverable
+call, not an error your `do/catch` can intercept, a hard, unrecoverable
 termination the instant that API is touched. This is Apple's own
 enforcement, not something Wefter chose, and there is no way to catch it
 from plugin code.
 
 <Callout type="warn">
   A missing `NSCameraUsageDescription` (or any other required
-  usage-description key) doesn't fail your camera call — it kills the
+  usage-description key) doesn't fail your camera call. It kills the
   whole app the moment `AVCaptureDevice.requestAccess` (or the equivalent
   for whatever you're accessing) actually runs.
 </Callout>
 
 **The framework catches this automatically now.** Every `wefter build
 ios` reads the real, generated `Info.plist` and confirms every permission
-a declared plugin requires actually has its key present — before
+a declared plugin requires actually has its key present, before
 `xcodebuild` ever runs. If anything's missing, the build fails with:
 
 ```
@@ -141,7 +141,7 @@ iOS permission configuration check failed:
 
 Understand that this check exists and why it matters, but don't treat it
 as a substitute for getting `permissions.ios` right in `plugin.json` in
-the first place — a correct declaration is what makes the automated
+the first place. A correct declaration is what makes the automated
 check pass at all, not a safety net you can skip past. See
 [`plugin-json-reference`](/plugin/plugin-json-reference) for the exact
 shape `permissions.ios` takes, and the Docs tab's

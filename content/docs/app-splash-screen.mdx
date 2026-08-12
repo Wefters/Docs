@@ -11,7 +11,7 @@ purely for branding, and it's disabled by default.
 
 ## Just a folder
 
-Wefter's splash screen is developer-authored HTML — a folder you provide,
+Wefter's splash screen is developer-authored HTML: a folder you provide,
 copied straight into your app. There's no special image-processing step:
 you bring your own HTML, CSS, and images, and Wefter copies the folder
 as-is.
@@ -42,7 +42,7 @@ works when you open `index.html` in a browser, it works in your app.
 
 **Requirements:**
 
-- The folder must contain an `index.html` — the entry point Wefter loads.
+- The folder must contain an `index.html`, the entry point Wefter loads.
 - Everything else in the folder (images, fonts, stylesheets, scripts) is
   copied along with it, preserving your relative paths.
 - Keep all referenced assets inside the folder. Files outside it aren't
@@ -61,14 +61,14 @@ with the main app WebView, not sequentially before it, since there's no
 boot time to justify a real wait. It shows whatever folder you point
 `splash.source` at.
 
-- **Android** — your splash folder is bundled into the app's assets and
+- **Android**: your splash folder is bundled into the app's assets and
   loaded locally, the same way your main app content is served.
-- **iOS** — your splash folder is served through the same secure local
+- **iOS**: your splash folder is served through the same secure local
   content handler your app already uses, so the same content-security
   policy applies.
 
 On both platforms, the splash WebView never gets access to Wefter's
-native bridge — it's asset display only, not part of your app's JS ↔
+native bridge. It's asset display only, not part of your app's JS ↔
 native communication.
 
 ## Fully disableable
@@ -96,7 +96,7 @@ Stage 2 splash. When enabled:
 | -------------- | ------------------------ | --------- | ------------------------------------------------------------------------------------ |
 | `source`       | `string`                 | required  | Path to your splash folder, both platforms.                                          |
 | `minDuration`  | `number` (ms)            | `0`       | Minimum time the splash stays visible, regardless of app readiness.                  |
-| `maxDuration`  | `number` (ms)            | `5000`    | Hard cap — the splash dismisses automatically after this long even if `dismissOn` is `"ready"` and your app never signals ready. |
+| `maxDuration`  | `number` (ms)            | `5000`    | Hard cap: the splash dismisses automatically after this long even if `dismissOn` is `"ready"` and your app never signals ready. |
 | `dismissOn`    | `"ready"` \| `"timer"`   | `"ready"` | `"ready"` waits for [`hideSplash()`](/docs/javascript-apis#hidesplash) (after `minDuration`); `"timer"` dismisses purely on `minDuration`, ignoring app state. |
 | `transition`   | `"fade"` \| `"none"`     | `"fade"`  | `"fade"` fades the splash out over ~200ms before revealing your app; `"none"` disappears instantly. |
 
@@ -113,7 +113,7 @@ call `hideSplash()`, but never dismisses before `minDuration` and never
 stays up past `maxDuration` even if `hideSplash()` is never called:
 
 ```ts
-import { hideSplash } from "@wefter/core";
+import { hideSplash } from "@wefterjs/core";
 
 await hideSplash();
 ```
@@ -127,8 +127,9 @@ With `dismissOn: "timer"`, none of that matters: the splash simply stays
 up for `minDuration` and dismisses, ignoring `hideSplash()` entirely.
 
 Either path converges on the same dismissal: the splash fades out (or
-disappears instantly, per `transition`), and is removed from the view
-hierarchy entirely, not just hidden.
+disappears instantly, per `transition`) and stops being visible or
+interactive. iOS removes it from the view hierarchy outright; Android
+hides it by setting its visibility to `GONE` once the fade finishes.
 
 ## Validation
 
@@ -136,7 +137,7 @@ When you generate or sync your splash screen, Wefter checks that:
 
 - Your splash folder exists and contains `index.html`.
 - (Recommended) Any `src`/`href` references inside your HTML point to
-  files that actually exist in the folder — broken references produce a
+  files that actually exist in the folder. Broken references produce a
   warning so you catch a missing image before your users do.
 
 ## A complete example
@@ -193,10 +194,10 @@ See the [CLI tab](/cli/splash-generate) for flags.
 
 ## Tips
 
-- Keep it lightweight. The splash screen should render instantly — avoid
-  large images or web fonts that need to load over a network.
+- Keep it lightweight. The splash screen should render instantly, so
+  avoid large images or web fonts that need to load over a network.
 - No network requests. Splash content is loaded locally and shouldn't
   depend on internet access.
 - Test on both platforms. Rendering differences between Android's and
-  iOS's WebViews are rare but possible — always preview your splash
-  screen on a real device or simulator for each platform before shipping.
+  iOS's WebViews are rare but possible. Always preview your splash screen
+  on a real device or simulator for each platform before shipping.

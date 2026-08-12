@@ -20,7 +20,7 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
 <Accordion title="Can I use React, Angular, or Svelte instead of Vue?">
   Yes. The bridge doesn't know or care what rendered the page. `invokeNative`
-  and `registerHook` are plain function exports from `@wefter/core`, not tied to
+  and `registerHook` are plain function exports from `@wefterjs/core`, not tied to
   any component model. Any framework that can produce a static build (or run a
   dev server Wefter can point a WebView at) works the same way Vue does.
 </Accordion>
@@ -51,8 +51,8 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   <Accordion title="What does `wefter sync` actually do, and why doesn't it auto-discover plugins?">
     `sync` reads the `plugins` array in `wefter.config.json`, resolves each
     one from `node_modules`, verifies them against `wefter.lock.json`, and
-    regenerates the native project for every platform you've configured
-    from scratch. It deliberately does **not** scan `node_modules` for
+    regenerates the native project for both platforms from scratch. It
+    deliberately does **not** scan `node_modules` for
     anything that looks like a plugin. Only packages explicitly listed in
     `plugins` are ever woven in. This keeps a package that shows up as
     someone else's transitive dependency from silently ending up with
@@ -89,8 +89,8 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
   <Accordion title="Can I hand-edit the generated native project?">
     Not directly, and not by default. `.wefter/native/` is rebuilt from
-    scratch on every `sync`, for every platform you've configured, so
-    anything you edit there gets thrown away. If you genuinely need to
+    scratch on every `sync`, for both platforms, so anything you edit
+    there gets thrown away. If you genuinely need to
     hand-edit native code beyond what plugins and config expose, `wefter
     eject` copies each platform's generated project out to a real,
     permanent folder (`android/`, `ios/`) and Wefter stops regenerating it.

@@ -9,13 +9,13 @@ wefter sync [projectDir] [--update-lock]
 
 | Argument/Option | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `projectDir` | positional, optional | current working directory | Project root — the directory containing `wefter.config.json`. |
+| `projectDir` | positional, optional | current working directory | Project root: the directory containing `wefter.config.json`. |
 | `--update-lock` | boolean flag | `false` | Accept plugin versions that drifted from `wefter.lock.json` and re-lock them instead of failing. See [wefter.lock.json's role](/cli/lockfile-role). |
 
 Reads `wefter.config.json`, resolves every declared plugin, and rebuilds
 the entire native Android **and** iOS project from scratch. Doesn't compile
-Kotlin or Swift, doesn't produce an APK or `.app`, doesn't touch a device —
-that's what [`build`](/cli/build) and [`run`](/cli/run) are for.
+Kotlin or Swift, doesn't produce an APK or `.app`, doesn't touch a device.
+That's what [`build`](/cli/build) and [`run`](/cli/run) are for.
 
 <Callout type="warn">
   `build` and `run` do **not** call `sync` for you. They check a sync
@@ -27,14 +27,14 @@ that's what [`build`](/cli/build) and [`run`](/cli/run) are for.
   time you change config or declared plugins, is on you.
 </Callout>
 
-## Explicit-only — no auto-scan, stated plainly
+## Explicit-only: no auto-scan, stated plainly
 
 `sync` resolves plugins by reading `config.plugins`, an array of package
 names, and looking up exactly those names under `config.pluginsDir`
 (`node_modules` by default). It never walks `node_modules` looking for
 anything that resembles a plugin. A package sitting in `node_modules`,
-even one your web app directly imports at runtime, contributes nothing —
-no native code, no permissions, no Gradle dependency — unless its name is
+even one your web app directly imports at runtime, contributes nothing
+(no native code, no permissions, no Gradle dependency) unless its name is
 in that array. See [Plugin Registry](/docs/plugin-registry) for the full
 reasoning behind this.
 
@@ -44,7 +44,7 @@ reasoning behind this.
    `config.plugins` from `config.pluginsDir`. Names with no matching
    `plugin.json` are reported back as unresolved, not treated as a fatal
    error at this stage.
-2. **Audit permissions — Android only.** Scans each resolved plugin's
+2. **Audit permissions (Android only).** Scans each resolved plugin's
    Kotlin source for a short list of sensitive API usages (`CameraX`,
    `LocationManager`) and fails the whole sync if one is used without its
    corresponding permission (`android.permission.CAMERA`,
@@ -56,10 +56,12 @@ reasoning behind this.
    [wefter.lock.json's role](/cli/lockfile-role).
 4. **Validate every plugin directory.** Runs the same validation
    [`wefter plugin validate`](/cli/plugin-validate) runs, standalone,
-   against each resolved plugin — for whichever of `android/`/`ios/` it
-   ships: malformed `@WefterMethod`/`@WefterHook` signatures, and
+   against each resolved plugin, for whichever of `android/`/`ios/` it
+   ships: malformed `@WefterMethod`/`@WefterHook` signatures,
    `plugin.json`'s declared `methods`/`hooks` matching what's actually in
-   that platform's source. Any failure here stops the sync.
+   that platform's source, and, Android only, any declared dangerous
+   permission having a handler that rejects with `PERMISSION_DENIED`. Any
+   failure here stops the sync.
 5. **Recreate both native shells** (skipped if the project has been
    [ejected](/cli/eject)). Wipes and re-copies `.wefter/native/android`
    and `.wefter/native/ios`, each from its own Wefter shell template.
@@ -71,51 +73,51 @@ reasoning behind this.
    every `package dev.wefter.bridge` declaration in the Android shell (and
    move the corresponding source tree) to your real namespace, derived
    from config as described in [wefter.config.json's role](/cli/config-role).
-   There's no equivalent source-rewrite step for iOS — Swift plugin
-   classes compile straight into the one fixed `WefterBridge` app target,
+   There's no equivalent source-rewrite step for iOS. Swift plugin
+   classes compile straight into the one fixed `WefterBridge` app target;
    nothing in the `.swift` files needs to know the app's identity.
 7. **Copy web assets** from `config.webDir` into *both* native projects'
-   asset folders — fails if that directory or its `index.html` doesn't
+   asset folders, failing if that directory or its `index.html` doesn't
    exist. Also resets the Android release build type's dev-server URL
    field and clears any iOS dev-server network-security exceptions
    (`run --watch` is what fills these back in, and only for debug/Simulator
    runs).
-8. **Copy and weave plugin native source** — each resolved plugin's
+8. **Copy and weave plugin native source.** Each resolved plugin's
    `android/*.kt` files get copied in with their `package
    dev.wefter.bridge` declarations rewritten to match (the same rewrite
    the shell itself goes through), and each resolved plugin's `ios/*.swift`
    files get copied in as-is. This is why an Android plugin author never
-   needs to know what namespace any given app will actually use — there's
+   needs to know what namespace any given app will actually use. There's
    nothing equivalent for a plugin author to worry about on iOS either,
-   just for a different reason (no rewrite happens at all there).
+   just for a different reason: no rewrite happens at all there.
 9. **Merge native dependencies, permissions, and Android's ProGuard
    rules** from every resolved plugin's `plugin.json`: Gradle
    dependencies into `build.gradle.kts`, `permissions.android` into
    `AndroidManifest.xml`, ProGuard rules into `proguard-rules.pro`,
    `permissions.ios` into `Info.plist`, and `nativeDependencies.ios.spm`
-   into the generated `NativeDependencies` Swift package's `Package.swift`
-   — all inside clearly marked generated blocks.
+   into the generated `NativeDependencies` Swift package's `Package.swift`,
+   all inside clearly marked generated blocks.
 10. **Inject per-environment build config** for every entry under
-    `config.environments` — Android's `build.gradle.kts` product flavors,
+    `config.environments`: Android's `build.gradle.kts` product flavors,
     and each environment's own `Environment-<env>.xcconfig` for iOS
     (bundle identifier and app name; see [wefter.config.json's
     role](/cli/config-role) for exactly how the iOS bundle identifier is
     derived, it isn't the same rule as the Android namespace).
 11. **Generate launcher icons for both platforms**, only if `config.icon`
-    is set — see [App Icon](/docs/app-icon). Note this is config-driven
+    is set (see [App Icon](/docs/app-icon)). Note this is config-driven
     only: the standalone [`wefter icon
     generate`](/cli/icon-generate) command only ever touches Android.
 12. **Resolve and copy the splash screen** into both native projects, only
-    if `config.splash` is set (and not `false`) — see [App Splash
+    if `config.splash` is set (and not `false`); see [App Splash
     Screen](/docs/app-splash-screen) and [`wefter splash
     generate`](/cli/splash-generate).
-13. **Generate the plugin registries** — `GeneratedRegistry.kt` and
+13. **Generate the plugin registries**: `GeneratedRegistry.kt` and
     `GeneratedRegistry.swift`, each written from every resolved plugin's
     extracted methods and hooks for that platform.
 14. **Write `wefter.lock.json`** with the freshly resolved version and
-    integrity hash of every plugin — the hash covers `android/*.kt` and
+    integrity hash of every plugin. The hash covers `android/*.kt` and
     `ios/*.swift` alike; see [wefter.lock.json's role](/cli/lockfile-role).
-15. **Write the sync marker** — a hash of the current
+15. **Write the sync marker**: a hash of the current
     `wefter.config.json`, checked by [`build`](/cli/build) and
     [`run`](/cli/run) to refuse running against a stale sync.
 
@@ -124,20 +126,20 @@ reasoning behind this.
 Every run rebuilds the generated registry, merged Gradle/manifest/ProGuard
 blocks, and plugin source from your *current* config, from nothing. There
 is no persistent, partially-updated state that can drift from what's
-actually declared — the tradeoff is that `sync` always does the full
+actually declared. The tradeoff is that `sync` always does the full
 amount of work above, not a diff of what changed.
 
 ## Ejected projects: transactional
 
 Once a project is [ejected](/cli/eject), `sync` still runs for both
-platforms — it just skips step 5 (recreating the shells) and the Android
+platforms. It just skips step 5 (recreating the shells) and the Android
 half of step 6 (namespace rewrite), since `android/` and `ios/` are yours
 to hand-edit at that point. Everything else still happens for both, wrapped
 in a snapshot-and-restore: if any step throws, every file `sync` would have
-touched — the generated registries, both plugin source directories,
+touched (the generated registries, both plugin source directories,
 `build.gradle.kts`, the Android manifest, both web asset folders,
 `proguard-rules.pro`, the iOS `BuildConfig.swift`, `Info.plist`, and the
-`NativeDependencies` package's `Package.swift` — is restored to its
+`NativeDependencies` package's `Package.swift`) is restored to its
 pre-sync state rather than left half-modified.
 
 ## Failure behavior

@@ -28,7 +28,7 @@ Full argument reference and every generated file shown in full:
 covers the one thing worth understanding deeply before you start editing
 what it generated.
 
-## The namespace constraint — Android only, and absolute
+## The namespace constraint: Android only, and absolute
 
 <Callout type="warn">
   Never change the `package dev.wefter.bridge` line at the top of any
@@ -41,8 +41,8 @@ placeholder package on purpose, so a plugin author never has to know
 which namespace any particular host app will actually use. When
 [`wefter sync`](/cli/sync) weaves your plugin into a host app, it does a
 literal string replace of `package dev.wefter.bridge` for every `.kt`
-file it copies in — nothing smarter than that, just a direct text
-substitution (`copyAndroidNativeSource` in `@wefter/registry-codegen`,
+file it copies in, nothing smarter than that, just a direct text
+substitution (`copyAndroidNativeSource` in `@wefterjs/registry-codegen`,
 the same rewrite the generated shell itself goes through).
 
 Rename that line to anything else, even something that looks more
@@ -50,21 +50,21 @@ Rename that line to anything else, even something that looks more
 file gets copied in with whatever package you wrote, the class ends up
 outside the namespace the generated registry expects it in, and the
 woven project fails to build. The class name itself
-(`SecureStoragePlugin`) is yours to change freely — only the `package`
+(`SecureStoragePlugin`) is yours to change freely, only the `package`
 line is off-limits.
 
 <Callout type="info">
   There's no equivalent constraint on `.swift` files, and nothing to
   leave alone there. `sync` copies `ios/*.swift` in verbatim, no string
-  replace of any kind — Swift plugin classes compile straight into the
+  replace of any kind. Swift plugin classes compile straight into the
   one fixed `WefterBridge` app target regardless of which host app they
   end up in, so there's no per-app identity for the source to need
   rewriting into. If you're looking for the Swift equivalent of this
   rule, there isn't one; that's not an oversight.
 </Callout>
 
-This exact mistake — renaming the package line because it looks
-wrong — was caught before it ever shipped to a real plugin author. This
+This exact mistake, renaming the package line because it looks
+wrong, was caught before it ever shipped to a real plugin author. This
 page exists partly so nobody has to rediscover it the hard way a second
 time. The [`wefter create-plugin`](/cli/create-plugin) page on the CLI
 tab carries the identical warning; landing on either page first should
@@ -77,7 +77,7 @@ wefter plugin validate ./secure-storage
 ```
 
 confirms the scaffold (or your edited version of it) passes validation
-standalone, without a full app project around it — see
+standalone, without a full app project around it. See
 [`validating-and-publishing`](/plugin/validating-and-publishing). From
 there: [`writing-the-js-side`](/plugin/writing-the-js-side),
 [`writing-the-kotlin-side`](/plugin/writing-the-kotlin-side), and
