@@ -30,12 +30,15 @@ Referenced via `--env` on `wefter build`/`wefter run` (defaults to `development`
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
-| `html` | `string` | — (required when splash is enabled) | Path to your splash HTML file. Same file, both platforms. |
-| `minDurationMs` | `number` (0–5000) | `600` | Minimum time the splash stays up, even if the app is ready sooner. |
-| `fadeOutDurationMs` | `number` (0–1000) | `300` | Fade-out transition length. |
+| `source` | `string` | — (required when splash is enabled) | Path to your splash folder. Same folder, both platforms. |
+| `minDuration` | `number` (0–20000ms) | `0` | Minimum time the splash stays up, even if the app is ready sooner. |
+| `maxDuration` | `number` (0–20000ms) | `5000` | Hard cap — dismisses automatically after this long even if the app never signals ready. |
+| `dismissOn` | `"ready" \| "timer"` | `"ready"` | `"ready"` waits for `hideSplash()`; `"timer"` dismisses purely on `minDuration`. |
+| `transition` | `"fade" \| "none"` | `"fade"` | How the splash disappears once dismissed. |
 
 `splash: false` and omitting the key entirely are identical, both mean no
-splash at all, on either platform. Full detail on
+splash at all, on either platform. `minDuration` must not be greater than
+`maxDuration`. Full detail on
 [App Splash Screen](/docs/app-splash-screen).
 
 ### `signing` (Android)
@@ -75,9 +78,11 @@ signing config, before you attempt a `--release` build for iOS.
   },
   "icon": "./resources/icon.png",
   "splash": {
-    "html": "./resources/splash.html",
-    "minDurationMs": 1200,
-    "fadeOutDurationMs": 400
+    "source": "./resources/splash",
+    "minDuration": 1200,
+    "maxDuration": 5000,
+    "dismissOn": "ready",
+    "transition": "fade"
   },
   "signing": {
     "keystorePath": "./release.keystore",

@@ -1,6 +1,6 @@
 ---
 title: App Splash Screen
-description: HTML-authored, parallel-loaded, and fully optional.
+description: A folder of HTML, CSS, and images, copied straight into your app.
 ---
 
 ## Decorative, not load-bearing
@@ -8,6 +8,45 @@ description: HTML-authored, parallel-loaded, and fully optional.
 Wefter has no framework boot time to hide behind a splash screen. There's
 nothing to wait for before your app can render, so the splash screen exists
 purely for branding, and it's disabled by default.
+
+## Just a folder
+
+Wefter's splash screen is developer-authored HTML — a folder you provide,
+copied straight into your app. There's no special image-processing step:
+you bring your own HTML, CSS, and images, and Wefter copies the folder
+as-is.
+
+```
+splash/
+├── index.html
+├── logo.png
+└── styles.css
+```
+
+Reference your assets in `index.html` using normal relative paths:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <img src="./logo.png" alt="Logo" />
+  </body>
+</html>
+```
+
+No manifest, no image-manifest entries, no build-time rewriting. If it
+works when you open `index.html` in a browser, it works in your app.
+
+**Requirements:**
+
+- The folder must contain an `index.html` — the entry point Wefter loads.
+- Everything else in the folder (images, fonts, stylesheets, scripts) is
+  copied along with it, preserving your relative paths.
+- Keep all referenced assets inside the folder. Files outside it aren't
+  copied, and references to them won't resolve.
 
 ## Two stages
 
@@ -17,9 +56,20 @@ background color and an icon, gone by the first frame. Its only job is
 making sure the OS never shows a bare white flash before anything else
 renders.
 
-**Stage 2, your branded splash.** A second WebView, loaded in parallel with
-the main app WebView, not sequentially before it, since there's no boot
-time to justify a real wait. It shows whatever HTML you author yourself.
+**Stage 2, your branded splash.** A second WebView, loaded in parallel
+with the main app WebView, not sequentially before it, since there's no
+boot time to justify a real wait. It shows whatever folder you point
+`splash.source` at.
+
+- **Android** — your splash folder is bundled into the app's assets and
+  loaded locally, the same way your main app content is served.
+- **iOS** — your splash folder is served through the same secure local
+  content handler your app already uses, so the same content-security
+  policy applies.
+
+On both platforms, the splash WebView never gets access to Wefter's
+native bridge — it's asset display only, not part of your app's JS ↔
+native communication.
 
 ## Fully disableable
 
@@ -27,53 +77,67 @@ time to justify a real wait. It shows whatever HTML you author yourself.
 { "splash": false }
 ```
 
-is identical to omitting the `splash` key entirely, both mean zero Stage 2
-splash. When enabled:
+is identical to omitting the `splash` key entirely, both mean zero
+Stage 2 splash. When enabled:
 
 ```json
 {
   "splash": {
-    "html": "./resources/splash.html",
-    "minDurationMs": 600,
-    "fadeOutDurationMs": 300
+    "source": "./resources/splash",
+    "minDuration": 400,
+    "maxDuration": 5000,
+    "dismissOn": "ready",
+    "transition": "fade"
   }
 }
 ```
 
-| Field               | Type              | Default  |
-| ------------------- | ----------------- | -------- |
-| `html`              | `string`          | required |
-| `minDurationMs`     | `number` (0–5000) | `600`    |
-| `fadeOutDurationMs` | `number` (0–1000) | `300`    |
+| Field          | Type                     | Default   | Purpose                                                                             |
+| -------------- | ------------------------ | --------- | ------------------------------------------------------------------------------------ |
+| `source`       | `string`                 | required  | Path to your splash folder, both platforms.                                          |
+| `minDuration`  | `number` (ms)            | `0`       | Minimum time the splash stays visible, regardless of app readiness.                  |
+| `maxDuration`  | `number` (ms)            | `5000`    | Hard cap — the splash dismisses automatically after this long even if `dismissOn` is `"ready"` and your app never signals ready. |
+| `dismissOn`    | `"ready"` \| `"timer"`   | `"ready"` | `"ready"` waits for [`hideSplash()`](/docs/javascript-apis#hidesplash) (after `minDuration`); `"timer"` dismisses purely on `minDuration`, ignoring app state. |
+| `transition`   | `"fade"` \| `"none"`     | `"fade"`  | `"fade"` fades the splash out over ~200ms before revealing your app; `"none"` disappears instantly. |
 
 ## Disabled means never constructed
 
 When splash is disabled, the splash WebView isn't just hidden, it's never
-created at all. There's no second WebView sitting inertly in memory, and no
-overhead from a feature you're not using.
+created at all. There's no second WebView sitting inertly in memory, and
+no overhead from a feature you're not using.
 
-The splash WebView also never gets access to the native bridge. It runs
-with JavaScript enabled, so JS-driven animation works and not just CSS, but
-it has no way to call `invokeNative` or reach anything on the native side.
+## Dismissal
 
-## Dismissal: the `appReady` hook
-
-Zero-config default: the main WebView's page-load completion fires the
-`appReady` hook automatically. No code required on your end.
-
-Opt-in, for apps that want to hold the splash open past first paint, for
-example until initial data has loaded:
+With the default `dismissOn: "ready"`, the splash waits for your app to
+call `hideSplash()`, but never dismisses before `minDuration` and never
+stays up past `maxDuration` even if `hideSplash()` is never called:
 
 ```ts
-import { invokeNative } from "@wefter/core";
+import { hideSplash } from "@wefter/core";
 
-await invokeNative("system", "appReady", {});
+await hideSplash();
 ```
 
-Either path converges on the same dismissal: the splash fades out over
-`fadeOutDurationMs`, respecting `minDurationMs` as a floor. A fallback
-timer also exists as a safety net, in case a page never finishes loading,
-so a broken page can't strand a user on the splash forever.
+Call this from your **main app**, once your first screen has actually
+rendered, not from inside the splash HTML itself. The splash screen has
+no bridge access, so it has no way to call this itself; the ready signal
+always comes from your app's own WebView, after it mounts.
+
+With `dismissOn: "timer"`, none of that matters: the splash simply stays
+up for `minDuration` and dismisses, ignoring `hideSplash()` entirely.
+
+Either path converges on the same dismissal: the splash fades out (or
+disappears instantly, per `transition`), and is removed from the view
+hierarchy entirely, not just hidden.
+
+## Validation
+
+When you generate or sync your splash screen, Wefter checks that:
+
+- Your splash folder exists and contains `index.html`.
+- (Recommended) Any `src`/`href` references inside your HTML point to
+  files that actually exist in the folder — broken references produce a
+  warning so you catch a missing image before your users do.
 
 ## A complete example
 
@@ -82,39 +146,41 @@ so a broken page can't strand a user on the splash forever.
 <html>
   <head>
     <meta charset="utf-8" />
-    <style>
-      body {
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        background: #0f766e;
-      }
-      .mark {
-        width: 72px;
-        height: 72px;
-        border-radius: 20px;
-        background: #ffffff;
-        animation: pulse 1.2s ease-in-out infinite;
-      }
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.7;
-          transform: scale(0.92);
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="mark"></div>
   </body>
 </html>
+```
+
+```css
+body {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #0f766e;
+}
+.mark {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: #ffffff;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+}
 ```
 
 Scaffold this exact starting point with:
@@ -124,3 +190,13 @@ wefter splash generate
 ```
 
 See the [CLI tab](/cli/splash-generate) for flags.
+
+## Tips
+
+- Keep it lightweight. The splash screen should render instantly — avoid
+  large images or web fonts that need to load over a network.
+- No network requests. Splash content is loaded locally and shouldn't
+  depend on internet access.
+- Test on both platforms. Rendering differences between Android's and
+  iOS's WebViews are rare but possible — always preview your splash
+  screen on a real device or simulator for each platform before shipping.

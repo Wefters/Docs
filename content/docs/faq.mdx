@@ -124,9 +124,9 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   It doesn't delay anything by default, on either platform. The `splash` field
   is absent unless you opt in. When you do configure one, it's for branding, a
   moment of your own artwork instead of a blank frame on cold start, not because
-  the app needs the time. It's fully HTML-authored and dismisses itself once
-  your page is ready, or once you tell it to. See [App Splash
-  Screen](/docs/app-splash-screen).
+  the app needs the time. It's a folder of your own HTML and dismisses once you
+  call `hideSplash()`, or on a fixed timer if you'd rather not wire that up. See
+  [App Splash Screen](/docs/app-splash-screen).
 </Accordion>
 
   <Accordion title="Do I need a Mac to build for Android?">

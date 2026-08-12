@@ -61,11 +61,12 @@ is actually present at runtime.
   with its own app ID and name, so a dev build and a production build are
   genuinely separate, independently installable apps rather than one app
   that overwrites itself.
-- **Icon and splash handled for you.** Set `icon`/`splash` in config and
-  `wefter sync` generates everything a platform needs, per density on
-  Android, per required slot on iOS, from one source. The splash screen
-  itself is plain HTML you author, not a proprietary format, and it's off
-  by default since there's nothing it needs to cover.
+- **Icon and splash handled for you.** Set `icon` in config and `wefter
+  sync` generates everything a platform needs from one source image, per
+  density on Android, per required slot on iOS. `splash` works
+  differently: it's a folder of your own HTML, CSS, and images, copied
+  straight in, not generated, and it's off by default since there's
+  nothing it needs to cover.
 - **A native project you can actually read.** The generated Kotlin/Swift
   shell is small and readable, fully regenerated from your config on
   every `sync`, so it never accumulates hand-edited drift you have to

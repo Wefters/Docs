@@ -44,14 +44,19 @@ there's no queuing, no data, no cross-platform JS visibility.
 
 ## What's actually live today
 
-**`"appReady"` is the only hook name either native shell dispatches right
-now.** It fires once when the WebView finishes its first page load
-(`WebViewClient.onPageFinished` on Android, the equivalent iOS navigation
-callback), and again any time your JS explicitly calls
-`invokeNative('__system', 'appReady', {})` — the same call used to signal
-splash-screen readiness. Both shells' own splash-dismissal logic
-subscribes to it internally (`dispatcher.subscribeHook("appReady") {
-dismissSplash() }`), which is why the mechanism exists at all today.
+**Two hook names either native shell actually dispatches today:
+`"appReady"` and `"hideSplash"`.** `"appReady"` fires once when the
+WebView finishes its first page load (`WebViewClient.onPageFinished` on
+Android, the equivalent iOS navigation callback), and again any time
+your JS explicitly calls `invokeNative('__system', 'appReady', {})`.
+`"hideSplash"` is narrower and never automatic — it fires only when your
+JS calls `hideSplash()` from `@wefter/core` (a thin wrapper around
+`invokeNative('__system', 'hideSplash', {})`). Both shells' own
+splash-dismissal logic subscribes to `"hideSplash"` internally
+(`dispatcher.subscribeHook("hideSplash") { dismissSplash() }`), which is
+why that hook exists at all; `"appReady"` predates it and stays the
+general-purpose one available to any plugin. See [App Splash
+Screen](/docs/app-splash-screen#dismissal) for the full dismissal model.
 
 **General lifecycle hooks — `onPause`, `onResume` — are not wired to
 anything real yet.** The `subscribeHook`/`dispatchHook` plumbing itself is

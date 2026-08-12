@@ -126,11 +126,17 @@ that method until some native code elsewhere calls
 native code, with no data payload and no JS involvement at either end.
 
 **Status, checked directly against the current shells, not assumed:**
-`"appReady"` is the only hook name either native shell actually
-dispatches today — once from the WebView finishing its first page load,
-and once from an explicit `__system.appReady` call your JS can make
-itself (the same call `invokeNative('__system', 'appReady', {})`
-signals for splash-screen dismissal). `onPause`/`onResume` are **not**
+Two hook names either native shell actually dispatches today:
+`"appReady"` and `"hideSplash"`. `"appReady"` fires once from the
+WebView finishing its first page load, and again from an explicit
+`__system.appReady` call your JS can make itself
+(`invokeNative('__system', 'appReady', {})`). `"hideSplash"` fires only
+from an explicit `hideSplash()` call — `@wefter/core`'s wrapper around
+`invokeNative('__system', 'hideSplash', {})` — never automatically; it's
+what splash-screen dismissal actually listens for, kept deliberately
+separate from `"appReady"` so a splash configured with
+`dismissOn: "ready"` doesn't dismiss the instant the page loads.
+`onPause`/`onResume` are **not**
 wired to anything real yet — the plumbing (`subscribeHook`/`dispatchHook`
 themselves) is implemented and unit-tested, but no Android `Activity`
 lifecycle callback or iOS `Scene`/`AppDelegate` method calls
