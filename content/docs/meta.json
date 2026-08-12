@@ -13,6 +13,7 @@
     "app-configuration",
     "app-icon",
     "app-splash-screen",
+    "app-launch-background",
     "javascript-apis"
   ],
   "root": true,

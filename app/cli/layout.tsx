@@ -1,10 +1,10 @@
 import { cliSource } from "@/lib/source";
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
-import { baseOptions } from "@/lib/layout.shared";
+import { DocsLayout } from "@/layouts/docs";
+import { baseOptions, rootTabs } from "@/lib/layout.shared";
 
 export default function Layout({ children }: LayoutProps<"/cli">) {
   return (
-    <DocsLayout tree={cliSource.getPageTree()} {...baseOptions()}>
+    <DocsLayout tree={cliSource.getPageTree()} tabs={rootTabs} {...baseOptions()}>
       {children}
     </DocsLayout>
   );

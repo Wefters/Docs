@@ -1,0 +1,61 @@
+---
+title: Native Launch Background
+description: The OS-level background shown before your WebView and splash screen have loaded.
+---
+
+Before your app's WebView (and your HTML splash screen) has loaded, the OS
+itself shows a background the instant your app icon is tapped. This is
+separate from your [App Splash Screen](/docs/app-splash-screen) — it's a
+native-level color, not HTML, and it renders before any of your JS or
+splash assets are ready.
+
+Without setting this, you'll get whatever default background color the
+native shell falls back to — usually plain white or black — which can
+visibly flash against your actual splash screen for a moment before it's
+replaced.
+
+## Configuration
+
+This is configured separately from `splash`, at the top level of your
+Wefter config:
+
+```json
+{
+  "launchBackground": "#14161C"
+}
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `launchBackground` | string (hex color) | matches `splash.source`'s background if detectable, otherwise `#FFFFFF` | Background color shown natively before your WebView and splash screen have loaded. |
+
+## Why this is separate from `splash`
+
+`splash` controls what's shown once your HTML splash screen has loaded and
+rendered inside the WebView. `launchBackground` controls what's shown
+*before that* — at the OS level, before there's a WebView to render
+anything into. They serve different moments in the startup sequence and
+are implemented through entirely different mechanisms per platform, so
+they're kept as distinct config values rather than nested under one
+another.
+
+## Recommended: match your splash background
+
+If `launchBackground` doesn't match the background color your splash HTML
+actually uses, you'll get a visible color flash the moment your HTML
+splash screen appears and replaces the native background. Set
+`launchBackground` to the same color as your splash screen's background
+for a seamless handoff.
+
+## How it's applied per platform
+
+- **Android** — written into the generated `styles.xml`. On Android 12+,
+  this maps to `windowSplashScreenBackground` under the newer
+  `SplashScreen` API; on earlier versions, it's applied via
+  `windowBackground` in the app's theme. Both are handled automatically so
+  you only need to set one value.
+- **iOS** — written into the generated launch screen configuration
+  (`UILaunchScreen` background).
+
+This is applied at `sync` time, the same as your splash folder and other
+native shell configuration.

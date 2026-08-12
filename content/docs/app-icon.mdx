@@ -3,26 +3,41 @@ title: App Icon
 description: How the launcher icon is generated, and what ships by default.
 ---
 
+## Source image requirements
+
+The source image **must be at least 1024x1024px**. `sync` rejects anything
+smaller:
+
+```
+Icon source is 512x512px, but must be at least 1024x1024px: /path/to/icon.png
+```
+
+Why 1024 specifically: it's the exact size iOS requires for its App Store
+icon slot, and comfortably larger than the biggest Android asset generated
+(432px, for the `xxxhdpi` adaptive icon foreground layer). One source image
+this size or larger covers every density on both platforms without
+upscaling blur.
+
 ## What gets generated
 
-From one source image, any size, it's resized per density, `wefter sync`
-generates a launcher icon (`ic_launcher.png`) at every Android mipmap
-density:
+From that one source image, `wefter sync` generates, for every Android
+mipmap density, a legacy launcher icon (`ic_launcher.png`) and an adaptive
+icon foreground layer (`ic_launcher_foreground.png`):
 
-| Density   | Size  |
-| --------- | ----- |
-| `mdpi`    | 48px  |
-| `hdpi`    | 72px  |
-| `xhdpi`   | 96px  |
-| `xxhdpi`  | 144px |
-| `xxxhdpi` | 192px |
+| Density   | Legacy size | Adaptive foreground size |
+| --------- | ----------- | ------------------------ |
+| `mdpi`    | 48px        | 108px                    |
+| `hdpi`    | 72px        | 162px                    |
+| `xhdpi`   | 96px        | 216px                    |
+| `xxhdpi`  | 144px       | 324px                    |
+| `xxxhdpi` | 192px       | 432px                    |
 
-<Callout type="warn">
-  Adaptive icon layers (separate foreground/background, Android 8 and newer)
-  aren't generated yet, only the legacy per-density `ic_launcher.png`. If your
-  icon looks different on adaptive-icon-aware launchers than you expected, this
-  is why.
-</Callout>
+It also writes `mipmap-anydpi-v26/ic_launcher.xml` and
+`ic_launcher_round.xml`, the adaptive icon definitions Android 8+ launchers
+use, plus an `ic_launcher_background` color resource sampled from the
+source image's corner pixel. Without these, adaptive-icon-aware launchers
+auto-wrap a plain legacy icon in a shrunken circle — `sync` avoids that by
+generating proper adaptive layers directly.
 
 ## Regenerated fresh on every `sync`
 

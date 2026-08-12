@@ -1,4 +1,4 @@
-import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import type { BaseLayoutProps, LayoutTab } from "fumadocs-ui/layouts/shared";
 import { BookOpen, Puzzle, Terminal } from "lucide-react";
 
 const DiscordIcon = () => (
@@ -12,10 +12,40 @@ const DiscordIcon = () => (
   </svg>
 );
 
+function NavTitle() {
+  return (
+    <>
+      <img src="/logo/banner-light.svg" alt="Wefter" className="h-6 w-auto dark:hidden" />
+      <img src="/logo/banner-dark.svg" alt="Wefter" className="h-6 w-auto hidden dark:block" />
+    </>
+  );
+}
+
+export const rootTabs: LayoutTab[] = [
+  {
+    icon: <BookOpen className="size-4.5" />,
+    title: "Docs",
+    description: "Architecture, setup, and configuration",
+    url: "/docs",
+  },
+  {
+    icon: <Puzzle className="size-4.5" />,
+    title: "Plugin",
+    description: "Plugin anatomy, the native API surface, and a full worked tutorial",
+    url: "/plugin",
+  },
+  {
+    icon: <Terminal className="size-4.5" />,
+    title: "CLI",
+    description: "Every command, every flag, every failure mode, documented",
+    url: "/cli",
+  },
+];
+
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: "Wefter",
+      title: <NavTitle />,
     },
     links: [
       {
@@ -23,18 +53,21 @@ export function baseOptions(): BaseLayoutProps {
         text: "Docs",
         url: "/docs",
         active: "nested-url",
+        on: "nav",
       },
       {
         icon: <Puzzle className="size-4" />,
         text: "Plugin",
         url: "/plugin",
         active: "nested-url",
+        on: "nav",
       },
       {
         icon: <Terminal className="size-4" />,
         text: "CLI",
         url: "/cli",
         active: "nested-url",
+        on: "nav",
       },
       {
         type: "icon",
