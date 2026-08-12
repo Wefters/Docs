@@ -1,13 +1,20 @@
 <div align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/Logo/Dark/Logo.svg">
-    <source media="(prefers-color-scheme: light)" srcset="public/Logo/Light/Logo.svg">
-    <img alt="Wefter Docs" src="public/Logo/Light/Logo.svg" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="public/logo/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="public/logo/banner-light.svg">
+    <img alt="Wefter Docs" src="public/logo/banner-light.svg" width="420">
   </picture>
 
   <p><strong>Documentation site for Wefter, live at <a href="https://wefter.dev">wefter.dev</a>.</strong></p>
 
   <p>
+    <img alt="Next.js" src="https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white">
+    <img alt="pnpm" src="https://img.shields.io/badge/pnpm-workspace-F69220?style=flat-square&logo=pnpm&logoColor=white">
+    <a href="https://discord.gg/wefter"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2?style=flat-square&logo=discord&logoColor=white"></a>
+  </p>
+
+  <p>
+    <a href="https://wefter.dev"><strong>wefter.dev</strong></a> ·
     <a href="https://github.com/Wefters/Wefter">Wefter source</a> ·
     <a href="https://discord.gg/wefter">Discord</a>
   </p>
@@ -22,10 +29,10 @@ content authored in MDX.
 
 The site has three content sections, each its own tab:
 
-| Section          | Route     | Source                             |
-| ---------------- | --------- | ---------------------------------- |
-| Docs             | `/docs`   | [`content/docs`](content/docs)     |
-| CLI reference    | `/cli`    | [`content/cli`](content/cli)       |
+| Section | Route | Source |
+| --- | --- | --- |
+| Docs | `/docs` | [`content/docs`](content/docs) |
+| CLI reference | `/cli` | [`content/cli`](content/cli) |
 | Plugin authoring | `/plugin` | [`content/plugin`](content/plugin) |
 
 Layout for each section lives under [`app/`](app) (`app/docs`, `app/cli`,
@@ -45,11 +52,11 @@ The site runs at [localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Command      | What it does                 |
-| ------------ | ---------------------------- |
-| `pnpm dev`   | Start the Next.js dev server |
-| `pnpm build` | Production build             |
-| `pnpm start` | Serve the production build   |
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Start the Next.js dev server |
+| `pnpm build` | Production build |
+| `pnpm start` | Serve the production build |
 
 ## Contributing
 
