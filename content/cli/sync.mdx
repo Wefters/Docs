@@ -90,13 +90,20 @@ reasoning behind this.
    needs to know what namespace any given app will actually use. There's
    nothing equivalent for a plugin author to worry about on iOS either,
    just for a different reason: no rewrite happens at all there.
-9. **Merge native dependencies, permissions, and Android's ProGuard
-   rules** from every resolved plugin's `plugin.json`: Gradle
-   dependencies into `build.gradle.kts`, `permissions.android` into
-   `AndroidManifest.xml`, ProGuard rules into `proguard-rules.pro`,
-   `permissions.ios` into `Info.plist`, and `nativeDependencies.ios.spm`
-   into the generated `NativeDependencies` Swift package's `Package.swift`,
-   all inside clearly marked generated blocks.
+9. **Merge native dependencies, permissions, manifest components, and
+   Android's ProGuard rules** from every resolved plugin's `plugin.json`:
+   every `nativeDependencies.android.gradle` coordinate into
+   `build.gradle.kts` (deduplicated; a major-version conflict between two
+   plugins resolves to the highest version and prints a warning rather
+   than failing), `permissions.android` into `AndroidManifest.xml`,
+   `android.manifestEntries` (activities + intent-filters, with any
+   `${placeholder}` resolved against `wefter.config.json`'s `pluginConfig`
+   — sync fails naming the exact missing key if one doesn't resolve) into
+   the same `AndroidManifest.xml`, ProGuard rules into
+   `proguard-rules.pro`, `permissions.ios` into `Info.plist`, and
+   `nativeDependencies.ios.spm` into the generated `NativeDependencies`
+   Swift package's `Package.swift`, all inside clearly marked generated
+   blocks.
 10. **Inject per-environment build config** for every entry under
     `config.environments`: Android's `build.gradle.kts` product flavors,
     and each environment's own `Environment-<env>.xcconfig` for iOS

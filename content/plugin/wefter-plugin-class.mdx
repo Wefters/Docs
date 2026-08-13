@@ -90,3 +90,51 @@ they'd write any other piece of iOS code. See
   and manufacturing one yourself just re-adds the complexity the missing
   helper was avoiding.
 </Callout>
+
+## Reaching a plugin instance from outside the dispatcher: `WefterBridge`
+
+A plugin instance is normally only reachable through the dispatcher that
+constructed it — fine as long as every part of your plugin lives inside
+that one class. It stops being fine the moment a plugin needs a *second*
+native component that the dispatcher doesn't own: a launched Activity, a
+presented view controller, a URL handler. The Browser plugin's OAuth flow
+is the concrete case — the redirect lands in a dedicated
+`BrowserAuthActivity`, a completely separate Activity from whatever hosts
+the dispatcher, and it still needs to call `emit()` on the live
+`BrowserPlugin` instance once the redirect resolves.
+
+`WefterBridge` is a framework-owned registry that solves this once,
+instead of every multi-component plugin hand-rolling its own static
+accessor:
+
+```kotlin
+object WefterBridge {
+    fun getPlugin(pluginId: String): WefterPlugin?
+}
+```
+
+```swift
+public enum WefterBridge {
+    public static func plugin(withId pluginId: String) -> WefterPlugin?
+}
+```
+
+Every plugin is registered automatically — `GeneratedRegistry` calls
+`WefterBridge.register(...)` alongside `dispatcher.register(...)`, so
+there's nothing extra to opt into. From anywhere else in your native code:
+
+```kotlin
+class BrowserAuthActivity : FragmentActivity() {
+    private fun completeWithSuccess(callbackUrl: String) {
+        val plugin = WefterBridge.getPlugin("browser") as? BrowserPlugin
+        plugin?.dispatchAuthCompleted(callbackUrl, sessionId)
+    }
+}
+```
+
+`pluginId` is the same string as `plugin.json`'s `name` field and
+`wefter.config.json`'s `plugins` array — whatever `invokeNative`'s first
+argument uses. The registry only ever holds the currently-live instance
+per plugin name; nothing to unregister by hand, a plugin re-registers
+itself (overwriting the old entry) any time its dispatcher is recreated.
+

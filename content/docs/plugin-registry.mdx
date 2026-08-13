@@ -55,8 +55,19 @@ For each declared plugin, `sync`:
    annotations on Android, `// @WefterMethod` comments on iOS) and
    cross-checks them against `plugin.json`'s declared `methods`/`hooks`. A
    mismatch fails the sync loudly.
-4. Regenerates the native project's plugin registry from scratch, for
-   both platforms.
+4. Weaves in `permissions.android`, every `nativeDependencies.android.gradle`
+   coordinate, and any `android.manifestEntries` (activities + intent-filters)
+   into the generated `AndroidManifest.xml`/`build.gradle.kts` — the same
+   pass that already merges permissions. A `manifestEntries` placeholder
+   (`${key}`) with no matching `wefter.config.json` `pluginConfig` entry
+   fails the sync with the exact missing key named, rather than silently
+   dropping the entry. Full field shapes on the [`plugin.json`
+   reference](/plugin/plugin-json-reference).
+5. Regenerates the native project's plugin registry from scratch, for
+   both platforms. Every registered plugin instance is also reachable via
+   `WefterBridge.getPlugin(pluginId)` (Kotlin) / `WefterBridge.plugin(withId:)`
+   (Swift) from anywhere in your native code, not just from the dispatcher
+   that constructed it — see [`WefterPlugin`](/plugin/wefter-plugin-class#reaching-a-plugin-instance-from-outside-the-dispatcher-wefterbridge).
 
 `sync` is not incremental or additive. Every run rebuilds the generated
 registry from your current config, for every platform, so there's no
@@ -95,6 +106,13 @@ A plugin adding iOS support to an existing Android-only implementation
 produces a new integrity hash, since real source changed, even if the
 declared version string didn't, exactly the "integrity changed but
 resolved didn't" case worth double-checking when reading a diff.
+
+This is why `nativeDependencies.android.gradle`'s full array and
+`android.manifestEntries` don't need their own separate hashing logic —
+they're both just fields inside `plugin.json`, which is hashed wholesale.
+A plugin that adds a Gradle artifact or an `<activity>` entry changes
+`plugin.json`'s bytes, which changes the integrity hash, which trips
+`--update-lock` the same as any other native-affecting change.
 
 Records the exact resolved version and content hash of every synced
 plugin, and is meant to be committed to version control. `sync` fails if a

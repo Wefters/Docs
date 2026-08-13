@@ -78,3 +78,41 @@ Note that `add` only declares the plugin. It doesn't run `sync` itself.
 The plugin isn't actually woven into either native project (Gradle
 deps/permissions/registry on Android, Info.plist permissions/SPM
 deps/registry on iOS) until you run [`wefter sync`](/cli/sync).
+
+## What else it surfaces at install time
+
+`add` doesn't just validate and declare — it also checks the same three
+things [`wefter audit`](/cli/audit) reports, but scoped to *this*
+install, right when you'd actually want to know about them, not only if
+you happen to run `audit` separately later:
+
+**Exported components.** If the plugin declares an `android.manifestEntries`
+entry with `exported: true`:
+
+```
+Declares exported component(s), reachable from outside the app: activity .BrowserAuthActivity
+```
+
+**Required `pluginConfig` keys.** If a `manifestEntries` intent-filter
+references a `${placeholder}` your `wefter.config.json`'s `pluginConfig`
+doesn't set yet:
+
+```
+Requires "pluginConfig" key(s) not yet set in wefter.config.json: appScheme
+```
+
+**Gradle version conflicts.** If the newly-added plugin declares a
+`nativeDependencies.android.gradle` coordinate that some other
+already-declared plugin also declares, at a different *major* version:
+
+```
+Gradle dependency version conflicts with already-installed plugins:
+  - androidx.camera:camera-core: declared at different major versions across plugins (scanner@1.3.0, camera@2.0.0) — highest version wins.
+```
+
+None of these block the install — they're warnings printed alongside the
+success message, the same "tell the installer before it bites them"
+principle the install→validate→declare gate above already follows for
+hard failures. `wefter sync` will still weave the plugin in; a missing
+`pluginConfig` key only fails at `sync` time, when the placeholder
+actually needs resolving.

@@ -28,11 +28,15 @@ all.
 2. **`plugin.json` matches the schema**: `name` (required string),
    `permissions.android` (string array, defaults to `[]`),
    `permissions.ios` (a record of Info.plist key → usage-description
-   string, defaults to `{}`), `nativeDependencies.android.gradle`/
-   `proguardRules` (both optional) and `nativeDependencies.ios.spm` (an
-   optional array of `{ url, from, product }` Swift Package Manager
-   dependencies), `methods`, `hooks`, `events` (string arrays, all
-   default `[]`). Failure: `Invalid plugin.json: <schema error detail>`.
+   string, defaults to `{}`), `nativeDependencies.android.gradle` (a
+   string array, defaults to `[]`), `nativeDependencies.android.proguardRules`
+   (optional string), `nativeDependencies.ios.spm` (an optional array of
+   `{ url, from, product }` Swift Package Manager dependencies),
+   `android.manifestEntries` (an array of structural manifest components —
+   see the [`plugin.json` reference](/plugin/plugin-json-reference#androidmanifestentries)
+   for the full shape, defaults to `[]`), `methods`, `hooks`, `events`
+   (string arrays, all default `[]`). Failure: `Invalid plugin.json:
+   <schema error detail>`.
 3. **At least one of `android/` or `ios/` exists.** Neither present fails
    with `No android/ or ios/ directory found — a Wefter plugin must ship
    native source for at least one platform.` A plugin shipping only one
@@ -63,7 +67,22 @@ all.
    concatenated source the line number refers to. Any malformed signature
    on either platform stops validation here; consistency (next step)
    isn't checked until every signature found is clean.
-5. **`plugin.json` and source agree on `methods`/`hooks`, per platform.**
+5. **(Android only) `android.manifestEntries` and `nativeDependencies.android.gradle`
+   are structurally sound.** Two independent checks, both before the
+   consistency audit below:
+   - Every `manifestEntries[].name` must resolve to a `class`/`object`
+     actually declared somewhere in `android/`'s concatenated source, the
+     same way `methods`/`hooks` get cross-checked. A plugin declaring
+     `android.manifestEntries` with no `android/` directory at all fails
+     outright: `plugin.json declares "android.manifestEntries" but this
+     plugin ships no android/ directory.` A reference that doesn't
+     resolve fails with: `manifestEntries declares ".Foo" but no "class
+     Foo" (or "object Foo") was found in android/ source.`
+   - Every `nativeDependencies.android.gradle` entry must look like a
+     `group:artifact:version` Maven coordinate: `Malformed Gradle
+     coordinate "<value>" in nativeDependencies.android.gradle — expected
+     "group:artifact:version".`
+6. **`plugin.json` and source agree on `methods`/`hooks`, per platform.**
    For each of `android/`/`ios/` that exists, the `methods`/`hooks`
    actually found via `@WefterMethod`/`@WefterHook` in *that platform's*
    source are compared against the *same* full `plugin.json` declaration:
@@ -77,7 +96,7 @@ all.
    implemented on **every** platform the plugin ships native source for,
    not just one. There's no way to declare a method as Android-only (or
    iOS-only) in `plugin.json` itself.
-6. **(Android only) Dangerous permissions have a rejection handler.** If
+7. **(Android only) Dangerous permissions have a rejection handler.** If
    `plugin.json` declares any Android permission from an internal list of
    sensitive permissions (camera, precise/coarse/background location,
    contacts, SMS, call log, body sensors, and similar), the plugin's
@@ -91,7 +110,7 @@ all.
    this check.
 
 <Callout type="info">
-  Step 5 only runs, per platform, once `plugin.json` actually declares at
+  Step 6 only runs, per platform, once `plugin.json` actually declares at
   least one method or hook. An empty `methods: []`/`hooks: []` doesn't
   force your source to have zero `@WefterMethod`/`@WefterHook` functions.
   The check activates the moment you start declaring, not before.

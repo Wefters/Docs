@@ -10,6 +10,7 @@ description: Full wefter.config.json field reference.
 | `webDir` | `string` | `"dist"` | Where your built web app lives; copied into both platforms' native assets on every `sync`. |
 | `plugins` | `string[]` | `[]` | Explicit list of plugin package names to weave in. See [Plugin Registry](/docs/plugin-registry), nothing outside this array is ever included. |
 | `pluginsDir` | `string` | `"node_modules"` | Where declared plugin packages are resolved from. |
+| `pluginConfig` | `Record<string, string>` | `{}` | Flat key→value store a plugin's `android.manifestEntries` placeholders (`${key}`) resolve against at sync time. See [`plugin.json` reference](/plugin/plugin-json-reference#androidmanifestentries). |
 | `environments` | `Record<string, Environment>` | `{ development: {...} }` | Named build environments (see below). |
 | `icon` | `string` (optional) | none | Path to a source icon image. See [App Icon](/docs/app-icon). |
 | `splash` | `false \| SplashConfig` (optional) | none (disabled) | Splash screen config. See [App Splash Screen](/docs/app-splash-screen). |
@@ -96,6 +97,9 @@ build for iOS.
   "iosSigning": {
     "teamId": "ABCDE12345"
   },
-  "plugins": ["@yourorg/scanner-plugin"]
+  "plugins": ["@yourorg/scanner-plugin"],
+  "pluginConfig": {
+    "appScheme": "yourapp"
+  }
 }
 ```
