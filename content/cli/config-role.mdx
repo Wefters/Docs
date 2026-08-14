@@ -59,23 +59,22 @@ Wefter derives your app's Android package namespace from `wefter.config.json` us
 
 <Steps>
   <Step>
-    ### 1. Production Environment Priority If `environments.production.appId` is
-    defined, it is selected as the canonical Android package namespace.
+    ### 1. Production Environment Priority If `environments.production.appId` is defined, it is selected as the
+    canonical Android package namespace.
   </Step>
   <Step>
-    ### 2. Development Environment Fallback If `production` is not defined, it
-    checks for `environments.development.appId`.
+    ### 2. Development Environment Fallback If `production` is not defined, it checks for
+    `environments.development.appId`.
   </Step>
   <Step>
-    ### 3. First Environment Fallback If neither `production` nor `development`
-    is present, it uses the first defined environment's `appId`.
+    ### 3. First Environment Fallback If neither `production` nor `development` is present, it uses the first defined
+    environment's `appId`.
   </Step>
 </Steps>
 
 <Callout type="important">
-  **Canonical Identity Principle**: Android package namespaces require a single
-  canonical Java package string. Wefter prioritizes `production.appId` as the
-  permanent package identifier so Kotlin plugin imports remain consistent across
+  **Canonical Identity Principle**: Android package namespaces require a single canonical Java package string. Wefter
+  prioritizes `production.appId` as the permanent package identifier so Kotlin plugin imports remain consistent across
   debug and release builds.
 </Callout>
 
@@ -89,12 +88,12 @@ When building or running for iOS (`wefter build ios` / `wefter run ios`), the iO
 
 <Steps>
   <Step>
-    ### 1. Check Active Environment `iosBundleId` If the active environment
-    defines an explicit `iosBundleId`, it is used as the iOS bundle identifier.
+    ### 1. Check Active Environment `iosBundleId` If the active environment defines an explicit `iosBundleId`, it is
+    used as the iOS bundle identifier.
   </Step>
   <Step>
-    ### 2. Fallback to Active Environment `appId` If `iosBundleId` is omitted,
-    it falls back to the active environment's `appId`.
+    ### 2. Fallback to Active Environment `appId` If `iosBundleId` is omitted, it falls back to the active environment's
+    `appId`.
   </Step>
 </Steps>
 

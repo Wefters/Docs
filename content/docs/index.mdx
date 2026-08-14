@@ -26,24 +26,20 @@ wefter run ios --watch
 
 <Steps>
   <Step>
-    ### Web Application Layer (Vue / React / Svelte / Vanilla JS) Executes
-    inside native OS WebView (`android.webkit.WebView` and `WKWebView`). Calls
-    `invokeNative` and subscribes via `registerHook`.
+    ### Web Application Layer (Vue / React / Svelte / Vanilla JS) Executes inside native OS WebView
+    (`android.webkit.WebView` and `WKWebView`). Calls `invokeNative` and subscribes via `registerHook`.
   </Step>
   <Step>
-    ### Wefter JS Bridge Core (`@wefterjs/core`) Serializes native calls and
-    dispatches payloads to `window.AndroidBridge` or
-    `window.webkit.messageHandlers.WefterBridge`.
+    ### Wefter JS Bridge Core (`@wefterjs/core`) Serializes native calls and dispatches payloads to
+    `window.AndroidBridge` or `window.webkit.messageHandlers.WefterBridge`.
   </Step>
   <Step>
-    ### Native Dispatchers (Kotlin / Swift) Zero-reflection generated
-    dispatchers (`GeneratedRegistry.kt` & `GeneratedRegistry.swift`) route calls
-    directly to annotated plugin methods (`@WefterMethod`).
+    ### Native Dispatchers (Kotlin / Swift) Zero-reflection generated dispatchers (`GeneratedRegistry.kt` &
+    `GeneratedRegistry.swift`) route calls directly to annotated plugin methods (`@WefterMethod`).
   </Step>
   <Step>
-    ### Native Operating System APIs Executes platform capabilities (camera,
-    hardware storage, sensors, biometrics) and resolves results back to
-    JavaScript Promises.
+    ### Native Operating System APIs Executes platform capabilities (camera, hardware storage, sensors, biometrics) and
+    resolves results back to JavaScript Promises.
   </Step>
 </Steps>
 

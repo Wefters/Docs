@@ -39,9 +39,8 @@ Every Wefter plugin's Android Kotlin source code contains a package header line 
 When a consuming web application runs [`wefter sync`](/cli/sync), the Wefter CLI copies plugin `.kt` files into the host app's `.wefter/native/android` project tree and automatically replaces the `package <name>` header line with the host application's package namespace (e.g. `package com.example.myapp`).
 
 <Callout type="info">
-  **Flexible Package Declarations**: You are free to declare any package name in
-  your plugin's `.kt` files. `wefter sync` dynamically detects and rewrites the
-  package header at build/sync time.
+  **Flexible Package Declarations**: You are free to declare any package name in your plugin's `.kt` files. `wefter
+  sync` dynamically detects and rewrites the package header at build/sync time.
 </Callout>
 
 ---

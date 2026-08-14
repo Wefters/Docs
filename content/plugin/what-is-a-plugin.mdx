@@ -35,16 +35,16 @@ Wefter plugins support three physical directory configurations:
 
 <Steps>
   <Step>
-    ### Dual-Platform Plugin (`android/` and `ios/`) Ships Kotlin and Swift
-    native source code for both Android and iOS applications.
+    ### Dual-Platform Plugin (`android/` and `ios/`) Ships Kotlin and Swift native source code for both Android and iOS
+    applications.
   </Step>
   <Step>
-    ### Android-Only Plugin (`android/` only) Ships Kotlin native source code
-    only. Calling this plugin from iOS rejects with `UNKNOWN_PLUGIN`.
+    ### Android-Only Plugin (`android/` only) Ships Kotlin native source code only. Calling this plugin from iOS rejects
+    with `UNKNOWN_PLUGIN`.
   </Step>
   <Step>
-    ### iOS-Only Plugin (`ios/` only) Ships Swift native source code only.
-    Calling this plugin from Android rejects with `UNKNOWN_PLUGIN`.
+    ### iOS-Only Plugin (`ios/` only) Ships Swift native source code only. Calling this plugin from Android rejects with
+    `UNKNOWN_PLUGIN`.
   </Step>
 </Steps>
 
@@ -61,9 +61,8 @@ Ships Kotlin source code only. Calling this plugin from an iOS application clean
 Ships Swift source code only. Calling this plugin from an Android application cleanly rejects with `WefterBridgeError` code `"UNKNOWN_PLUGIN"`.
 
 <Callout type="info">
-  **Validation Passing**: `wefter plugin validate` passes single-platform
-  plugins without errors. A plugin does not need to support both platforms to be
-  considered complete or publishable.
+  **Validation Passing**: `wefter plugin validate` passes single-platform plugins without errors. A plugin does not need
+  to support both platforms to be considered complete or publishable.
 </Callout>
 
 ---
@@ -91,8 +90,7 @@ Build a Wefter native plugin when your application requires access to operating 
 - Background OS tasks and device telemetry.
 
 <Callout type="tip">
-  **The Browser Test**: Ask yourself: *"Could this feature execute inside a
-  standard Chrome or Safari browser tab without native desktop/mobile
-  permissions?"* If **yes**, write it in web JavaScript. If **no**, build a
-  Wefter native plugin.
+  **The Browser Test**: Ask yourself: *"Could this feature execute inside a standard Chrome or Safari browser tab
+  without native desktop/mobile permissions?"* If **yes**, write it in web JavaScript. If **no**, build a Wefter native
+  plugin.
 </Callout>

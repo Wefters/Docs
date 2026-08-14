@@ -15,18 +15,16 @@ The splash screen is **disabled by default** (`splash: false`).
 
 <Steps>
   <Step>
-    ### Stage 1: Native OS Launch Background Brief OS-level launch background
-    (`androidx.core.splashscreen` on Android, `LaunchScreen.storyboard` on iOS)
-    displayed before WebViews initialize.
+    ### Stage 1: Native OS Launch Background Brief OS-level launch background (`androidx.core.splashscreen` on Android,
+    `LaunchScreen.storyboard` on iOS) displayed before WebViews initialize.
   </Step>
   <Step>
-    ### Stage 2: Custom HTML Splash Screen WebView Dedicated native WebView
-    rendering HTML assets from your `splash.source` directory in parallel with
-    main application initialization.
+    ### Stage 2: Custom HTML Splash Screen WebView Dedicated native WebView rendering HTML assets from your
+    `splash.source` directory in parallel with main application initialization.
   </Step>
   <Step>
-    ### Main Web Application Rendered Main application WebView mounts and issues
-    `hideSplash()` call (or timer expires) to dismiss the Stage 2 splash screen.
+    ### Main Web Application Rendered Main application WebView mounts and issues `hideSplash()` call (or timer expires)
+    to dismiss the Stage 2 splash screen.
   </Step>
 </Steps>
 
@@ -106,9 +104,8 @@ await hideSplash();
 ```
 
 <Callout type="info">
-  **Dismissal Safety Guarantees**: - The splash screen will never dismiss prior
-  to `minDuration`. - The splash screen will automatically dismiss when
-  `maxDuration` is reached even if `hideSplash()` is never called.
+  **Dismissal Safety Guarantees**: - The splash screen will never dismiss prior to `minDuration`. - The splash screen
+  will automatically dismiss when `maxDuration` is reached even if `hideSplash()` is never called.
 </Callout>
 
 ---

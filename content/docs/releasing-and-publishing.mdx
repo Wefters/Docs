@@ -13,25 +13,24 @@ Preparing a Wefter application for production release involves configuring envir
 
 <Steps>
   <Step>
-    ### 1. Audit Environment & Credentials Run `wefter doctor
-    --release-readiness` to verify keystores and signing identity variables.
+    ### 1. Audit Environment & Credentials Run `wefter doctor --release-readiness` to verify keystores and signing
+    identity variables.
   </Step>
   <Step>
-    ### 2. Build Production Web Assets Run web bundler build (`npm run build`)
-    to produce updated compiled files in `webDir` (`dist`).
+    ### 2. Build Production Web Assets Run web bundler build (`npm run build`) to produce updated compiled files in
+    `webDir` (`dist`).
   </Step>
   <Step>
-    ### 3. Run Native Sync Run `wefter sync --env production` to weave assets
-    and production configuration into native shells.
+    ### 3. Run Native Sync Run `wefter sync --env production` to weave assets and production configuration into native
+    shells.
   </Step>
   <Step>
-    ### 4. Compile Signed Native Release Artifact Run `wefter build android
-    --release --env production` or `wefter build ios --release --env
-    production`.
+    ### 4. Compile Signed Native Release Artifact Run `wefter build android --release --env production` or `wefter build
+    ios --release --env production`.
   </Step>
   <Step>
-    ### 5. Deploy to App Stores Upload signed APK/AAB to Google Play Console and
-    signed IPA to Apple TestFlight / App Store Connect.
+    ### 5. Deploy to App Stores Upload signed APK/AAB to Google Play Console and signed IPA to Apple TestFlight / App
+    Store Connect.
   </Step>
 </Steps>
 

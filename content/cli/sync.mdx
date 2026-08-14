@@ -22,9 +22,8 @@ wefter sync [projectDir] [--update-lock]
 - Refreshing generated plugin registries (`WefterPluginRegistry.kt` and `WefterPluginRegistry.swift`) and updating `wefter.lock.json`.
 
 <Callout type="warn">
-  **Sync Freshness Requirement**: `wefter build` and `wefter run` verify a sync
-  freshness marker written by `wefter sync`. If `wefter.config.json` has been
-  modified since the last sync, `build` and `run` will refuse to execute until
+  **Sync Freshness Requirement**: `wefter build` and `wefter run` verify a sync freshness marker written by `wefter
+  sync`. If `wefter.config.json` has been modified since the last sync, `build` and `run` will refuse to execute until
   you run `wefter sync`.
 </Callout>
 

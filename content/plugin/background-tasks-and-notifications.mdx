@@ -62,11 +62,7 @@ import { registerHook } from "@wefterjs/core";
 // Subscribe to push notification event stream
 const subscription = registerHook("push:received", (data) => {
   const notification = data as { title: string; body: string };
-  console.log(
-    "Received push notification:",
-    notification.title,
-    notification.body,
-  );
+  console.log("Received push notification:", notification.title, notification.body);
 });
 
 // Clean up listener when component unmounts

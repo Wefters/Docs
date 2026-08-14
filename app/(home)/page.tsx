@@ -22,8 +22,7 @@ const steps = [
   {
     number: "04",
     title: "wefter run builds, installs, and launches it",
-    description:
-      "On a real device, emulator, or simulator, with live reload while you're actively developing.",
+    description: "On a real device, emulator, or simulator, with live reload while you're actively developing.",
   },
 ];
 
@@ -90,10 +89,9 @@ export default function HomePage() {
           Build native Android and iOS apps with the JavaScript you already know
         </h1>
         <p className="mt-4 text-lg text-fd-muted-foreground">
-          Wefter wraps your web app in a thin native shell and gives it
-          typed, pluggable access to real device capability, camera,
-          storage, biometrics, and more, through a lean bridge between
-          JavaScript and the native side, Kotlin on Android, Swift on iOS.
+          Wefter wraps your web app in a thin native shell and gives it typed, pluggable access to real device
+          capability, camera, storage, biometrics, and more, through a lean bridge between JavaScript and the native
+          side, Kotlin on Android, Swift on iOS.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -128,9 +126,7 @@ export default function HomePage() {
 
         {/* Platform badges */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-fd-muted-foreground">
-            Ships to
-          </span>
+          <span className="text-xs uppercase tracking-wide text-fd-muted-foreground">Ships to</span>
           {platforms.map((name) => (
             <span
               key={name}
@@ -143,9 +139,7 @@ export default function HomePage() {
 
         {/* Framework badges */}
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-fd-muted-foreground">
-            Works with
-          </span>
+          <span className="text-xs uppercase tracking-wide text-fd-muted-foreground">Works with</span>
           {frameworks.map((name) => (
             <span
               key={name}
@@ -160,32 +154,23 @@ export default function HomePage() {
       {/* How it works */}
       <section className="border-t border-fd-border">
         <div className="mx-auto max-w-5xl px-6 py-16">
-          <h2 className="text-center text-2xl font-semibold text-fd-foreground">
-            How it works
-          </h2>
+          <h2 className="text-center text-2xl font-semibold text-fd-foreground">How it works</h2>
           <div className="mt-10 grid gap-8 sm:grid-cols-2">
             {steps.map((step) => (
               <div key={step.number} className="flex gap-4">
-                <span className="text-2xl font-semibold text-fd-primary">
-                  {step.number}
-                </span>
+                <span className="text-2xl font-semibold text-fd-primary">{step.number}</span>
                 <div>
-                  <h3 className="font-semibold text-fd-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="mt-1.5 text-sm text-fd-muted-foreground">
-                    {step.description}
-                  </p>
+                  <h3 className="font-semibold text-fd-foreground">{step.title}</h3>
+                  <p className="mt-1.5 text-sm text-fd-muted-foreground">{step.description}</p>
                 </div>
               </div>
             ))}
           </div>
           <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-fd-muted-foreground">
-            At runtime, your JS calls a native method through a single typed
-            bridge call, <code className="text-fd-foreground">invokeNative(&apos;scanner&apos;, &apos;open&apos;, {"{}"})</code>,
-            and gets a real Promise back, the same call on either platform.
-            There&apos;s no local server sitting between your UI and your
-            native code.
+            At runtime, your JS calls a native method through a single typed bridge call,{" "}
+            <code className="text-fd-foreground">invokeNative(&apos;scanner&apos;, &apos;open&apos;, {"{}"})</code>, and
+            gets a real Promise back, the same call on either platform. There&apos;s no local server sitting between
+            your UI and your native code.
           </p>
         </div>
       </section>
@@ -194,16 +179,9 @@ export default function HomePage() {
       <section className="border-t border-fd-border bg-fd-card/40">
         <div className="mx-auto grid max-w-5xl gap-6 px-6 py-16 sm:grid-cols-2">
           {features.map((feature) => (
-            <div
-              key={feature.title}
-              className="rounded-xl border border-fd-border bg-fd-card p-6"
-            >
-              <h2 className="font-semibold text-fd-card-foreground">
-                {feature.title}
-              </h2>
-              <p className="mt-2 text-sm text-fd-muted-foreground">
-                {feature.description}
-              </p>
+            <div key={feature.title} className="rounded-xl border border-fd-border bg-fd-card p-6">
+              <h2 className="font-semibold text-fd-card-foreground">{feature.title}</h2>
+              <p className="mt-2 text-sm text-fd-muted-foreground">{feature.description}</p>
             </div>
           ))}
         </div>
@@ -211,9 +189,7 @@ export default function HomePage() {
 
       {/* Where to go next */}
       <section className="mx-auto w-full max-w-5xl px-6 py-16">
-        <h2 className="text-center text-2xl font-semibold text-fd-foreground">
-          Where to go next
-        </h2>
+        <h2 className="text-center text-2xl font-semibold text-fd-foreground">Where to go next</h2>
         <div className="mt-8 grid gap-6 sm:grid-cols-3">
           {destinations.map((destination) => (
             <Link
@@ -221,12 +197,8 @@ export default function HomePage() {
               href={destination.href}
               className="rounded-xl border border-fd-border p-6 transition-colors hover:bg-fd-accent"
             >
-              <h3 className="font-semibold text-fd-foreground">
-                {destination.title}
-              </h3>
-              <p className="mt-2 text-sm text-fd-muted-foreground">
-                {destination.description}
-              </p>
+              <h3 className="font-semibold text-fd-foreground">{destination.title}</h3>
+              <p className="mt-2 text-sm text-fd-muted-foreground">{destination.description}</p>
             </Link>
           ))}
         </div>
@@ -246,12 +218,7 @@ export default function HomePage() {
             <Link href="/cli" className="hover:text-fd-foreground">
               CLI
             </Link>
-            <a
-              href="https://github.com"
-              className="hover:text-fd-foreground"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href="https://github.com" className="hover:text-fd-foreground" target="_blank" rel="noreferrer">
               GitHub
             </a>
           </div>

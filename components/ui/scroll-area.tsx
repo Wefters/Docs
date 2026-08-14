@@ -1,6 +1,6 @@
-import { ScrollArea as Primitive } from '@base-ui/react/scroll-area';
-import * as React from 'react';
-import { cn } from '../../lib/cn';
+import { ScrollArea as Primitive } from "@base-ui/react/scroll-area";
+import * as React from "react";
+import { cn } from "../../lib/cn";
 
 export function ScrollArea({ children, ...props }: React.ComponentProps<typeof Primitive.Root>) {
   return (
@@ -12,19 +12,10 @@ export function ScrollArea({ children, ...props }: React.ComponentProps<typeof P
   );
 }
 
-export function ScrollViewport({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof Primitive.Viewport>) {
+export function ScrollViewport({ className, children, ...props }: React.ComponentProps<typeof Primitive.Viewport>) {
   return (
     <Primitive.Viewport
-      className={(s) =>
-        cn(
-          'size-full rounded-[inherit]',
-          typeof className === 'function' ? className(s) : className,
-        )
-      }
+      className={(s) => cn("size-full rounded-[inherit]", typeof className === "function" ? className(s) : className)}
       {...props}
     >
       {children}
@@ -34,7 +25,7 @@ export function ScrollViewport({
 
 export function ScrollBar({
   className,
-  orientation = 'vertical',
+  orientation = "vertical",
   ...props
 }: React.ComponentProps<typeof Primitive.Scrollbar>) {
   return (
@@ -42,11 +33,11 @@ export function ScrollBar({
       orientation={orientation}
       className={(s) =>
         cn(
-          'flex select-none transition-opacity',
-          !s.hovering && 'opacity-0',
-          orientation === 'vertical' && 'h-full w-1.5',
-          orientation === 'horizontal' && 'h-1.5 flex-col',
-          typeof className === 'function' ? className(s) : className,
+          "flex select-none transition-opacity",
+          !s.hovering && "opacity-0",
+          orientation === "vertical" && "h-full w-1.5",
+          orientation === "horizontal" && "h-1.5 flex-col",
+          typeof className === "function" ? className(s) : className,
         )
       }
       {...props}

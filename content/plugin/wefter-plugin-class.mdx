@@ -95,11 +95,10 @@ final class BatteryPlugin: WefterPlugin {
 ```
 
 <Callout type="info">
-  **Platform Parity Difference**: Android provides `hasPermission` and
-  `requestPermission` on `WefterPlugin` because Android permissions share a
-  single `PackageManager` callback model. iOS framework permissions
-  (`AVCaptureDevice`, `CLLocationManager`, `PHPhotoLibrary`) each use distinct
-  delegates, requiring plugin authors to call Apple's framework APIs directly.
+  **Platform Parity Difference**: Android provides `hasPermission` and `requestPermission` on `WefterPlugin` because
+  Android permissions share a single `PackageManager` callback model. iOS framework permissions (`AVCaptureDevice`,
+  `CLLocationManager`, `PHPhotoLibrary`) each use distinct delegates, requiring plugin authors to call Apple's framework
+  APIs directly.
 </Callout>
 
 ---

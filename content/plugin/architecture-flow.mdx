@@ -100,21 +100,20 @@ The push event path allows native plugins to stream real-time data to JavaScript
 
 <Steps>
   <Step>
-    ### 1. Web JS Subscription Web application code calls
-    `registerHook('barcodeScanned', callback)` to register a subscriber.
+    ### 1. Web JS Subscription Web application code calls `registerHook('barcodeScanned', callback)` to register a
+    subscriber.
   </Step>
   <Step>
-    ### 2. Native Event Emission Native plugin invokes `emit('barcodeScanned',
-    payloadData)` whenever hardware sensor or scan events occur.
+    ### 2. Native Event Emission Native plugin invokes `emit('barcodeScanned', payloadData)` whenever hardware sensor or
+    scan events occur.
   </Step>
   <Step>
-    ### 3. WebView JavaScript Evaluation Native dispatcher calls
-    `window.__wefterNative.emit('barcodeScanned', payloadJson)` inside the
-    WebView.
+    ### 3. WebView JavaScript Evaluation Native dispatcher calls `window.__wefterNative.emit('barcodeScanned',
+    payloadJson)` inside the WebView.
   </Step>
   <Step>
-    ### 4. Subscriber Callback Execution `@wefterjs/core` parses payload JSON
-    and executes all subscribed callback functions.
+    ### 4. Subscriber Callback Execution `@wefterjs/core` parses payload JSON and executes all subscribed callback
+    functions.
   </Step>
 </Steps>
 

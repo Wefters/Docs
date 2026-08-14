@@ -69,11 +69,9 @@ final class CameraPlugin: WefterPlugin {
 - **Keyword**: Function must include the `throws` keyword.
 
 <Callout type="important">
-  **The `throws` Keyword in Swift**: The `throws` keyword is mandatory on Swift
-  `@WefterMethod` declarations. If native Swift code throws an unhandled error
-  inside a method body, the dispatcher catches it and returns a
-  `WefterBridgeError` with code `"PLUGIN_THREW"` to JavaScript, preventing
-  native crashes.
+  **The `throws` Keyword in Swift**: The `throws` keyword is mandatory on Swift `@WefterMethod` declarations. If native
+  Swift code throws an unhandled error inside a method body, the dispatcher catches it and returns a `WefterBridgeError`
+  with code `"PLUGIN_THREW"` to JavaScript, preventing native crashes.
 </Callout>
 
 ---

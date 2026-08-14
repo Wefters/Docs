@@ -13,17 +13,13 @@ Each plugin pairs a lightweight TypeScript wrapper package (`src/index.ts`) with
 import { invokeNative } from "@wefterjs/core";
 
 // Typed, Promise-based native call from web application JS
-const result = await invokeNative<{ granted: boolean }>(
-  "camera",
-  "requestPermission",
-);
+const result = await invokeNative<{ granted: boolean }>("camera", "requestPermission");
 ```
 
 <Callout type="info">
-  **App Developer vs Plugin Author**: If you are an application developer adding
-  an existing plugin to your app, refer to [`wefter add`](/cli/add). This
-  section is dedicated to plugin authors building, testing, and publishing
-  native Wefter plugins.
+  **App Developer vs Plugin Author**: If you are an application developer adding an existing plugin to your app, refer
+  to [`wefter add`](/cli/add). This section is dedicated to plugin authors building, testing, and publishing native
+  Wefter plugins.
 </Callout>
 
 ---

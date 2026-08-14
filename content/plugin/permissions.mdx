@@ -55,9 +55,8 @@ class CameraPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugi
 ```
 
 <Callout type="info">
-  **Audit Enforcement**: If a plugin declares dangerous Android permissions
-  (such as `CAMERA`, `ACCESS_FINE_LOCATION`, `RECORD_AUDIO`, `READ_CONTACTS`),
-  `wefter plugin validate` verifies that Kotlin code contains explicit
+  **Audit Enforcement**: If a plugin declares dangerous Android permissions (such as `CAMERA`, `ACCESS_FINE_LOCATION`,
+  `RECORD_AUDIO`, `READ_CONTACTS`), `wefter plugin validate` verifies that Kotlin code contains explicit
   `"PERMISSION_DENIED"` error handling.
 </Callout>
 
@@ -111,11 +110,9 @@ final class CameraPlugin: WefterPlugin {
 ## The iOS Permission Crash Hazard
 
 <Callout type="warn">
-  **Fatal iOS App Termination**: Calling an iOS framework permission API (such
-  as `AVCaptureDevice.requestAccess`) when the required usage description key
-  (e.g. `NSCameraUsageDescription`) is missing from `Info.plist` will
-  **immediately crash the entire application process**. It cannot be caught by
-  Swift `do/catch` blocks.
+  **Fatal iOS App Termination**: Calling an iOS framework permission API (such as `AVCaptureDevice.requestAccess`) when
+  the required usage description key (e.g. `NSCameraUsageDescription`) is missing from `Info.plist` will **immediately
+  crash the entire application process**. It cannot be caught by Swift `do/catch` blocks.
 </Callout>
 
 ### How Wefter Protects Your Application

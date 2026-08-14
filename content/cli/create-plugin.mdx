@@ -101,9 +101,8 @@ class SecureStoragePlugin(context: Context, dispatcher: BridgeDispatcher) : Weft
 ```
 
 <Callout type="warn">
-  **Crucial Android Package Rule**: Always retain `package dev.wefter.bridge` at
-  the top of Kotlin files. During [`wefter sync`](/cli/sync), Wefter
-  automatically replaces this placeholder package name with the host app's real
+  **Crucial Android Package Rule**: Always retain `package dev.wefter.bridge` at the top of Kotlin files. During
+  [`wefter sync`](/cli/sync), Wefter automatically replaces this placeholder package name with the host app's real
   namespace. If changed manually, sync will be unable to rewrite the namespace.
 </Callout>
 

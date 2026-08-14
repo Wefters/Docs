@@ -29,10 +29,10 @@ content authored in MDX.
 
 The site has three content sections, each its own tab:
 
-| Section | Route | Source |
-| --- | --- | --- |
-| Docs | `/docs` | [`content/docs`](content/docs) |
-| CLI reference | `/cli` | [`content/cli`](content/cli) |
+| Section          | Route     | Source                             |
+| ---------------- | --------- | ---------------------------------- |
+| Docs             | `/docs`   | [`content/docs`](content/docs)     |
+| CLI reference    | `/cli`    | [`content/cli`](content/cli)       |
 | Plugin authoring | `/plugin` | [`content/plugin`](content/plugin) |
 
 Layout for each section lives under [`app/`](app) (`app/docs`, `app/cli`,
@@ -52,11 +52,11 @@ The site runs at [localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Command | What it does |
-| --- | --- |
-| `pnpm dev` | Start the Next.js dev server |
-| `pnpm build` | Production build |
-| `pnpm start` | Serve the production build |
+| Command      | What it does                 |
+| ------------ | ---------------------------- |
+| `pnpm dev`   | Start the Next.js dev server |
+| `pnpm build` | Production build             |
+| `pnpm start` | Serve the production build   |
 
 ## Contributing
 

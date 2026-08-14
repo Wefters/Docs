@@ -13,11 +13,7 @@ Unlike hybrid frameworks that bundle custom JavaScript runtimes or local HTTP se
 import { invokeNative } from "@wefterjs/core";
 
 // Asynchronous native method call returning a typed Promise
-const result = await invokeNative<{ active: boolean }>(
-  "camera",
-  "toggleTorch",
-  { enable: true },
-);
+const result = await invokeNative<{ active: boolean }>("camera", "toggleTorch", { enable: true });
 ```
 
 ---

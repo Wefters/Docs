@@ -16,26 +16,20 @@ Before publishing a Wefter plugin package to npm, validate its schema and native
 When `wefter plugin validate` runs against your plugin directory, it enforces five structural rules:
 
 <Steps>
+  <Step>### 1. `plugin.json` Presence Confirms `plugin.json` exists in the plugin root directory.</Step>
   <Step>
-    ### 1. `plugin.json` Presence Confirms `plugin.json` exists in the plugin
-    root directory.
+    ### 2. Schema Verification Confirms `plugin.json` conforms to schema properties (`name`, `permissions`,
+    `nativeDependencies`, `methods`, `hooks`, `events`).
   </Step>
   <Step>
-    ### 2. Schema Verification Confirms `plugin.json` conforms to schema
-    properties (`name`, `permissions`, `nativeDependencies`, `methods`, `hooks`,
-    `events`).
+    ### 3. Native Directory Check Confirms at least one native source directory (`android/` or `ios/`) exists.
   </Step>
   <Step>
-    ### 3. Native Directory Check Confirms at least one native source directory
-    (`android/` or `ios/`) exists.
+    ### 4. Signature Audit Audits `@WefterMethod` and `@WefterHook` parameter signatures in Kotlin and Swift files.
   </Step>
   <Step>
-    ### 4. Signature Audit Audits `@WefterMethod` and `@WefterHook` parameter
-    signatures in Kotlin and Swift files.
-  </Step>
-  <Step>
-    ### 5. Method Declaration Match Verifies that declared `plugin.json` methods
-    match native Kotlin and Swift method definitions.
+    ### 5. Method Declaration Match Verifies that declared `plugin.json` methods match native Kotlin and Swift method
+    definitions.
   </Step>
 </Steps>
 

@@ -23,9 +23,8 @@ Hooks are triggered for **`sync`**, **`build`**, and **`run`** commands across t
 | `wefter:run:after`    | `run`   | `after`  | Triggered immediately after the app has been successfully installed and launched on the target device/simulator.                         |
 
 <Callout type="info">
-  **Commands without hooks**: Other CLI commands such as `init`, `doctor`,
-  `add`, `audit`, `eject`, `create-plugin`, `plugin-validate`, `icon generate`,
-  and `splash generate` do **not** trigger lifecycle hooks.
+  **Commands without hooks**: Other CLI commands such as `init`, `doctor`, `add`, `audit`, `eject`, `create-plugin`,
+  `plugin-validate`, `icon generate`, and `splash generate` do **not** trigger lifecycle hooks.
 </Callout>
 
 ---
@@ -73,8 +72,7 @@ Because environment variables are passed to every execution, you can route multi
 
 ```javascript
 // scripts/wefter-hook.js
-const { WEFTER_COMMAND, WEFTER_PHASE, WEFTER_PLATFORM, WEFTER_ENV } =
-  process.env;
+const { WEFTER_COMMAND, WEFTER_PHASE, WEFTER_PLATFORM, WEFTER_ENV } = process.env;
 
 console.log(
   `Executing ${WEFTER_COMMAND} (${WEFTER_PHASE}) for ${WEFTER_PLATFORM || "all"} [${WEFTER_ENV || "default"}]`,
@@ -104,22 +102,20 @@ Understanding exactly when hooks execute relative to CLI operations ensures pred
 
 <Steps>
   <Step>
-    ### 1. `wefter:sync:before` Hook Execution Runs ahead of loading
-    `wefter.config.json`. Useful for generating configuration files or compiling
-    web source assets before native bundling begins.
+    ### 1. `wefter:sync:before` Hook Execution Runs ahead of loading `wefter.config.json`. Useful for generating
+    configuration files or compiling web source assets before native bundling begins.
   </Step>
   <Step>
-    ### 2. Configuration & Lockfile Validation Load and validate
-    `wefter.config.json`, audit permissions, and verify lockfile drift.
+    ### 2. Configuration & Lockfile Validation Load and validate `wefter.config.json`, audit permissions, and verify
+    lockfile drift.
   </Step>
   <Step>
-    ### 3. Native Shell & Asset Generation Regenerate native shells, copy web
-    assets into native project directories, inject Gradle/SPM dependencies, and
-    generate Kotlin/Swift registries.
+    ### 3. Native Shell & Asset Generation Regenerate native shells, copy web assets into native project directories,
+    inject Gradle/SPM dependencies, and generate Kotlin/Swift registries.
   </Step>
   <Step>
-    ### 4. `wefter:sync:after` Hook Execution Runs after all native files,
-    Gradle/Xcode configurations, and lockfiles are written to disk.
+    ### 4. `wefter:sync:after` Hook Execution Runs after all native files, Gradle/Xcode configurations, and lockfiles
+    are written to disk.
   </Step>
 </Steps>
 
@@ -130,17 +126,14 @@ Understanding exactly when hooks execute relative to CLI operations ensures pred
 
 <Steps>
   <Step>
-    ### 1. Freshness Check & `wefter:build:before` Hook Validates sync freshness
-    marker and executes `wefter:build:before` hook before release security
-    verification.
+    ### 1. Freshness Check & `wefter:build:before` Hook Validates sync freshness marker and executes
+    `wefter:build:before` hook before release security verification.
   </Step>
   <Step>
-    ### 2. Native Compilation Invokes native toolchain (`./gradlew
-    assembleDebug/assembleRelease` or `xcodebuild`).
+    ### 2. Native Compilation Invokes native toolchain (`./gradlew assembleDebug/assembleRelease` or `xcodebuild`).
   </Step>
   <Step>
-    ### 3. `wefter:build:after` Hook Execution Runs once the compiled APK or
-    `.app` binary artifact exists on disk.
+    ### 3. `wefter:build:after` Hook Execution Runs once the compiled APK or `.app` binary artifact exists on disk.
   </Step>
 </Steps>
 
@@ -151,17 +144,16 @@ Understanding exactly when hooks execute relative to CLI operations ensures pred
 
 <Steps>
   <Step>
-    ### 1. Target Resolution & `wefter:run:before` Hook Resolves connected ADB
-    device or iOS Simulator, checks sync freshness, and executes
-    `wefter:run:before`.
+    ### 1. Target Resolution & `wefter:run:before` Hook Resolves connected ADB device or iOS Simulator, checks sync
+    freshness, and executes `wefter:run:before`.
   </Step>
   <Step>
-    ### 2. Dev Server Proxy & Native Compilation Optionally starts web dev
-    server (if `--watch` is specified) and compiles native application binary.
+    ### 2. Dev Server Proxy & Native Compilation Optionally starts web dev server (if `--watch` is specified) and
+    compiles native application binary.
   </Step>
   <Step>
-    ### 3. Deployment & `wefter:run:after` Hook Installs binary onto target
-    device, launches app, and executes `wefter:run:after` hook.
+    ### 3. Deployment & `wefter:run:after` Hook Installs binary onto target device, launches app, and executes
+    `wefter:run:after` hook.
   </Step>
 </Steps>
 
@@ -169,10 +161,9 @@ Understanding exactly when hooks execute relative to CLI operations ensures pred
 - **`wefter:run:after`**: Runs as soon as the application is installed and launched on the connected device or simulator.
 
 <Callout type="info">
-  **Hot Reload (`--watch`) Note**: `wefter:run:after` fires once when the
-  application launches. Stopping an active `--watch` dev server session using
-  `Ctrl+C` terminates the CLI process cleanly and does **not** trigger
-  subsequent hooks.
+  **Hot Reload (`--watch`) Note**: `wefter:run:after` fires once when the application launches. Stopping an active
+  `--watch` dev server session using `Ctrl+C` terminates the CLI process cleanly and does **not** trigger subsequent
+  hooks.
 </Callout>
 
 ---
@@ -194,13 +185,11 @@ If a hook script exits with a non-zero status code:
 3. Wefter CLI sets `process.exitCode = 1` and logs the failure message.
 
 <Callout type="warn">
-  **Important difference between `before` and `after` hook failures**: -
-  **`before` Hook Failure**: Prevents the underlying command from executing. The
-  build or sync operation never starts. - **`after` Hook Failure**: The core
-  operation (such as native compilation) has already completed successfully and
-  build artifacts exist on disk. However, because the post-processing hook
-  failed, Wefter CLI reports an overall command failure (`exitCode = 1`). Keep
-  `after` hook scripts lightweight and resilient.
+  **Important difference between `before` and `after` hook failures**: - **`before` Hook Failure**: Prevents the
+  underlying command from executing. The build or sync operation never starts. - **`after` Hook Failure**: The core
+  operation (such as native compilation) has already completed successfully and build artifacts exist on disk. However,
+  because the post-processing hook failed, Wefter CLI reports an overall command failure (`exitCode = 1`). Keep `after`
+  hook scripts lightweight and resilient.
 </Callout>
 
 ---
@@ -232,9 +221,7 @@ import { join } from "node:path";
 
 const { WEFTER_PLATFORM, WEFTER_ENV, WEFTER_PROJECT_DIR } = process.env;
 
-console.log(
-  `[HOOK] Uploading ${WEFTER_PLATFORM} (${WEFTER_ENV}) build artifact...`,
-);
+console.log(`[HOOK] Uploading ${WEFTER_PLATFORM} (${WEFTER_ENV}) build artifact...`);
 // Artifact upload logic...
 ```
 

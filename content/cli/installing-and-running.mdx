@@ -10,10 +10,9 @@ The Wefter CLI (`@wefterjs/cli`) is designed to be installed as a local **`devDe
 Unlike traditional mobile toolchains that require global CLI installations, `@wefterjs/cli` is pinned to your project's `package.json` and lockfile. This ensures identical build behavior across developer machines, CI/CD runners, and automated pipelines without version drift.
 
 <Callout type="info">
-  **DevDependency vs Runtime**: `@wefterjs/cli` only executes on your machine or
-  CI server during development and build steps. It is never included in your
-  compiled web bundle or native app binary. Your application's runtime bridge
-  API is provided separately by [`@wefterjs/core`](/docs/core).
+  **DevDependency vs Runtime**: `@wefterjs/cli` only executes on your machine or CI server during development and build
+  steps. It is never included in your compiled web bundle or native app binary. Your application's runtime bridge API is
+  provided separately by [`@wefterjs/core`](/docs/core).
 </Callout>
 
 ---

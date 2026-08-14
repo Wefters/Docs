@@ -38,9 +38,8 @@ When invoked, `wefter add` executes the following sequence:
 7. **Audit Warnings Output**: Logs warnings if the newly added plugin exports Android manifest components, requires missing `pluginConfig` keys, or has Gradle dependency version conflicts.
 
 <Callout type="warn">
-  **Validation Gate**: If a plugin fails validation during step 5, `wefter add`
-  leaves `wefter.config.json` completely untouched. Unvalidated plugins can
-  never be silently woven into your native project by `wefter sync`.
+  **Validation Gate**: If a plugin fails validation during step 5, `wefter add` leaves `wefter.config.json` completely
+  untouched. Unvalidated plugins can never be silently woven into your native project by `wefter sync`.
 </Callout>
 
 ---

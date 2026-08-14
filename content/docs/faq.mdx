@@ -13,19 +13,15 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   </Accordion>
 
 <Accordion title="Do Google Play and Apple App Store allow Wefter applications?">
-  Yes. Both Google Play and Apple App Store fully approve applications built
-  with native WebViews and native plugins, provided the application delivers a
-  rich, interactive user experience and complies with standard App Store
-  Guidelines (e.g. providing native UI polish, offline support, and adhering to
-  privacy guidelines).
+  Yes. Both Google Play and Apple App Store fully approve applications built with native WebViews and native plugins,
+  provided the application delivers a rich, interactive user experience and complies with standard App Store Guidelines
+  (e.g. providing native UI polish, offline support, and adhering to privacy guidelines).
 </Accordion>
 
 <Accordion title="Why does Wefter omit a JavaScript interpreter or local node server?">
-  Wefter intentionally avoids bundling heavy JS interpreters (like V8 or Hermes)
-  or running a local HTTP server process inside your mobile app. Web code
-  executes directly inside the native OS WebView. Native calls cross a thin,
-  synchronous-to-asynchronous bridge protocol, minimizing memory overhead and
-  startup latency.
+  Wefter intentionally avoids bundling heavy JS interpreters (like V8 or Hermes) or running a local HTTP server process
+  inside your mobile app. Web code executes directly inside the native OS WebView. Native calls cross a thin,
+  synchronous-to-asynchronous bridge protocol, minimizing memory overhead and startup latency.
 </Accordion>
 
   <Accordion title="Does the same frontend application code run on both Android and iOS?">
@@ -43,20 +39,16 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   </Accordion>
 
 <Accordion title="Can I hand-edit files inside .wefter/native/?">
-  No. Files inside `.wefter/native/` are disposable and regenerated from scratch
-  on every [`wefter sync`](/cli/sync). Any manual edits made inside
-  `.wefter/native/` will be overwritten. If you need to permanently customize
-  native project files, run [`wefter eject`](/cli/eject) to convert the project
-  into permanent `android/` and `ios/` folders.
+  No. Files inside `.wefter/native/` are disposable and regenerated from scratch on every [`wefter sync`](/cli/sync).
+  Any manual edits made inside `.wefter/native/` will be overwritten. If you need to permanently customize native
+  project files, run [`wefter eject`](/cli/eject) to convert the project into permanent `android/` and `ios/` folders.
 </Accordion>
 
 <Accordion title="How do environment variables (.env) work in Wefter?">
-  Wefter reads `.env` variables automatically during initialization and build
-  commands. Key environment variables include: - `WEFTER_APP_ID`: Reverse-DNS
-  application identifier. - `WEFTER_APP_NAME`: Display application title. -
-  `WEFTER_WEB_DIR`: Compiled web assets folder (`dist`). -
-  `WEFTER_KEYSTORE_PASSWORD`: Password for Android release keystores. -
-  `WEFTER_IOS_SIGNING_IDENTITY`: Apple Developer code signing identity.
+  Wefter reads `.env` variables automatically during initialization and build commands. Key environment variables
+  include: - `WEFTER_APP_ID`: Reverse-DNS application identifier. - `WEFTER_APP_NAME`: Display application title. -
+  `WEFTER_WEB_DIR`: Compiled web assets folder (`dist`). - `WEFTER_KEYSTORE_PASSWORD`: Password for Android release
+  keystores. - `WEFTER_IOS_SIGNING_IDENTITY`: Apple Developer code signing identity.
 </Accordion>
 
   <Accordion title="How do I set up multiple build environments (Development, Staging, Production)?">
@@ -78,18 +70,15 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   </Accordion>
 
 <Accordion title="Must a plugin support both Android and iOS?">
-  No. Wefter supports single-platform plugins (`android/` directory only or
-  `ios/` directory only). If a web app calls a method on an unsupported platform
-  at runtime, `invokeNative` cleanly rejects the Promise with
-  `WefterBridgeError` code `"UNKNOWN_PLUGIN"`.
+  No. Wefter supports single-platform plugins (`android/` directory only or `ios/` directory only). If a web app calls a
+  method on an unsupported platform at runtime, `invokeNative` cleanly rejects the Promise with `WefterBridgeError` code
+  `"UNKNOWN_PLUGIN"`.
 </Accordion>
 
 <Accordion title="How does Wefter handle Android Gradle dependencies and iOS Swift packages?">
-  Plugins declare Gradle Maven coordinates in
-  `nativeDependencies.android.gradle` and Swift Package Manager (SPM)
-  coordinates in `nativeDependencies.ios.spm`. During `wefter sync`, Wefter
-  automatically merges Gradle dependencies into `build.gradle.kts` and SPM
-  packages into `Package.swift`.
+  Plugins declare Gradle Maven coordinates in `nativeDependencies.android.gradle` and Swift Package Manager (SPM)
+  coordinates in `nativeDependencies.ios.spm`. During `wefter sync`, Wefter automatically merges Gradle dependencies
+  into `build.gradle.kts` and SPM packages into `Package.swift`.
 </Accordion>
 
   <Accordion title="Can Kotlin plugin package header lines be customized?">
@@ -130,9 +119,8 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   </Accordion>
 
 <Accordion title="What security auditing does wefter plugin validate perform?">
-  [`wefter plugin validate`](/cli/plugin-validate) checks `plugin.json` schemas,
-  verifies `@WefterMethod` parameter signatures, and ensures dangerous Android
-  permissions contain `"PERMISSION_DENIED"` error handling. It validates
+  [`wefter plugin validate`](/cli/plugin-validate) checks `plugin.json` schemas, verifies `@WefterMethod` parameter
+  signatures, and ensures dangerous Android permissions contain `"PERMISSION_DENIED"` error handling. It validates
   structural correctness before plugins are declared in `wefter.config.json`.
 </Accordion>
 

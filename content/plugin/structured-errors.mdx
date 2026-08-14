@@ -82,9 +82,8 @@ final class StoragePlugin: WefterPlugin {
 ## Swift Runtime Traps vs Exception Safety
 
 <Callout type="warn">
-  **Swift Trap Warning**: Swift's `do/catch` statement catches thrown `Error`
-  instances, but **cannot** catch runtime fatal traps (such as force-unwrapping
-  `nil` values using `!` or accessing out-of-bounds array indices). Swift fatal
+  **Swift Trap Warning**: Swift's `do/catch` statement catches thrown `Error` instances, but **cannot** catch runtime
+  fatal traps (such as force-unwrapping `nil` values using `!` or accessing out-of-bounds array indices). Swift fatal
   traps terminate the application process immediately.
 </Callout>
 

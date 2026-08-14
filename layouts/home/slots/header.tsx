@@ -20,11 +20,7 @@ import { buttonVariants } from "../../../components/ui/button";
 import { ChevronDown, Languages } from "lucide-react";
 import { useIsScrollTop } from "@fumadocs/base-ui/utils/use-is-scroll-top";
 import { useHomeLayout } from "./..";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../../../components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../../components/ui/collapsible";
 import { mergeRefs } from "../../../lib/merge-refs";
 import { useTranslations } from "@fuma-translate/react";
 
@@ -64,8 +60,7 @@ export function Header(props: ComponentProps<"header">) {
   const t = useTranslations({ note: "home layout header" });
   const transparentMode = nav?.transparentMode ?? "none";
   const isTop = useIsScrollTop({ enabled: transparentMode === "top" }) ?? true;
-  const isNavTransparent =
-    transparentMode === "top" ? isTop : transparentMode === "always";
+  const isNavTransparent = transparentMode === "top" ? isTop : transparentMode === "always";
 
   const onClick = useEffectEvent((e: Event) => {
     const element = headerRef.current;
@@ -89,17 +84,10 @@ export function Header(props: ComponentProps<"header">) {
       render={<div />}
       className="flex h-14 w-full mx-auto max-w-(--fd-layout-width) items-center px-4"
     >
-      {slots.navTitle && (
-        <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />
-      )}
+      {slots.navTitle && <slots.navTitle className="inline-flex items-center gap-2.5 font-semibold" />}
       {nav?.children}
       <div className="flex flex-row items-center justify-end gap-4 flex-1 max-lg:hidden">
-        {slots.searchTrigger && (
-          <slots.searchTrigger.full
-            hideIfDisabled
-            className="w-full max-w-[240px]"
-          />
-        )}
+        {slots.searchTrigger && <slots.searchTrigger.full hideIfDisabled className="w-full max-w-[240px]" />}
         <div className="w-px h-5 bg-fd-muted" />
         <ul className="flex flex-row items-center gap-1.5 max-sm:hidden">
           {navItems
@@ -113,9 +101,7 @@ export function Header(props: ComponentProps<"header">) {
           {navItems.filter(isSecondary).map((item, i) => (
             <NavigationMenuLinkItem
               key={i}
-              className={cn(
-                item.type === "icon" && "-mx-1 first:ms-0 last:me-0",
-              )}
+              className={cn(item.type === "icon" && "-mx-1 first:ms-0 last:me-0")}
               item={item}
             />
           ))}
@@ -129,9 +115,7 @@ export function Header(props: ComponentProps<"header">) {
         )}
       </div>
       <div className="flex flex-row items-center ms-auto -me-1.5 lg:hidden">
-        {slots.searchTrigger && (
-          <slots.searchTrigger.sm hideIfDisabled className="p-2" />
-        )}
+        {slots.searchTrigger && <slots.searchTrigger.sm hideIfDisabled className="p-2" />}
         <CollapsibleTrigger
           aria-label={t("Toggle Menu", { note: "aria-label" })}
           className={cn(
@@ -148,9 +132,7 @@ export function Header(props: ComponentProps<"header">) {
               : undefined
           }
         >
-          <ChevronDown
-            className={cn("transition-transform", open && "rotate-180")}
-          />
+          <ChevronDown className={cn("transition-transform", open && "rotate-180")} />
         </CollapsibleTrigger>
       </div>
     </Primitive.List>
@@ -179,35 +161,25 @@ export function Header(props: ComponentProps<"header">) {
             {list}
             <CollapsibleContent className="mx-auto max-w-(--fd-layout-width) lg:hidden">
               <div className="flex flex-col pt-2 p-4 lg:flex-row lg:items-center lg:justify-end">
-                <MobileNavigationMenuContext
-                  value={useMemo(() => ({ setOpen }), [])}
-                >
+                <MobileNavigationMenuContext value={useMemo(() => ({ setOpen }), [])}>
                   {menuItems
                     .filter((item) => !isSecondary(item))
                     .map((item, i) => (
-                      <MobileNavigationMenuLinkItem
-                        key={i}
-                        item={item}
-                        className="lg:hidden"
-                      />
+                      <MobileNavigationMenuLinkItem key={i} item={item} className="lg:hidden" />
                     ))}
                   <div className="-ms-1.5 flex flex-row items-center gap-2 max-sm:mt-2">
                     {menuItems.filter(isSecondary).map((item, i) => (
                       <MobileNavigationMenuLinkItem
                         key={i}
                         item={item}
-                        className={cn(
-                          item.type === "icon" && "-mx-1 first:ms-0",
-                        )}
+                        className={cn(item.type === "icon" && "-mx-1 first:ms-0")}
                       />
                     ))}
                     <div role="separator" className="flex-1" />
                     {slots.languageSelect && (
                       <slots.languageSelect.root>
                         <Languages className="size-5" />
-                        {slots.languageSelect.text && (
-                          <slots.languageSelect.text />
-                        )}
+                        {slots.languageSelect.text && <slots.languageSelect.text />}
                         <ChevronDown className="size-3 text-fd-muted-foreground" />
                       </slots.languageSelect.root>
                     )}
@@ -245,14 +217,7 @@ function isSecondary(item: LinkItemType): boolean {
   return item.type === "icon";
 }
 
-function NavigationMenuLinkItem({
-  item,
-  className,
-  ...props
-}: {
-  item: LinkItemType;
-  className?: string;
-}) {
+function NavigationMenuLinkItem({ item, className, ...props }: { item: LinkItemType; className?: string }) {
   if (item.type === "custom") return item.children;
 
   if (item.type === "menu") {
@@ -263,9 +228,7 @@ function NavigationMenuLinkItem({
 
       const {
         banner = child.icon ? (
-          <div className="w-fit rounded-md border bg-fd-muted p-1 [&_svg]:size-4">
-            {child.icon}
-          </div>
+          <div className="w-fit rounded-md border bg-fd-muted p-1 [&_svg]:size-4">{child.icon}</div>
         ) : null,
         ...rest
       } = child.menu ?? {};
@@ -287,9 +250,7 @@ function NavigationMenuLinkItem({
                 <>
                   {banner}
                   <p className="text-base font-medium">{child.text}</p>
-                  <p className="text-sm text-fd-muted-foreground empty:hidden">
-                    {child.description}
-                  </p>
+                  <p className="text-sm text-fd-muted-foreground empty:hidden">{child.description}</p>
                 </>
               )}
             </Link>
@@ -344,28 +305,17 @@ function NavigationMenuLinkItem({
   );
 }
 
-function MobileNavigationMenuLinkItem({
-  item,
-  ...props
-}: {
-  item: LinkItemType;
-  className?: string;
-}) {
+function MobileNavigationMenuLinkItem({ item, ...props }: { item: LinkItemType; className?: string }) {
   const { setOpen } = use(MobileNavigationMenuContext)!;
 
-  if (item.type === "custom")
-    return <div className={cn("grid", props.className)}>{item.children}</div>;
+  if (item.type === "custom") return <div className={cn("grid", props.className)}>{item.children}</div>;
 
   if (item.type === "menu") {
     return (
       <div className={cn("mb-4 flex flex-col", props.className)}>
         <p className="mb-1 text-sm text-fd-muted-foreground">
           {item.url ? (
-            <Link
-              href={item.url}
-              external={item.external}
-              onClick={() => setOpen(false)}
-            >
+            <Link href={item.url} external={item.external} onClick={() => setOpen(false)}>
               {item.icon}
               {item.text}
             </Link>

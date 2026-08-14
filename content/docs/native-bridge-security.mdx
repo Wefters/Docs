@@ -25,9 +25,8 @@ When running in production, Wefter loads pre-compiled web assets bundled directl
 Any JavaScript executing inside the main app WebView has technical access to call `invokeNative(plugin, method, payload)`.
 
 <Callout type="warn">
-  **Dependency Auditing Warning**: Because any JS running in your WebView can
-  invoke declared native plugin methods, treat third-party frontend npm packages
-  with the same care as native dependencies.
+  **Dependency Auditing Warning**: Because any JS running in your WebView can invoke declared native plugin methods,
+  treat third-party frontend npm packages with the same care as native dependencies.
 </Callout>
 
 ---

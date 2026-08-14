@@ -433,21 +433,13 @@ export const DeviceTelemetry = {
     enable: boolean,
     options?: { timeoutMs?: number; signal?: AbortSignal },
   ): Promise<TorchResult> {
-    return invokeNative<TorchResult>(
-      "device-telemetry",
-      "toggleTorch",
-      { enable },
-      options,
-    );
+    return invokeNative<TorchResult>("device-telemetry", "toggleTorch", { enable }, options);
   },
 
   // Event Subscription Listener
   onBatteryChange(callback: (data: BatteryResult) => void): { remove(): void } {
     // Namespaced hook name matching native emit() call
-    return registerHook(
-      "device-telemetry:battery-changed",
-      callback as (data: unknown) => void,
-    );
+    return registerHook("device-telemetry:battery-changed", callback as (data: unknown) => void);
   },
 };
 ```
@@ -507,9 +499,7 @@ import { DeviceTelemetry } from "device-telemetry";
 
 // Query device information
 const info = await DeviceTelemetry.getDeviceInfo();
-console.log(
-  `Device: ${info.manufacturer} ${info.model} (OS: ${info.osVersion})`,
-);
+console.log(`Device: ${info.manufacturer} ${info.model} (OS: ${info.osVersion})`);
 
 // Query current battery percentage
 const battery = await DeviceTelemetry.getBatteryLevel();
@@ -580,9 +570,7 @@ describe("DeviceTelemetry Client JS Wrapper", () => {
       },
     });
 
-    await expect(
-      DeviceTelemetry.toggleTorch({ enable: true }),
-    ).rejects.toMatchObject({
+    await expect(DeviceTelemetry.toggleTorch({ enable: true })).rejects.toMatchObject({
       code: "MOCK_ERROR",
       message: "Camera permission denied",
     });
@@ -593,9 +581,8 @@ describe("DeviceTelemetry Client JS Wrapper", () => {
 ### Tier 2: Real On-Device Integration Testing
 
 <Callout type="warn">
-  **Mock Tests Are Not Enough**: Mock bridge unit tests verify JS wrapper
-  syntax, but cannot test native Kotlin/Swift code compilation, OS permission
-  prompts, or physical hardware capabilities.
+  **Mock Tests Are Not Enough**: Mock bridge unit tests verify JS wrapper syntax, but cannot test native Kotlin/Swift
+  code compilation, OS permission prompts, or physical hardware capabilities.
 </Callout>
 
 Test your native plugin on real devices or simulators using live hot reload:

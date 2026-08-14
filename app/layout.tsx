@@ -8,7 +8,8 @@ export const metadata: Metadata = {
     template: "%s | Wefter",
     default: "Wefter",
   },
-  description: "Wefter, a webview + native bridge framework for shipping Android and iOS apps without a bundled interpreter.",
+  description:
+    "Wefter, a webview + native bridge framework for shipping Android and iOS apps without a bundled interpreter.",
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
