@@ -22,10 +22,9 @@
     "testing-your-plugin",
     "validating-and-publishing",
     "---Tutorials---",
-    "tutorial-flashlight-plugin",
-    "tutorial-event-driven-plugin"
+    "tutorial-complete-plugin"
   ],
   "root": true,
-  "description": "Plugin anatomy, the native API surface, and a full worked tutorial.",
+  "description": "Plugin anatomy, the native API surface, and a full worked master tutorial.",
   "icon": "Puzzle"
 }

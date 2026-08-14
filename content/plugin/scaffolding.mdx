@@ -1,16 +1,23 @@
 ---
-title: Scaffolding a new plugin
-description: What wefter create-plugin generates, file by file, and the one Android rule you cannot break.
+title: Scaffolding a Plugin
+description: Generating a buildable plugin starter kit using wefter create-plugin and the mandatory Android package namespace rule.
 ---
 
+## Overview
+
+Use the [`wefter create-plugin`](/cli/create-plugin) CLI command to generate a buildable, cross-platform Wefter native plugin boilerplate package.
+
 ```bash
-wefter create-plugin secure-storage
+wefter create-plugin <name> [targetDir]
 ```
 
-generates a working, buildable-as-is starting point, both platforms, that
-passes `wefter plugin validate` immediately, with zero edits:
+---
 
-```
+## Generated File Structure
+
+Running `wefter create-plugin secure-storage` scaffolds a ready-to-build plugin directory:
+
+```text
 secure-storage/
 ├── package.json
 ├── plugin.json
@@ -23,63 +30,33 @@ secure-storage/
     └── SecureStoragePlugin.swift
 ```
 
-Full argument reference and every generated file shown in full:
-[`wefter create-plugin`](/cli/create-plugin) on the CLI tab. This page
-covers the one thing worth understanding deeply before you start editing
-what it generated.
+---
 
-## The namespace constraint: Android only, and absolute
+## Dynamic Android Package Rewriting
 
-<Callout type="warn">
-  Never change the `package dev.wefter.bridge` line at the top of any
-  `.kt` file under `android/`, even though it isn't your plugin's real
-  package and never will be.
-</Callout>
+Every Wefter plugin's Android Kotlin source code contains a package header line (e.g. `package dev.wefter.bridge` or `package com.mycompany.myplugin`).
 
-Every Wefter plugin's Android source is authored against this one fixed
-placeholder package on purpose, so a plugin author never has to know
-which namespace any particular host app will actually use. When
-[`wefter sync`](/cli/sync) weaves your plugin into a host app, it does a
-literal string replace of `package dev.wefter.bridge` for every `.kt`
-file it copies in, nothing smarter than that, just a direct text
-substitution (`copyAndroidNativeSource` in `@wefterjs/registry-codegen`,
-the same rewrite the generated shell itself goes through).
-
-Rename that line to anything else, even something that looks more
-"correct" for your plugin, and the rewrite has nothing to match. Your
-file gets copied in with whatever package you wrote, the class ends up
-outside the namespace the generated registry expects it in, and the
-woven project fails to build. The class name itself
-(`SecureStoragePlugin`) is yours to change freely, only the `package`
-line is off-limits.
+When a consuming web application runs [`wefter sync`](/cli/sync), the Wefter CLI copies plugin `.kt` files into the host app's `.wefter/native/android` project tree and automatically replaces the `package <name>` header line with the host application's package namespace (e.g. `package com.example.myapp`).
 
 <Callout type="info">
-  There's no equivalent constraint on `.swift` files, and nothing to
-  leave alone there. `sync` copies `ios/*.swift` in verbatim, no string
-  replace of any kind. Swift plugin classes compile straight into the
-  one fixed `WefterBridge` app target regardless of which host app they
-  end up in, so there's no per-app identity for the source to need
-  rewriting into. If you're looking for the Swift equivalent of this
-  rule, there isn't one; that's not an oversight.
+  **Flexible Package Declarations**: You are free to declare any package name in
+  your plugin's `.kt` files. `wefter sync` dynamically detects and rewrites the
+  package header at build/sync time.
 </Callout>
 
-This exact mistake, renaming the package line because it looks
-wrong, was caught before it ever shipped to a real plugin author. This
-page exists partly so nobody has to rediscover it the hard way a second
-time. The [`wefter create-plugin`](/cli/create-plugin) page on the CLI
-tab carries the identical warning; landing on either page first should
-get you the same answer.
+---
 
-## Next steps
+## iOS Source Copying Mechanics
+
+Unlike Android's namespace rewrite step, Swift files (`ios/*.swift`) are copied verbatim into the host iOS Xcode project target (`WefterBridge`). No text substitution occurs on Swift files.
+
+---
+
+## Verifying the Scaffold
+
+Immediately after scaffolding, run `wefter plugin validate` to confirm the scaffold passes validation checks:
 
 ```bash
-wefter plugin validate ./secure-storage
+cd secure-storage
+wefter plugin validate
 ```
-
-confirms the scaffold (or your edited version of it) passes validation
-standalone, without a full app project around it. See
-[`validating-and-publishing`](/plugin/validating-and-publishing). From
-there: [`writing-the-js-side`](/plugin/writing-the-js-side),
-[`writing-the-kotlin-side`](/plugin/writing-the-kotlin-side), and
-[`writing-the-swift-side`](/plugin/writing-the-swift-side) cover filling
-in the scaffold for real.

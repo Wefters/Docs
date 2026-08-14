@@ -1,18 +1,27 @@
 ---
-title: Writing the Swift side
-description: throws and what it does/doesn't catch, the no-force-unwrap rule, and a real permission example.
+title: Writing the Swift Side
+description: iOS Swift plugin implementation, // @WefterMethod comments, AVCaptureDevice permissions, and trap-safe error handling.
 ---
 
-The Swift side gets its own page rather than a section tacked onto
-[`writing-the-kotlin-side`](/plugin/writing-the-kotlin-side), because the
-concerns here are genuinely different, not just a syntax translation.
+## Overview
 
-## `throws` is required, and it's not decorative
+iOS native plugin code resides inside `ios/*.swift` and extends `WefterPlugin`.
+
+It uses `// @WefterMethod` comment markers to expose callable methods, `// @WefterHook` for native lifecycle hooks, `throws` for exception handling, and inherited `resolve`/`reject` methods.
+
+---
+
+## Complete Working iOS Swift Plugin Example
 
 ```swift
+import Foundation
+import AVFoundation
+
 final class ScannerPlugin: WefterPlugin {
+
     // @WefterMethod
     func open(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        // Step 1: Check iOS AVCaptureDevice camera authorization status
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             startScanning(callback)
@@ -43,76 +52,24 @@ final class ScannerPlugin: WefterPlugin {
 
     // @WefterHook("appReady")
     func onAppReady() {
-        warmUpCamera()
+        // Native lifecycle hook triggered when web app completes initial load
     }
 
-    private func startScanning(_ callback: (Result<Any, Error>) -> Void) {
+    private func startScanning(_ callback: @escaping (Result<Any, Error>) -> Void) {
         resolve(callback, data: ["started": true])
-    }
 
-    private func warmUpCamera() {
-        // Pre-initialize whatever's expensive to set up, once, when the
-        // WebView signals it's ready — not on every open() call.
+        // Emit real-time result event to JS listeners
+        emit("scanner:result", ["code": "123456789"])
     }
 }
 ```
 
-Every `@WefterMethod` function is wrapped in a `do/catch` inside
-`BridgeDispatcher.userContentController(_:didReceive:)`. `throws` is
-what makes that catch reachable at all. Without it, a `Malformed
-@WefterMethod signature` failure stops you at
-[`wefter plugin validate`](/plugin/validating-and-publishing) before it
-ever becomes a runtime problem.
+---
 
-**What that `do/catch` actually catches:** a deliberately thrown `Error`,
-your own type, or `WefterError` for a specific code, both covered on
-[`structured-errors`](/plugin/structured-errors). **What it can never
-catch:** a Swift runtime trap. This is the one hard rule on this page.
+## Core Swift Authoring Rules
 
-## Never force-unwrap, never subscript directly
-
-<Callout type="warn">
-  A force-unwrapped `nil` (`!`) or an out-of-bounds array/dictionary
-  access **terminates the process immediately.** No `do/catch` anywhere
-  in the app can intercept it, that's Apple's own design, not something
-  Wefter can work around. This is a hard rule for plugin method bodies,
-  not a stylistic preference.
-</Callout>
-
-```swift
-// Don't — a payload missing "code" crashes the whole app, not just this call.
-func scan(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
-    let code = payload["code"] as! String
-    resolve(callback, data: ["scanned": code])
-}
-```
-
-```swift
-// Do — a missing or wrong-typed field becomes a clean rejection instead.
-func scan(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
-    guard let code = payload["code"] as? String else {
-        reject(callback, code: "INVALID_PAYLOAD", message: "\"code\" must be a string")
-        return
-    }
-    resolve(callback, data: ["scanned": code])
-}
-```
-
-`guard let`, optional chaining (`payload["code"] as? String`), and safe
-subscripting are the only patterns that keep a malformed payload or an
-unexpected `nil` inside the error-handling path this framework actually
-gives you, instead of outside it entirely.
-`wefter create-plugin` scaffolds this exact reminder as a comment at the
-top of every generated Swift file, and it's worth leaving in place.
-
-## The permission example, matching `permissions.mdx` exactly
-
-The `open` method above is the same `AVCaptureDevice` flow shown in full
-on [`permissions`](/plugin/permissions): check
-`authorizationStatus(for:)` for the already-decided cases,
-`requestAccess(for:completionHandler:)` for the undecided one, every
-branch resolving or rejecting. There's no `hasPermission`/
-`requestPermission` to reach for on this platform at all. See
-[`wefter-plugin-class`](/plugin/wefter-plugin-class) for why that's
-intentional. Seeing the identical pattern in both places is the point:
-copy it from either page and land on working code.
+1. **Comment Marker**: Precede native functions with `// @WefterMethod`.
+2. **Mandatory `throws`**: Include the `throws` keyword on all `@WefterMethod` declarations.
+3. **Required Signature**: Match parameter format: `(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void)`.
+4. **Never Force-Unwrap (`!`)**: Avoid `!` force-unwrapping and direct un-bounds dictionary subscripting to prevent unrecoverable Swift fatal traps.
+5. **Main Thread UI Updates**: Always dispatch UI modifications or permission callbacks to `DispatchQueue.main.async`.

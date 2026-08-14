@@ -1,80 +1,67 @@
 ---
-title: Plugin anatomy
-description: The real, minimal file structure, Android-only, iOS-only, and both.
+title: Plugin Anatomy
+description: Physical file layouts for Wefter plugins, file roles, and supported cross-platform directory structures.
 ---
 
-A plugin needs a `plugin.json` manifest, a `src/index.ts` your app
-imports, and native source for at least one platform. All three shapes
-below are equally valid and equally complete; none of them is "the
-default" with the others treated as exceptions.
+## Overview
 
-## Android only
+A Wefter native plugin package contains a manifest file (`plugin.json`), a TypeScript wrapper (`src/index.ts`), an npm manifest (`package.json`), and native source code for Android (`Kotlin`) and/or iOS (`Swift`).
 
+---
+
+## Supported Directory Layouts
+
+Wefter supports three valid plugin package layouts. All three pass validation via `wefter plugin validate`:
+
+### 1. Dual-Platform Plugin (Android & iOS)
+
+```text
+camera-plugin/
+├── package.json          # NPM manifest declaring @wefterjs/core dependency
+├── plugin.json           # Wefter plugin manifest (permissions, methods, dependencies)
+├── README.md             # Plugin documentation
+├── src/
+│   └── index.ts          # TypeScript client API wrapper
+├── android/              # Native Android Kotlin source files
+│   └── CameraPlugin.kt
+└── ios/                  # Native iOS Swift source files
+    └── CameraPlugin.swift
 ```
-scanner/
+
+### 2. Android-Only Plugin (`android/` only)
+
+```text
+camera-plugin/
 ├── package.json
 ├── plugin.json
 ├── README.md
 ├── src/
 │   └── index.ts
 └── android/
-    └── ScannerPlugin.kt
+    └── CameraPlugin.kt
 ```
 
-`plugin.json`'s `permissions.ios` and `nativeDependencies.ios` are simply
-absent or empty, there's no `ios/` folder for them to describe. Calling
-this plugin from an iOS build rejects with `UNKNOWN_PLUGIN`, the same
-clean rejection any undeclared plugin name gets.
+### 3. iOS-Only Plugin (`ios/` only)
 
-## iOS only
-
-```
-scanner/
+```text
+camera-plugin/
 ├── package.json
 ├── plugin.json
 ├── README.md
 ├── src/
 │   └── index.ts
 └── ios/
-    └── ScannerPlugin.swift
+    └── CameraPlugin.swift
 ```
 
-The mirror image: `permissions.android` and `nativeDependencies.android`
-absent or empty, no `android/` folder, and the same clean
-`UNKNOWN_PLUGIN` rejection calling it from an Android build.
+---
 
-## Both platforms
+## File Roles & Responsibilities
 
-```
-scanner/
-├── package.json
-├── plugin.json
-├── README.md
-├── src/
-│   └── index.ts
-├── android/
-│   └── ScannerPlugin.kt
-└── ios/
-    └── ScannerPlugin.swift
-```
-
-What [`wefter create-plugin`](/plugin/scaffolding) generates by default:
-both platform folders, ready to fill in independently. Nothing requires
-you to finish both at the same time; a plugin can genuinely ship one
-platform now and grow the other later. See
-[What is a plugin?](/plugin/what-is-a-plugin) for why that's a complete,
-valid plugin at every stage, not a half-finished one.
-
-## What's in each file
-
-- **`package.json`**: a normal npm package manifest. `name`, a `dist/`
-  build output, and a dependency on `@wefterjs/core`.
-- **`plugin.json`**: the manifest every validation step reads. Full
-  field-by-field reference: [`plugin-json-reference`](/plugin/plugin-json-reference).
-- **`src/index.ts`**: what an app actually imports. See
-  [`writing-the-js-side`](/plugin/writing-the-js-side) and
-  [`core-for-plugin-authors`](/plugin/core-for-plugin-authors).
-- **`android/*.kt`**: one or more Kotlin files, all extending
-  `WefterPlugin`. See [`writing-the-kotlin-side`](/plugin/writing-the-kotlin-side).
-- **`ios/*.swift`**: one or more Swift files, all extending
-  `WefterPlugin`. See [`writing-the-swift-side`](/plugin/writing-the-swift-side).
+| File / Folder Path | Role & Purpose                                                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`     | Standard npm package manifest. Must declare `@wefterjs/core` in `dependencies` or `peerDependencies` and define build scripts.            |
+| `plugin.json`      | Wefter native manifest. Declares native permissions, Maven/SPM dependencies, manifest entries, and list of exported native methods/hooks. |
+| `src/index.ts`     | The client-side TypeScript API exported to consuming web applications. Wraps `invokeNative` and `registerHook`.                           |
+| `android/*.kt`     | Kotlin native source files extending `WefterPlugin`. Contains methods annotated with `@WefterMethod` or `@WefterHook`.                    |
+| `ios/*.swift`      | Swift native source files extending `WefterPlugin`. Contains methods marked with `// @WefterMethod` or `// @WefterHook`.                  |

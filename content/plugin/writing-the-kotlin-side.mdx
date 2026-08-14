@@ -1,13 +1,17 @@
 ---
-title: Writing the Kotlin side
-description: One complete, real plugin, base class, @WefterMethod, @WefterHook, and a full permission flow together.
+title: Writing the Kotlin Side
+description: Android Kotlin plugin implementation, @WefterMethod annotations, permission requests, and execution resolution.
 ---
 
-One file, everything together, meant to be copied and actually work, not
-a sketch that needs filling in. It's the same `ScannerPlugin` from
-[`permissions`](/plugin/permissions), extended with a
-`@WefterHook`-based startup signal so you see every piece the Android
-side offers in one place.
+## Overview
+
+Android native plugin code resides inside `android/*.kt` and extends `WefterPlugin`.
+
+It uses `@WefterMethod` annotations to expose callable methods to JavaScript, `@WefterHook` for native lifecycle hooks, and inherited `resolve`/`reject` methods to settle Promises.
+
+---
+
+## Complete Working Android Kotlin Plugin Example
 
 ```kotlin
 package dev.wefter.bridge
@@ -19,17 +23,25 @@ import org.json.JSONObject
 
 class ScannerPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
 
-    private val activity: Activity
-        get() = context as Activity
+    private val activity: Activity?
+        get() = context as? Activity
 
     @WefterMethod
     fun open(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        val currentActivity = activity
+        if (currentActivity == null) {
+            reject(callback, "NO_ACTIVITY", "Current Android Context is not an Activity")
+            return
+        }
+
+        // Step 1: Check runtime camera permission
         if (hasPermission(Manifest.permission.CAMERA)) {
             startScanning(callback)
             return
         }
 
-        requestPermission(activity, Manifest.permission.CAMERA) { granted ->
+        // Step 2: Request runtime permission
+        requestPermission(currentActivity, Manifest.permission.CAMERA) { granted ->
             if (granted) {
                 startScanning(callback)
             } else {
@@ -40,67 +52,31 @@ class ScannerPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlug
 
     @WefterMethod
     fun close(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        // Simple synchronous resolution
         resolve(callback, JSONObject().put("stopped", true))
     }
 
     @WefterHook("appReady")
     fun onAppReady() {
-        warmUpCamera()
+        // Native lifecycle hook triggered when web app completes initial load
     }
 
     private fun startScanning(callback: (Result<Any>) -> Unit) {
+        // Perform native camera setup and resolve Promise
         resolve(callback, JSONObject().put("started", true))
-    }
 
-    private fun warmUpCamera() {
-        // Pre-initialize whatever's expensive to set up, once, when the
-        // WebView signals it's ready — not on every open() call.
+        // Emit real-time result event to JS listeners
+        emit("scanner:result", JSONObject().put("code", "123456789"))
     }
 }
 ```
 
-## What each piece is actually doing
+---
 
-`open` is the permission flow from [`permissions`](/plugin/permissions)
-verbatim: check `hasPermission` first, `requestPermission` only if
-needed, resolve or reject with `PERMISSION_DENIED` from the real
-callback result, never a request code you invented yourself. `close` is
-the simplest possible `@WefterMethod`: no branching, just `resolve`.
+## Core Kotlin Authoring Rules
 
-`onAppReady`, marked `@WefterHook("appReady")`, is unrelated to
-`open`/`close` entirely, it's not called in response to anything JS
-asks for. It fires once `wefter sync` has wired it into
-`dispatcher.subscribeHook("appReady") { scannerPlugin.onAppReady() }`,
-and something native calls `dispatcher.dispatchHook("appReady")`, which,
-right now, is the only hook name either shell actually dispatches. See
-[`@WefterHook`](/plugin/wefter-hook) for exactly what is and isn't wired
-today before reaching for a different hook name.
-
-## Method vs. hook vs. emit, side by side
-
-This one file uses two of the three mechanisms
-[architecture-flow](/plugin/architecture-flow) covers, deliberately kept
-distinct:
-
-- **`@WefterMethod`** (`open`, `close`): JS calls it, gets a Promise
-  back. Request/response.
-- **`@WefterHook`** (`onAppReady`): native code calls it, no JS
-  involved, no data. A lifecycle signal, not a data channel.
-- **`emit`**: not used in this example, but available on every
-  `WefterPlugin` regardless of `@WefterHook`, push data to JS whenever
-  your own code decides to, with no annotation needed at all. See
-  [`tutorial-event-driven-plugin`](/plugin/tutorial-event-driven-plugin)
-  for a plugin built around it.
-
-## Never let a permission-gated call hang
-
-Every branch in `open` above calls exactly one of `resolve`/`reject`. A
-path that does neither, an early `return` inside the
-`requestPermission` callback, a missed `else`, an exception before
-either is reached, leaves the JS-side `Promise` pending until its
-timeout fires, ten seconds later, with a generic `TIMEOUT` instead of the
-real reason. If you throw instead of calling `reject`, that's still
-handled (the dispatcher's own `try/catch` turns it into `PLUGIN_THREW`),
-but an explicit `reject(callback, "SOME_CODE", "...")` always
-communicates more than a caught throw does; prefer it wherever you can
-see the failure coming.
+1. **Flexible Package Headers**: You can declare any package name (e.g. `package dev.wefter.bridge` or `package com.myorg.plugin`). `wefter sync` replaces `package <whatever>` with the host app's package namespace automatically.
+2. **Annotate Methods**: Annotate public plugin functions with `@WefterMethod`.
+3. **Required Signature**: Match parameter format: `(payload: JSONObject, callback: (Result<Any>) -> Unit)`.
+4. **Settle Every Branch**: Ensure every conditional code path calls either `resolve(callback, data)` or `reject(callback, code, message)`. Paths that call neither leave JavaScript promises pending until the 10-second timeout.
+5. **Handle Denials**: Declare dangerous permissions in `plugin.json` and handle denial results by returning `PERMISSION_DENIED`.

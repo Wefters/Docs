@@ -1,80 +1,99 @@
 ---
-title: Validating and publishing
-description: One validation core behind three commands, what failure actually costs you, and how to publish.
+title: Validating and Publishing
+description: Running wefter plugin validate checks and publishing your plugin package to npm.
 ---
 
-## One implementation, three entry points
+## Overview
 
-`wefter plugin validate`, `wefter add`, and `wefter sync` all run the
-exact same function, `validatePluginDirectory` in
-`@wefterjs/registry-codegen`, not three versions of similar logic that
-could quietly drift apart from each other over time. Full step-by-step
-breakdown of what it checks, in order, with the exact failure messages
-for each step: [`wefter plugin validate`](/cli/plugin-validate) on the
-CLI tab. In short, in order:
+Before publishing a Wefter plugin package to npm, validate its schema and native method signatures using [`wefter plugin validate`](/cli/plugin-validate).
 
-1. `plugin.json` exists.
-2. `plugin.json` matches the schema. See
-   [`plugin-json-reference`](/plugin/plugin-json-reference).
-3. At least one of `android/`/`ios/` exists.
-4. Every `@WefterMethod`/`@WefterHook` signature is well-formed, per
-   platform that exists. See [`@WefterMethod`](/plugin/wefter-method)
-   and [`@WefterHook`](/plugin/wefter-hook).
-5. `plugin.json`'s declared `methods`/`hooks` agree with what's actually
-   in source, checked independently per platform.
+`wefter plugin validate`, [`wefter add`](/cli/add), and [`wefter sync`](/cli/sync) all run the exact same underlying validation engine (`validatePluginDirectory` from `@wefterjs/registry-codegen`).
 
-Android also gets one more check folded into this same validation: if
-`permissions.android` declares anything from Android's own
-dangerous-permission list, your Kotlin source must contain the literal
-string `"PERMISSION_DENIED"` somewhere, or validation fails. That's
-the enforced half of [`permissions`](/plugin/permissions)'s working loop.
+---
 
-## What failure actually costs you
+## The 5-Step Validation Suite
 
-Run `wefter plugin validate ./your-plugin` standalone, any time, with no
-app project required around it at all, the fast local loop while you're
-still writing the plugin.
+When `wefter plugin validate` runs against your plugin directory, it enforces five structural rules:
 
-The real stakes show up at `wefter add`. It installs your package first,
-*then* validates it, then declares it in the consuming app's
-`wefter.config.json`, all or nothing. If validation fails on any
-platform your plugin claims to support, the package is still sitting in
-`node_modules`, but `wefter.config.json` is left completely untouched. No
-partial declaration, no half-added state for a bad plugin to sneak into
-a real app through. This is the actual bar your published package has to
-clear before anyone can use it, not a soft recommendation a plugin
-author can choose to skip past.
+```mermaid
+graph TD
+    A[wefter plugin validate] --> B[1. Verify plugin.json exists]
+    B --> C[2. Validate plugin.json schema]
+    C --> D[3. Confirm android/ or ios/ exists]
+    D --> E[4. Audit @WefterMethod and @WefterHook signatures]
+    E --> F[5. Verify plugin.json methods match native source code]
+```
 
-<Callout type="info">
-  `wefter sync` runs this same validation again, against every already-declared
-  plugin, every time. A plugin that passed `wefter add` once and was then
-  edited by hand (or updated to a version with a real regression) fails
-  the next `sync`, not silently, the same way it would have failed `add`
-  in the first place.
-</Callout>
+1. **`plugin.json` Presence**: Confirms `plugin.json` exists in plugin root directory.
+2. **Schema Verification**: Confirms `plugin.json` conforms to schema properties (`name`, `permissions`, `nativeDependencies`, `methods`, `hooks`, `events`).
+3. **Native Directory Check**: Confirms at least one native source directory (`android/` or `ios/`) exists.
+4. **Signature Audit**: Audits `@WefterMethod` and `@WefterHook` parameter signatures in Kotlin and Swift files.
+5. **Method Agreement**: Confirms methods listed in `plugin.json`'s `methods` array match `@WefterMethod` declarations in native source code.
 
-## Publishing
+---
 
-Once your plugin passes validation standalone, on every platform it
-claims to support, publishing it is ordinary npm:
+## Validating Standalone
 
-- **Scope your package name**: `@yourorg/plugin-name`, matching what
-  `wefter create-plugin` scaffolds into `package.json` by default. This
-  is what an app author will actually run `wefter add @yourorg/plugin-name`
-  against.
-- **Include:** `dist/` (built JS + `.d.ts`), `plugin.json`, `android/`,
-  `ios/`, `README.md`. Everything `wefter add`/`wefter sync` actually
-  read has to ship in the published package, not just exist in your
-  repo.
-- **Exclude:** `src/`, tests, and anything under your own build tooling.
-  None of it is read by `wefter add`/`wefter sync`, and shipping it just
-  adds install size for no benefit to whoever consumes your plugin.
-- **Version deliberately.** `wefter.lock.json` records the exact resolved
-  version and a content-integrity hash of every synced plugin. See the
-  Docs tab's [Plugin Registry](/docs/plugin-registry#wefterlockjson) page
-  for exactly what that hash covers and what triggers drift on the
-  consuming side.
+Run standalone validation directly in your plugin repository:
 
-Cross-reference for the exact CLI-side behavior at each of these
-commands: [`wefter plugin validate`](/cli/plugin-validate) and
-[`wefter add`](/cli/add) on the CLI tab.
+```bash
+cd my-wefter-plugin
+wefter plugin validate
+```
+
+If validation succeeds:
+
+```text
+[SUCCESS] Plugin is valid.
+```
+
+---
+
+## NPM Publishing Checklist
+
+Once your plugin passes validation, prepare it for publishing to npm:
+
+### 1. Configure `package.json`
+
+Ensure your package exports compiled JS files (`dist/`) and includes `plugin.json`, `android/`, and `ios/` folders in the published package:
+
+```json
+{
+  "name": "@myorg/scanner-plugin",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "plugin.json", "android", "ios", "README.md"],
+  "dependencies": {
+    "@wefterjs/core": "^0.0.1"
+  }
+}
+```
+
+### 2. Build TypeScript Source
+
+Compile your `src/index.ts` source into `dist/`:
+
+```bash
+pnpm build
+# or npm run build
+```
+
+### 3. Publish to NPM
+
+Publish your scoped plugin package to the npm registry:
+
+```bash
+npm publish --access public
+```
+
+---
+
+## Consuming the Published Plugin
+
+Once published, application developers can install and declare your plugin using a single command:
+
+```bash
+wefter add @myorg/scanner-plugin
+wefter sync
+```

@@ -1,0 +1,684 @@
+---
+title: Master Plugin Tutorial
+description: Comprehensive end-to-end masterclass for building a Wefter native plugin, explaining every API, annotation, manifest field, permission flow, event stream, and testing strategy.
+---
+
+## Overview
+
+This masterclass tutorial provides a complete, line-by-line guide to authoring a production-ready Wefter native plugin.
+
+Whether you are a beginner building your first request/response bridge method or an expert designing complex event streams, custom native Activities, and runtime permission flows, this page covers every concept, API, and best practice in one unified guide.
+
+---
+
+## Rationale: Why & When to Build a Native Plugin
+
+Before writing native code, understand the boundary between Web APIs and Native OS capabilities:
+
+### Use Web APIs (No Native Plugin Needed)
+
+If a feature can be implemented inside a standard desktop or mobile web browser, write it in web JavaScript:
+
+- Remote HTTP requests (`fetch`, `axios`).
+- Key-value data persistence (`localStorage`, `IndexedDB`).
+- WebSockets and Server-Sent Events (`WebSocket`).
+
+### Build a Wefter Plugin (Native Plugin Required)
+
+Build a Wefter native plugin when your application requires access to operating system hardware or native OS frameworks:
+
+- **Hardware Access**: Camera Flashlight/Torch, Camera Photo Capture, Bluetooth Low Energy (BLE), NFC, Sensors (Accelerometer, Gyroscope).
+- **Secure Hardware Storage**: Android Keystore, iOS Keychain.
+- **Native OS Dialogs & Permissions**: System permission dialogs, Native Share sheets, System Settings.
+- **Background Operations & Telemetry**: Native battery monitoring, network interface telemetry, push notification handlers.
+
+---
+
+## What We Are Building: `device-telemetry`
+
+We will build **`device-telemetry`**, a cross-platform Wefter native plugin for Android (Kotlin) and iOS (Swift) that demonstrates:
+
+1. **Request/Response Methods**: Simple Promise-based calls (`getBatteryLevel`, `getDeviceInfo`).
+2. **Permission Handling**: Asynchronous runtime permissions (requesting Android `CAMERA` permission & handling iOS `AVCaptureDevice` authorization for `toggleTorch`).
+3. **Real-Time Push Event Streams**: Pushing asynchronous events from native code to Web JS (`emit` & `registerHook` for `battery-changed`).
+4. **Native Lifecycle Hooks**: Subscribing native methods to host application readiness signals (`@WefterHook("appReady")`).
+5. **Cross-Component Access**: Reaching plugin instances from external native classes using `WefterBridge`.
+
+---
+
+<Steps>
+<Step>
+
+## Step 1: Scaffold the Plugin Package
+
+Run [`wefter create-plugin`](/cli/create-plugin) from your terminal:
+
+```bash
+wefter create-plugin device-telemetry ./plugins
+```
+
+This scaffolds a complete, valid plugin package at `./plugins/device-telemetry/`:
+
+```text
+device-telemetry/
+├── package.json                   # NPM package manifest
+├── plugin.json                    # Wefter native manifest
+├── README.md                      # Documentation
+├── src/
+│   └── index.ts                   # TypeScript client API wrapper
+├── android/
+│   └── DeviceTelemetryPlugin.kt    # Android Kotlin native source
+└── ios/
+    └── DeviceTelemetryPlugin.swift  # iOS Swift native source
+```
+
+### Local Development Setup
+
+To use this local plugin inside a host Wefter web application during development, open `wefter.config.json` in your web app root and declare:
+
+```json
+{
+  "pluginsDir": "plugins",
+  "plugins": ["device-telemetry"]
+}
+```
+
+`pluginsDir` instructs [`wefter sync`](/cli/sync) to resolve `device-telemetry` from `./plugins/device-telemetry` instead of `node_modules`.
+
+</Step>
+<Step>
+
+## Step 2: Configure `plugin.json` Manifest
+
+Open `./plugins/device-telemetry/plugin.json`. This manifest defines permissions, native package dependencies, manifest entries, and declared methods.
+
+```json
+{
+  "name": "device-telemetry",
+  "permissions": {
+    "android": ["android.permission.CAMERA"],
+    "ios": {
+      "NSCameraUsageDescription": "Required to toggle the device flashlight."
+    }
+  },
+  "nativeDependencies": {
+    "android": {
+      "gradle": [],
+      "proguardRules": ""
+    },
+    "ios": {
+      "spm": []
+    }
+  },
+  "android": {
+    "manifestEntries": []
+  },
+  "methods": ["toggleTorch", "getBatteryLevel", "getDeviceInfo"],
+  "hooks": ["appReady"],
+  "events": ["device-telemetry:battery-changed"]
+}
+```
+
+### Manifest Line-by-Line Field Explanation
+
+- **`name`**: The unique plugin package identifier string. Must match `wefter.config.json`'s `plugins` array and `invokeNative`'s first parameter.
+- **`permissions.android`**: Array of Android manifest permission constants. During `wefter sync`, these permissions are merged into `.wefter/native/android/app/src/main/AndroidManifest.xml`.
+- **`permissions.ios`**: Key-value dictionary mapping `Info.plist` usage description keys to user prompt strings. During `wefter sync`, these are merged into `.wefter/native/ios/Info.plist`.
+- **`nativeDependencies`**:
+  - `android.gradle`: Array of Maven Gradle dependency coordinates (e.g. `["androidx.camera:camera-camera2:1.3.0"]`). Merged into `build.gradle.kts`.
+  - `android.proguardRules`: ProGuard obfuscation rules text merged into `proguard-rules.pro`.
+  - `ios.spm`: Array of Swift Package Manager package dependencies (`url`, `from`, `product`).
+- **`methods`**: Array of method names exported by your native source code. [`wefter plugin validate`](/cli/plugin-validate) cross-checks this list against `@WefterMethod` annotations in Kotlin and Swift files.
+- **`hooks`**: Array of native lifecycle hook names (e.g. `"appReady"`). Audited against `@WefterHook` annotations in native source files.
+- **`events`**: Array of event hook names your plugin emits via `emit()`. (Documentation reference for plugin consumers).
+
+</Step>
+<Step>
+
+## Step 3: Implement Android Native Code (Kotlin)
+
+Open `./plugins/device-telemetry/android/DeviceTelemetryPlugin.kt`.
+
+<Callout type="info">
+  **Flexible Package Declarations**: You can write any package declaration (e.g. `package dev.wefter.bridge` or `package com.mycompany.telemetry`). During `wefter sync`, Wefter automatically detects and replaces the `package <name>` header with the host app's package namespace.
+</Callout>
+
+```kotlin
+package dev.wefter.bridge
+
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
+import android.os.BatteryManager
+import android.os.Build
+import org.json.JSONObject
+
+class DeviceTelemetryPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
+
+    private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+    private val activity: Activity?
+        get() = context as? Activity
+
+    // --- Method 1: Request/Response with Runtime Permissions ---
+    @WefterMethod
+    fun toggleTorch(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        val currentActivity = activity
+        if (currentActivity == null) {
+            reject(callback, "NO_ACTIVITY", "Host context is not an Activity")
+            return
+        }
+
+        val enable = payload.optBoolean("enable", false)
+
+        // Step A: Check if CAMERA permission is already granted
+        if (hasPermission(Manifest.permission.CAMERA)) {
+            setTorchState(enable, callback)
+            return
+        }
+
+        // Step B: Dynamically request CAMERA permission if missing
+        requestPermission(currentActivity, Manifest.permission.CAMERA) { granted ->
+            if (granted) {
+                setTorchState(enable, callback)
+            } else {
+                reject(callback, "PERMISSION_DENIED", "Camera permission was denied by user")
+            }
+        }
+    }
+
+    // --- Method 2: Synchronous Hardware State Query ---
+    @WefterMethod
+    fun getBatteryLevel(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val batteryIntent = context.registerReceiver(null, filter)
+        val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+
+        if (level < 0 || scale <= 0) {
+            reject(callback, "NOT_AVAILABLE", "Battery level is unavailable on this device")
+            return
+        }
+
+        val percentage = (level * 100) / scale
+        resolve(callback, JSONObject().put("percent", percentage))
+    }
+
+    // --- Method 3: Simple Device Information Query ---
+    @WefterMethod
+    fun getDeviceInfo(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        val info = JSONObject().apply {
+            put("model", Build.MODEL)
+            put("manufacturer", Build.MANUFACTURER)
+            put("osVersion", Build.VERSION.RELEASE)
+            put("sdkVersion", Build.VERSION.SDK_INT)
+        }
+        resolve(callback, info)
+    }
+
+    // --- Native Lifecycle Hook & Real-Time Event Emission ---
+    @WefterHook("appReady")
+    fun onAppReady() {
+        // Register BroadcastReceiver when web application completes initial DOM load
+        context.registerReceiver(
+            object : android.content.BroadcastReceiver() {
+                override fun onReceive(ctx: Context, intent: Intent) {
+                    val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                    val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                    if (level >= 0 && scale > 0) {
+                        val percent = (level * 100) / scale
+                        // Push real-time event stream directly to Web JS
+                        emit("device-telemetry:battery-changed", JSONObject().put("percent", percent))
+                    }
+                }
+            },
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        )
+    }
+
+    private fun setTorchState(enable: Boolean, callback: (Result<Any>) -> Unit) {
+        val cameraId = cameraManager.cameraIdList.firstOrNull { id ->
+            cameraManager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+        }
+
+        if (cameraId == null) {
+            reject(callback, "NOT_AVAILABLE", "No flash unit available on this camera hardware")
+            return
+        }
+
+        try {
+            cameraManager.setTorchMode(cameraId, enable)
+            resolve(callback, JSONObject().put("active", enable))
+        } catch (e: Exception) {
+            reject(callback, "HARDWARE_ERROR", "Failed to toggle torch: ${e.message}")
+        }
+    }
+}
+```
+
+### Kotlin Implementation Key Concepts Explained
+
+- **`abstract class WefterPlugin(context, dispatcher)`**: Base class providing access to Android `context`, `dispatcher`, `resolve()`, `reject()`, `emit()`, `hasPermission()`, and `requestPermission()`.
+- **`@WefterMethod`**: Annotation marking functions callable via `invokeNative`. Must accept `(payload: JSONObject, callback: (Result<Any>) -> Unit)`.
+- **`resolve(callback, JSONObject)`**: Resolves the pending JS Promise with a successful payload.
+- **`reject(callback, code, message)`**: Rejects the pending JS Promise with a structured `WefterError`.
+- **`emit(hookName, JSONObject)`**: Pushes an asynchronous event stream to JavaScript listeners without pending Promises.
+- **`@WefterHook("appReady")`**: Subscribes `onAppReady()` to the host application's initial web page load event.
+
+</Step>
+<Step>
+
+## Step 4: Implement iOS Native Code (Swift)
+
+Open `./plugins/device-telemetry/ios/DeviceTelemetryPlugin.swift`.
+
+```swift
+import Foundation
+import AVFoundation
+import UIKit
+
+final class DeviceTelemetryPlugin: WefterPlugin {
+
+    // --- Method 1: Request/Response with AVCaptureDevice Authorization ---
+    // @WefterMethod
+    func toggleTorch(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        let enable = payload["enable"] as? Bool ?? false
+
+        // Step A: Check AVCaptureDevice authorization status
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            setTorchState(enable, callback)
+
+        case .notDetermined:
+            // Step B: Asynchronously request camera permission
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self?.setTorchState(enable, callback)
+                    } else {
+                        self?.reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied by user")
+                    }
+                }
+            }
+
+        case .denied, .restricted:
+            reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied by user")
+
+        @unknown default:
+            reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied by user")
+        }
+    }
+
+    // --- Method 2: Synchronous Hardware State Query ---
+    // @WefterMethod
+    func getBatteryLevel(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let level = UIDevice.current.batteryLevel
+
+        guard level >= 0 else {
+            reject(callback, code: "NOT_AVAILABLE", message: "Battery level is unavailable on iOS Simulator")
+            return
+        }
+
+        resolve(callback, data: ["percent": Int(level * 100)])
+    }
+
+    // --- Method 3: Simple Device Information Query ---
+    // @WefterMethod
+    func getDeviceInfo(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        let device = UIDevice.current
+        let info: [String: Any] = [
+            "model": device.model,
+            "manufacturer": "Apple",
+            "osVersion": device.systemVersion,
+            "name": device.name
+        ]
+        resolve(callback, data: info)
+    }
+
+    // --- Native Lifecycle Hook & Real-Time Event Emission ---
+    // @WefterHook("appReady")
+    func onAppReady() {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+
+        NotificationCenter.default.addObserver(
+            forName: UIDevice.batteryLevelDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            let level = UIDevice.current.batteryLevel
+            guard level >= 0 else { return }
+            // Push real-time event stream directly to Web JS
+            self?.emit("device-telemetry:battery-changed", ["percent": Int(level * 100)])
+        }
+    }
+
+    private func setTorchState(_ enable: Bool, _ callback: @escaping (Result<Any, Error>) -> Void) {
+        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else {
+            reject(callback, code: "NOT_AVAILABLE", message: "No camera torch unit available on this device")
+            return
+        }
+
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = enable ? .on : .off
+            device.unlockForConfiguration()
+            resolve(callback, data: ["active": enable])
+        } catch {
+            reject(callback, code: "HARDWARE_ERROR", message: "Failed to configure torch: \(error.localizedDescription)")
+        }
+    }
+}
+```
+
+### Swift Implementation Key Concepts Explained
+
+- **`open class WefterPlugin`**: Base class providing `dispatcher`, `viewController`, `resolve()`, `reject()`, and `emit()`.
+- **`// @WefterMethod`**: Structured comment marker designating functions callable via `invokeNative`.
+- **`throws` Keyword**: Mandatory on all Swift `@WefterMethod` functions. Allows the native dispatcher's `do/catch` block to handle thrown errors gracefully and return `"PLUGIN_THREW"` rejections.
+- **Trap Safety (`guard let`)**: Swift `do/catch` cannot catch fatal runtime traps (such as force-unwrapping `nil` via `!`). Always use `guard let` or optional chaining (`payload["enable"] as? Bool ?? false`) to avoid crashing the app process.
+- **`DispatchQueue.main.async`**: Ensures permission callback results and UI updates are executed on the main UI thread.
+
+</Step>
+<Step>
+
+## Step 5: Implement Client-Side TypeScript Wrapper
+
+Open `./plugins/device-telemetry/src/index.ts`. This file exports the typed JavaScript client API used by web applications.
+
+```ts
+import { definePlugin, invokeNative, registerHook } from "@wefterjs/core";
+
+// --- Exported Payload & Result Interfaces ---
+export interface TorchOptions {
+  enable: boolean;
+}
+
+export interface TorchResult {
+  active: boolean;
+}
+
+export interface BatteryResult {
+  percent: number;
+}
+
+export interface DeviceInfoResult {
+  model: string;
+  manufacturer: string;
+  osVersion: string;
+  sdkVersion?: number;
+  name?: string;
+}
+
+export interface DeviceTelemetryPluginInterface {
+  toggleTorch(payload: TorchOptions): Promise<TorchResult>;
+  getBatteryLevel(): Promise<BatteryResult>;
+  getDeviceInfo(): Promise<DeviceInfoResult>;
+}
+
+// --- Plugin Client Export ---
+export const DeviceTelemetry = {
+  // Option A: Auto-generate request/response Promise methods
+  ...definePlugin<DeviceTelemetryPluginInterface>("device-telemetry", {
+    toggleTorch: true,
+    getBatteryLevel: true,
+    getDeviceInfo: true,
+  }),
+
+  // Option B: Manual invokeNative method with custom options (Timeout / AbortSignal)
+  toggleTorchWithOptions(
+    enable: boolean,
+    options?: { timeoutMs?: number; signal?: AbortSignal },
+  ): Promise<TorchResult> {
+    return invokeNative<TorchResult>(
+      "device-telemetry",
+      "toggleTorch",
+      { enable },
+      options,
+    );
+  },
+
+  // Event Subscription Listener
+  onBatteryChange(callback: (data: BatteryResult) => void): { remove(): void } {
+    // Namespaced hook name matching native emit() call
+    return registerHook(
+      "device-telemetry:battery-changed",
+      callback as (data: unknown) => void,
+    );
+  },
+};
+```
+
+### TypeScript Wrapper Key Concepts Explained
+
+- **`definePlugin<Interface>(pluginName, methodMap)`**: Generates typed Promise functions that delegate directly to `invokeNative(pluginName, methodName, payload)`.
+- **`invokeNative<T>(plugin, method, payload, options?)`**: Low-level function returning `Promise<T>`. Supports `timeoutMs` (defaults to 10,000ms) and `signal` (`AbortSignal`) for request cancellation.
+- **`registerHook(hookName, callback)`**: Subscribes a JS callback to event emissions (`emit`). Returns a subscription object containing `{ remove(): void }`.
+- **Event Namespacing (`"device-telemetry:battery-changed"`)**: Event names are global across all installed plugins. Always prefix event hook names with `pluginName:` to prevent cross-plugin event listener collisions.
+
+</Step>
+<Step>
+
+## Step 6: Validate & Sync
+
+Validate your plugin structure and weave it into host application native shells:
+
+1. **Run Standalone Validation**:
+
+   ```bash
+   wefter plugin validate ./plugins/device-telemetry
+   ```
+
+   _Output_: `[SUCCESS] Plugin is valid.`
+
+   `wefter plugin validate` verifies:
+   - `plugin.json` schema rules.
+   - Presence of `android/` and `ios/` source folders.
+   - Matching parameter signatures for all `@WefterMethod` annotations.
+   - Parity between declared methods in `plugin.json` and native source implementations.
+   - Presence of `"PERMISSION_DENIED"` error handlers in Kotlin source for dangerous permissions.
+
+2. **Sync Native Shells**:
+
+   ```bash
+   wefter sync
+   ```
+
+   _Output_: `[SUCCESS] Synced 1 plugin(s): device-telemetry`
+
+   `wefter sync` weaves your plugin into host native project files:
+   - Copies Kotlin files to `.wefter/native/android` and rewrites package namespace to host app's package.
+   - Copies Swift files to `.wefter/native/ios`.
+   - Merges permissions into `AndroidManifest.xml` and `Info.plist`.
+   - Generates `WefterPluginRegistry.kt` and `WefterPluginRegistry.swift`.
+
+</Step>
+<Step>
+
+## Step 7: Consume in Web Application UI
+
+Import `DeviceTelemetry` in your web application (Vue, React, Svelte, or Vanilla JS):
+
+```ts
+import { DeviceTelemetry } from "device-telemetry";
+
+// Query device information
+const info = await DeviceTelemetry.getDeviceInfo();
+console.log(
+  `Device: ${info.manufacturer} ${info.model} (OS: ${info.osVersion})`,
+);
+
+// Query current battery percentage
+const battery = await DeviceTelemetry.getBatteryLevel();
+console.log("Current Battery Level:", battery.percent, "%");
+
+// Subscribe to real-time battery updates
+const batterySubscription = DeviceTelemetry.onBatteryChange((data) => {
+  console.log("Real-time Battery Update:", data.percent, "%");
+});
+
+// Toggle device flashlight ON
+try {
+  const torch = await DeviceTelemetry.toggleTorch({ enable: true });
+  console.log("Torch Active:", torch.active);
+} catch (error: any) {
+  if (error.code === "PERMISSION_DENIED") {
+    console.error("Camera permission was denied by user");
+  } else if (error.code === "NOT_AVAILABLE") {
+    console.error("No flash unit available on this hardware");
+  }
+}
+
+// Unsubscribe from event listener when unmounting UI component
+// batterySubscription.remove();
+```
+
+</Step>
+<Step>
+
+## Step 8: Comprehensive 2-Tier Testing Strategy
+
+Testing a native plugin requires two distinct testing tiers:
+
+### Tier 1: JS Client Mock Testing (`@wefterjs/core/testing`)
+
+Create `./plugins/device-telemetry/test/telemetry.test.ts` to test your TypeScript wrapper logic without needing a mobile device or emulator:
+
+```ts
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from "vitest";
+import { installMockBridge, uninstallMockBridge } from "@wefterjs/core/testing";
+import { DeviceTelemetry } from "../src/index.js";
+
+describe("DeviceTelemetry Client JS Wrapper", () => {
+  afterEach(() => {
+    uninstallMockBridge();
+  });
+
+  it("resolves device info query from mock bridge", async () => {
+    installMockBridge({
+      "device-telemetry": (method) => {
+        if (method === "getDeviceInfo") {
+          return { model: "Pixel 8", manufacturer: "Google", osVersion: "14" };
+        }
+        throw new Error(`Unmocked method ${method}`);
+      },
+    });
+
+    const info = await DeviceTelemetry.getDeviceInfo();
+    expect(info.model).toBe("Pixel 8");
+    expect(info.manufacturer).toBe("Google");
+  });
+
+  it("propagates PERMISSION_DENIED rejections correctly", async () => {
+    installMockBridge({
+      "device-telemetry": () => {
+        throw new Error("Camera permission denied");
+      },
+    });
+
+    await expect(
+      DeviceTelemetry.toggleTorch({ enable: true }),
+    ).rejects.toMatchObject({
+      code: "MOCK_ERROR",
+      message: "Camera permission denied",
+    });
+  });
+});
+```
+
+### Tier 2: Real On-Device Integration Testing
+
+<Callout type="warn">
+  **Mock Tests Are Not Enough**: Mock bridge unit tests verify JS wrapper
+  syntax, but cannot test native Kotlin/Swift code compilation, OS permission
+  prompts, or physical hardware capabilities.
+</Callout>
+
+Test your native plugin on real devices or simulators using live hot reload:
+
+```bash
+# Test on connected Android device or emulator
+wefter run android --watch
+
+# Test on iOS Simulator
+wefter run ios --watch
+```
+
+Test all execution paths on physical hardware:
+
+1. **First-Time Permission Prompt**: Verify OS permission prompt displays and handles user approval/denial.
+2. **Granted State**: Verify hardware action (flashlight LED) executes cleanly.
+3. **Denied State**: Verify `reject()` returns `PERMISSION_DENIED` without hanging Promises.
+
+</Step>
+<Step>
+
+## Step 9: Publish to NPM Registry
+
+Once your plugin passes validation and integration tests, prepare it for npm publishing:
+
+### 1. Configure Package Files (`package.json`)
+
+Ensure `package.json` specifies build output (`dist/`) and includes `plugin.json`, `android/`, and `ios/` folders in the `"files"` array:
+
+```json
+{
+  "name": "@myorg/device-telemetry",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "plugin.json", "android", "ios", "README.md"],
+  "dependencies": {
+    "@wefterjs/core": "^0.0.1"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}
+```
+
+### 2. Build and Publish
+
+```bash
+# Compile TypeScript into dist/
+npm run build
+
+# Publish to npm registry
+npm publish --access public
+```
+
+### 3. Consume in Any Wefter Application
+
+App developers can now install and declare your published plugin using one command:
+
+```bash
+wefter add @myorg/device-telemetry
+wefter sync
+```
+
+</Step>
+</Steps>
+
+---
+
+## Complete Feature & API Reference Summary
+
+| Wefter Framework API  | Platform         | Context / Purpose                                                                       | Usage Example                                                                                                   |
+| --------------------- | ---------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `@WefterMethod`       | Android (Kotlin) | Annotates Kotlin functions exported to `invokeNative`.                                  | `@WefterMethod fun method(payload: JSONObject, callback: (Result<Any>) -> Unit)`                                |
+| `// @WefterMethod`    | iOS (Swift)      | Structured comment marker for Swift functions exported to `invokeNative`.               | `// @WefterMethod func method(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws` |
+| `@WefterHook("name")` | Android / iOS    | Subscribes a native method to application shell signals (`"appReady"`, `"hideSplash"`). | `@WefterHook("appReady") fun onAppReady() { ... }`                                                              |
+| `resolve()`           | Android / iOS    | Base class helper settling pending JS Promises with a successful payload.               | `resolve(callback, JSONObject().put("ok", true))`                                                               |
+| `reject()`            | Android / iOS    | Base class helper rejecting pending JS Promises with structured `WefterError`.          | `reject(callback, "PERMISSION_DENIED", "Denied")`                                                               |
+| `emit()`              | Android / iOS    | Pushes asynchronous real-time event streams to JavaScript.                              | `emit("plugin:event", payload)`                                                                                 |
+| `hasPermission()`     | Android          | Checks if an Android runtime permission is granted.                                     | `hasPermission(Manifest.permission.CAMERA)`                                                                     |
+| `requestPermission()` | Android          | Requests an Android runtime permission and receives asynchronous result callback.       | `requestPermission(activity, permission) { granted -> ... }`                                                    |
+| `WefterBridge`        | Android / iOS    | Framework registry for looking up live plugin instances outside `WefterPlugin`.         | `WefterBridge.getPlugin("pluginId")`                                                                            |
+| `definePlugin()`      | Web JS           | Utility generating typed request/response Promise methods.                              | `definePlugin<Interface>("pluginName", { method: true })`                                                       |
+| `invokeNative()`      | Web JS           | Low-level bridge function returning a typed `Promise<T>`.                               | `invokeNative<T>("plugin", "method", payload, options)`                                                         |
+| `registerHook()`      | Web JS           | Subscribes a JavaScript callback to native event streams (`emit`).                      | `registerHook("plugin:event", callback)`                                                                        |

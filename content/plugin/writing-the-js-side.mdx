@@ -1,67 +1,98 @@
 ---
-title: Writing the JS side
-description: Typing conventions for methods, and the event-naming convention that stops two plugins colliding.
+title: Writing the JS Side
+description: Designing TypeScript client wrapper interfaces, method typing, and event namespacing conventions.
 ---
 
-`src/index.ts` is what an app actually imports. Everything native your
-plugin does is only reachable through whatever this file exports. See
-[`core-for-plugin-authors`](/plugin/core-for-plugin-authors) for the
-`definePlugin`/`invokeNative`/`registerHook` mechanics; this page is
-about the conventions around them.
+## Overview
 
-## Type every payload and every return value
+The `src/index.ts` file forms the client-side API exported by a Wefter plugin npm package.
 
-`invokeNative`/`definePlugin` are generic. Nothing forces you to type
-either side, but nothing about the bridge is typed for you either, since
-payloads cross as plain JSON. Export a real interface for both:
+It wraps low-level bridge functions (`invokeNative` and `registerHook` from `@wefterjs/core`) into strongly-typed TypeScript interfaces for web applications.
+
+---
+
+## 1. Typing Payload Arguments & Return Values
+
+Because data payloads cross the native bridge serialized as JSON, export explicit TypeScript interfaces for options and result objects:
 
 ```ts
-export interface OpenOptions {
+import { invokeNative } from "@wefterjs/core";
+
+export interface ScanOptions {
   facing?: "front" | "back";
+  torch?: boolean;
 }
 
-export interface OpenResult {
-  started: boolean;
+export interface ScanResult {
+  code: string;
+  format: string;
 }
 
 export const Scanner = {
-  open(options: OpenOptions = {}): Promise<OpenResult> {
-    return invokeNative("scanner", "open", options);
+  scan(options: ScanOptions = {}): Promise<ScanResult> {
+    return invokeNative<ScanResult>("scanner", "scan", options);
   },
 };
 ```
 
-An app calling `Scanner.open({ facing: "back" })` gets real autocomplete
-and a real compile error for a typo'd option, none of which exists if
-`open` is left as `(payload: unknown) => Promise<unknown>`. This matters
-more for a plugin than for typical app code, since the actual shape
-enforcement only exists on the native side, in a different language
-entirely; the TS types here are the only compile-time contract an app
-author gets.
+---
 
-## Name events `pluginName:eventName`
+## 2. Event Namespacing Convention
 
-A hook/event name is global across every plugin an app has installed.
-`registerHook("tick", ...)` from `@wefterjs/core` doesn't know or care
-which plugin emitted `"tick"`. Two plugins that both pick a generic name
-like `"tick"` or `"result"` collide silently: whichever plugin's `emit`
-fires, every listener registered under that name receives it, regardless
-of which plugin the listener's author actually meant to subscribe to.
+Native event streams emitted via `emit(hookName, data)` share a global JavaScript event dispatcher map inside `@wefterjs/core`.
 
-Prefix every event name with your plugin's own name and a colon:
+To prevent event name collisions between different installed plugins (e.g. two plugins emitting `"tick"` or `"result"`), **prefix all native event hook names with your plugin's name and a colon**:
 
 ```ts
+import { registerHook } from "@wefterjs/core";
+
+export interface ScanEvent {
+  code: string;
+}
+
 export const Scanner = {
-  on(event: "result", callback: (data: ScanResult) => void) {
+  // Public JS subscription method
+  onResult(callback: (event: ScanEvent) => void): { remove(): void } {
+    // Prefix internal hook name with 'scanner:'
     return registerHook("scanner:result", callback as (data: unknown) => void);
   },
 };
 ```
 
-The native side emits under the same prefixed name
-(`emit("scanner:result", data)`), and the JS wrapper's own public
-API, the string an app author actually passes to `.on()`, can stay
-short (`"result"`), with the prefixing handled once, internally, where
-`registerHook` is actually called. An app author never needs to type the
-prefix themselves; they only ever see it if they read your plugin's
-source.
+In native Kotlin/Swift source, emit using the exact same prefixed string:
+
+```kotlin
+// Android Kotlin
+emit("scanner:result", JSONObject().put("code", scannedCode))
+```
+
+```swift
+// iOS Swift
+emit("scanner:result", ["code": scannedCode])
+```
+
+---
+
+## 3. Exposing Utility & Management APIs
+
+Combine `definePlugin` with custom event handlers to construct complete plugin clients:
+
+```ts
+import { definePlugin, registerHook } from "@wefterjs/core";
+
+export interface ScannerPluginInterface {
+  open(): Promise<{ started: boolean }>;
+  close(): Promise<{ stopped: boolean }>;
+}
+
+export const Scanner = {
+  ...definePlugin<ScannerPluginInterface>("scanner", {
+    open: true,
+    close: true,
+  }),
+
+  onResult(callback: (event: { code: string }) => void) {
+    return registerHook("scanner:result", callback as (data: unknown) => void);
+  },
+};
+```
