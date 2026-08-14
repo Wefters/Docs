@@ -57,14 +57,20 @@ In Android Gradle projects, every Kotlin class and generated R class relies on a
 
 Wefter derives your app's Android package namespace from `wefter.config.json` using the following resolution chain:
 
-```mermaid
-graph TD
-    A[Resolve Android Package Namespace] --> B{Has production environment?}
-    B -- Yes --> C[Use production.appId]
-    B -- No --> D{Has development environment?}
-    D -- Yes --> E[Use development.appId]
-    D -- No --> F[Use first defined environment's appId]
-```
+<Steps>
+  <Step>
+    ### 1. Production Environment Priority If `environments.production.appId` is
+    defined, it is selected as the canonical Android package namespace.
+  </Step>
+  <Step>
+    ### 2. Development Environment Fallback If `production` is not defined, it
+    checks for `environments.development.appId`.
+  </Step>
+  <Step>
+    ### 3. First Environment Fallback If neither `production` nor `development`
+    is present, it uses the first defined environment's `appId`.
+  </Step>
+</Steps>
 
 <Callout type="important">
   **Canonical Identity Principle**: Android package namespaces require a single
@@ -81,12 +87,16 @@ Unlike Android's single package namespace rule, iOS allows distinct bundle ident
 
 When building or running for iOS (`wefter build ios` / `wefter run ios`), the iOS Bundle Identifier is resolved independently for the active `--env`:
 
-```mermaid
-graph TD
-    A[Resolve iOS Bundle Identifier for --env] --> B{Does active environment set iosBundleId?}
-    B -- Yes --> C[Use explicit iosBundleId]
-    B -- No --> D[Fallback to active environment's appId]
-```
+<Steps>
+  <Step>
+    ### 1. Check Active Environment `iosBundleId` If the active environment
+    defines an explicit `iosBundleId`, it is used as the iOS bundle identifier.
+  </Step>
+  <Step>
+    ### 2. Fallback to Active Environment `appId` If `iosBundleId` is omitted,
+    it falls back to the active environment's `appId`.
+  </Step>
+</Steps>
 
 ### Resolution Example
 

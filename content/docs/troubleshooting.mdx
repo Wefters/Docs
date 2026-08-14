@@ -1,0 +1,124 @@
+---
+title: Troubleshooting & Error Matrix
+description: Comprehensive diagnostic matrix for build errors, JDK/Android SDK issues, permission crashes, and WebView debugging.
+---
+
+## Overview
+
+This guide provides diagnostic solutions for common build failures, environment setup errors, permission crashes, and native bridge communication issues.
+
+---
+
+## Environment & Toolchain Errors
+
+### 1. Unsupported Java Version Error
+
+```text
+[ERROR] Android Gradle Plugin requires Java 17 to run. You are currently using Java 11.
+```
+
+- **Root Cause**: The active `JAVA_HOME` environment variable points to JDK 8 or JDK 11 instead of JDK 17.
+- **Solution**: Install JDK 17 and update your shell profile:
+  ```bash
+  export JAVA_HOME=/path/to/jdk-17
+  export PATH=$JAVA_HOME/bin:$PATH
+  ```
+
+### 2. `ANDROID_HOME` / ADB Not Found
+
+```text
+[ERROR] adb command not found on PATH or ANDROID_HOME is not set.
+```
+
+- **Root Cause**: `platform-tools` is missing from system `PATH` or `ANDROID_HOME` is unconfigured.
+- **Solution**: Set `ANDROID_HOME` and export `platform-tools`:
+  ```bash
+  export ANDROID_HOME=$HOME/Android/Sdk
+  export PATH=$PATH:$ANDROID_HOME/platform-tools
+  ```
+
+---
+
+## CLI & Sync Failures
+
+### 3. Missing `Info.plist` Permission Key Crash (iOS)
+
+```text
+[ERROR] iOS permission configuration check failed:
+  - Missing "NSCameraUsageDescription" in Info.plist, required by plugin "@wefterjs/camera".
+```
+
+- **Root Cause**: A declared plugin requires an iOS permission key that is missing from `plugin.json`'s `permissions.ios` map. Calling this permission API natively without the key will crash the application process immediately.
+- **Solution**: Declare the missing key in `plugin.json`:
+  ```json
+  {
+    "permissions": {
+      "ios": {
+        "NSCameraUsageDescription": "Allows taking photos inside the app."
+      }
+    }
+  }
+  ```
+  Then run `wefter sync`.
+
+### 4. Manifest Placeholder Resolution Error
+
+```text
+[ERROR] Plugin manifest entry placeholder "${appScheme}" could not be resolved:
+  - Missing key "appScheme" in wefter.config.json's "pluginConfig" object.
+```
+
+- **Root Cause**: A plugin's `android.manifestEntries` uses a placeholder variable `${key}` that is missing from `wefter.config.json`'s `pluginConfig` map.
+- **Solution**: Define the missing key in `wefter.config.json`:
+  ```json
+  {
+    "pluginConfig": {
+      "appScheme": "myapp"
+    }
+  }
+  ```
+
+### 5. `wefter.lock.json` Integrity Drift Error
+
+```text
+[ERROR] Lockfile integrity drift detected for plugin "@wefterjs/camera":
+  - Installed plugin source hash does not match locked hash.
+```
+
+- **Root Cause**: A plugin's native source files or manifest changed after `wefter.lock.json` was generated.
+- **Solution**: Accept the intentional changes and update the lockfile:
+  ```bash
+  wefter sync --update-lock
+  ```
+
+---
+
+## Runtime Bridge & WebView Failures
+
+### 6. `WefterBridgeError` Code `"NO_BRIDGE"`
+
+```text
+WefterBridgeError: [NO_BRIDGE] Native bridge is not available in browser tab.
+```
+
+- **Root Cause**: Code executing `invokeNative` is running in a standard desktop/mobile browser tab instead of inside a Wefter native WebView.
+- **Solution**: Guard native call invocations with `isNativeBridgeAvailable()`:
+
+  ```ts
+  import { isNativeBridgeAvailable, invokeNative } from "@wefterjs/core";
+
+  if (isNativeBridgeAvailable()) {
+    await invokeNative("camera", "open");
+  } else {
+    console.warn("Running in browser tab — native camera unavailable");
+  }
+  ```
+
+### 7. `WefterBridgeError` Code `"TIMEOUT"`
+
+```text
+WefterBridgeError: [TIMEOUT] Native method call timed out after 10000ms.
+```
+
+- **Root Cause**: The native Kotlin or Swift method failed to call `resolve()` or `reject()` on its callback parameter, leaving the JavaScript Promise pending.
+- **Solution**: Inspect native plugin code and ensure every conditional branch settles via `resolve` or `reject`.

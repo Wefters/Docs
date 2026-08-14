@@ -1,0 +1,60 @@
+---
+title: Scripting & Automation
+description: Automating Wefter CLI commands with npm package scripts, custom node build tools, and git hooks.
+---
+
+## Overview
+
+Wefter CLI commands are designed to integrate seamlessly into package manager scripts (`package.json`), custom Node.js build scripts, and Git hooks.
+
+---
+
+## 1. Standard `package.json` Scripts
+
+Add convenience scripts to your root `package.json` file:
+
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "wefter:sync": "wefter sync",
+    "wefter:doctor": "wefter doctor",
+    "android:dev": "wefter run android --watch",
+    "android:release": "wefter doctor --release-readiness && wefter build android --release --env production",
+    "ios:dev": "wefter run ios --watch",
+    "ios:release": "wefter doctor --release-readiness && wefter build ios --release --env production"
+  }
+}
+```
+
+---
+
+## 2. Pre-Build Automation (NPM Hooks)
+
+Use standard npm `pre` and `post` lifecycle scripts to automate web builds prior to native sync:
+
+```json
+{
+  "scripts": {
+    "prewefter:sync": "npm run build",
+    "wefter:sync": "wefter sync"
+  }
+}
+```
+
+When running `npm run wefter:sync`, npm automatically runs `npm run build` first to ensure fresh web assets reside in `webDir` before `wefter sync` copies assets into native project directories.
+
+---
+
+## 3. Git Hooks Integration (Husky / Simple-Git-Hooks)
+
+Enforce plugin lockfile freshness before commits using Husky or Simple-Git-Hooks:
+
+```bash
+# .husky/pre-commit
+#!/bin/sh
+npx wefter audit
+```
+
+If `wefter audit` detects modified plugins or lockfile integrity mismatches, the Git commit is halted until `wefter sync --update-lock` is executed.

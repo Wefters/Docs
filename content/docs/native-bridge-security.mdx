@@ -1,0 +1,80 @@
+---
+title: Native Bridge & WebView Security
+description: Security model for Wefter WebViews, native bridge authorization, Content Security Policy (CSP), and origin checks.
+---
+
+## Overview
+
+Wefter applications execute web code inside a native OS WebView (`android.webkit.WebView` and `WKWebView`) while exposing operating system capabilities through the native bridge (`window.AndroidBridge` and `window.webkit.messageHandlers.WefterBridge`).
+
+Understanding the security boundaries between web JavaScript and native OS APIs is critical for shipping secure mobile applications.
+
+---
+
+## 1. WebView Security Boundaries
+
+### Local Asset Isolation
+
+When running in production, Wefter loads pre-compiled web assets bundled directly inside the application binary (`webDir`).
+
+- **Android**: Assets are loaded locally via Android Asset Loader (`file:///android_asset/` or custom `WebViewAssetLoader` scheme).
+- **iOS**: Assets are served through a custom local scheme handler (`WKURLSchemeHandler`), isolating local assets from external web origins.
+
+### JavaScript Bridge Access
+
+Any JavaScript executing inside the main app WebView has technical access to call `invokeNative(plugin, method, payload)`.
+
+<Callout type="warn">
+  **Dependency Auditing Warning**: Because any JS running in your WebView can
+  invoke declared native plugin methods, treat third-party frontend npm packages
+  with the same care as native dependencies.
+</Callout>
+
+---
+
+## 2. Content Security Policy (CSP) Guidelines
+
+Add a strict Content Security Policy (`<meta http-equiv="Content-Security-Policy">`) to your web application's `index.html` to restrict unauthorized external script execution:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.yourdomain.com;"
+    />
+    <title>Secure Wefter App</title>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>
+```
+
+### Recommended CSP Directives
+
+- **`default-src 'self'`**: Restricts loading resources to bundled local app assets.
+- **`script-src 'self'`**: Prevents injection of external remote scripts (`<script src="https://malicious.site/script.js">`).
+- **`connect-src 'self' https://api.yourdomain.com`**: Restricts `fetch()` and `WebSocket` network calls to explicitly trusted backend APIs.
+
+---
+
+## 3. Native Navigation Restrictions
+
+By default, Wefter configures WebViews to intercept navigation requests:
+
+- **Internal Navigation**: Navigations within local app routes (`/#/route` or SPA routes) execute inside the WebView.
+- **External Links**: External URLs (`https://external-website.com`) should be opened in the system default browser (using system intent or a browser plugin) rather than navigating the main WebView away from bundled assets.
+
+---
+
+## Security Best Practices Checklist
+
+| Security Audit Item          | Recommended Configuration                                                      | Purpose                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| **Strict CSP**               | Add `<meta http-equiv="CSP">` in `index.html`.                                 | Blocks Cross-Site Scripting (XSS) and remote script injections. |
+| **Plugin Minimization**      | Declare only required plugins in `wefter.config.json`.                         | Minimizes exposed native API surface area.                      |
+| **Input Payload Validation** | Validate native parameters using `guard let` (Swift) and JSON checks (Kotlin). | Prevents native crash exploits from malformed JS payloads.      |
+| **HTTPS Endpoints Only**     | Enforce HTTPS for all API backend connections.                                 | Prevents Man-in-the-Middle (MitM) data tampering.               |

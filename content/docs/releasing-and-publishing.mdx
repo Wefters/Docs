@@ -1,0 +1,143 @@
+---
+title: Releasing & Production Distribution
+description: Complete production release guide for Android APK/AAB keystore signing, iOS App Store provisioning, and build optimization.
+---
+
+## Overview
+
+Preparing a Wefter application for production release involves configuring environment variables, verifying release signing credentials, compiling optimized production web assets, and generating signed native binaries (`.apk` / `.aab` on Android, `.ipa` / `.app` on iOS).
+
+---
+
+## Production Release Workflow
+
+<Steps>
+  <Step>
+    ### 1. Audit Environment & Credentials Run `wefter doctor
+    --release-readiness` to verify keystores and signing identity variables.
+  </Step>
+  <Step>
+    ### 2. Build Production Web Assets Run web bundler build (`npm run build`)
+    to produce updated compiled files in `webDir` (`dist`).
+  </Step>
+  <Step>
+    ### 3. Run Native Sync Run `wefter sync --env production` to weave assets
+    and production configuration into native shells.
+  </Step>
+  <Step>
+    ### 4. Compile Signed Native Release Artifact Run `wefter build android
+    --release --env production` or `wefter build ios --release --env
+    production`.
+  </Step>
+  <Step>
+    ### 5. Deploy to App Stores Upload signed APK/AAB to Google Play Console and
+    signed IPA to Apple TestFlight / App Store Connect.
+  </Step>
+</Steps>
+
+---
+
+## 1. Android Release Signing Setup
+
+Android release binaries require digital signature verification via Java Keystores (`.keystore` or `.jks`).
+
+### Configure Keystore Credentials
+
+1. **Generate Keystore File**:
+
+   ```bash
+   keytool -genkey -v -keystore release.keystore -alias release_key -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. **Configure `wefter.config.json`**:
+   Add the `signing` block pointing to your keystore and key alias:
+
+   ```json
+   {
+     "signing": {
+       "keystorePath": "./release.keystore",
+       "keyAlias": "release_key"
+     }
+   }
+   ```
+
+3. **Set Password Environment Variable (`.env`)**:
+   Store the keystore password securely in your gitignored `.env` file:
+   ```bash
+   WEFTER_KEYSTORE_PASSWORD=your_secure_keystore_password
+   ```
+
+---
+
+## 2. iOS Release Signing Setup
+
+iOS production release builds require Apple Developer Team IDs and Code Signing Identities.
+
+### Configure iOS Signing Credentials
+
+1. **Configure `wefter.config.json`**:
+   Add `iosSigning` with your 10-character Apple Developer Team ID:
+
+   ```json
+   {
+     "iosSigning": {
+       "teamId": "ABCDE12345",
+       "provisioningProfile": "AppStore_Production_Profile"
+     }
+   }
+   ```
+
+2. **Set Environment Credentials (`.env`)**:
+   Set `WEFTER_IOS_SIGNING_IDENTITY` in your gitignored `.env` file:
+   ```bash
+   WEFTER_IOS_SIGNING_IDENTITY="iPhone Distribution: Company Name (ABCDE12345)"
+   ```
+
+---
+
+## 3. Pre-Release Verification (`wefter doctor`)
+
+Before triggering expensive production Gradle or Xcode compile tasks, run the release audit check:
+
+```bash
+wefter doctor --release-readiness
+```
+
+### Readiness Audit Checks
+
+- Verifies `signing` configuration is defined in `wefter.config.json`.
+- Confirms the keystore file exists at `keystorePath`.
+- Confirms `WEFTER_KEYSTORE_PASSWORD` environment variable is present.
+- Confirms iOS `iosSigning.teamId` and `WEFTER_IOS_SIGNING_IDENTITY` are configured.
+
+---
+
+## 4. Compiling Production Binaries
+
+### Build Signed Android Release APK
+
+```bash
+wefter build android --release --env production
+```
+
+- Output: `.wefter/native/android/app/build/outputs/apk/release/app-release.apk`.
+
+### Build Signed iOS Release Archive
+
+```bash
+wefter build ios --release --env production
+```
+
+- Output: `.wefter/native/ios/build/Release-iphoneos/App.app`.
+
+---
+
+## Release Checklist
+
+| Checkpoint                 | Requirement                                                      | Verification Method                 |
+| -------------------------- | ---------------------------------------------------------------- | ----------------------------------- |
+| **Web Assets Built**       | Production web assets compiled to `webDir` (`dist`).             | `ls -la dist/index.html`            |
+| **Environment Selected**   | `--env production` specifies production `appId` and `appName`.   | Verify `wefter.config.json`         |
+| **Release Signing**        | Android Keystore & iOS Signing identity configured.              | `wefter doctor --release-readiness` |
+| **ProGuard Enabled**       | ProGuard rules in `plugin.json` audited for obfuscation.         | Test release APK on hardware device |
+| **Splash Screen Verified** | Splash screen `maxDuration` and `hideSplash()` signals verified. | Test cold launch on device          |

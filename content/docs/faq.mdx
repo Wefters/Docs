@@ -1,23 +1,31 @@
 ---
 title: Frequently Asked Questions (FAQ)
-description: Common architectural questions, plugin management, development workflows, and security FAQs.
+description: Comprehensive FAQ reference covering framework architecture, plugin development, debugging, security, and production app deployment.
 ---
 
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
-## Architecture & Bridge Performance
+## General & Framework Architecture
 
 <Accordions type="single">
-  <Accordion title="Why does Wefter omit a JavaScript interpreter runtime?">
-    Wefter intentionally avoids bundling a JavaScript runtime (like V8 or Hermes) or running a local HTTP node server inside mobile applications. Your web application code executes directly inside the native OS WebView (`android.webkit.WebView` and `WKWebView`). Native calls cross a thin, synchronous-to-asynchronous bridge protocol, minimizing application binary size and startup latency.
+  <Accordion title="How does Wefter compare to Capacitor, React Native, and Flutter?">
+    Unlike React Native or Flutter (which bundle custom JS runtimes or C++ rendering engines into your app binary), Wefter renders UI using the mobile operating system's native WebView (`android.webkit.WebView` and `WKWebView`). Native calls cross a lightweight, zero-reflection bridge protocol directly to Kotlin (Android) and Swift (iOS). This results in smaller binary sizes, zero JS runtime overhead, and 100% compatibility with standard web frameworks (Vue, React, Svelte, Angular).
   </Accordion>
 
-<Accordion title="Can I use React, Svelte, Angular, or SolidJS instead of Vue?">
-  Yes. The Wefter runtime (`@wefterjs/core`) is completely framework-agnostic.
-  `invokeNative`, `definePlugin`, and `registerHook` are standalone JavaScript
-  functions with zero UI framework dependencies. Any web framework capable of
-  producing static web builds or serving a local dev server works out of the
-  box.
+<Accordion title="Do Google Play and Apple App Store allow Wefter applications?">
+  Yes. Both Google Play and Apple App Store fully approve applications built
+  with native WebViews and native plugins, provided the application delivers a
+  rich, interactive user experience and complies with standard App Store
+  Guidelines (e.g. providing native UI polish, offline support, and adhering to
+  privacy guidelines).
+</Accordion>
+
+<Accordion title="Why does Wefter omit a JavaScript interpreter or local node server?">
+  Wefter intentionally avoids bundling heavy JS interpreters (like V8 or Hermes)
+  or running a local HTTP server process inside your mobile app. Web code
+  executes directly inside the native OS WebView. Native calls cross a thin,
+  synchronous-to-asynchronous bridge protocol, minimizing memory overhead and
+  startup latency.
 </Accordion>
 
   <Accordion title="Does the same frontend application code run on both Android and iOS?">
@@ -27,11 +35,46 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
 ---
 
-## Plugins & Native Code
+## Project Setup & Configuration
 
 <Accordions type="single">
-  <Accordion title="Why does wefter sync require explicit plugin declarations?">
-    Wefter deliberately avoids scanning `node_modules` for implicit native plugins. Plugins must be explicitly added via [`wefter add`](/cli/add) and declared in `wefter.config.json`'s `plugins` array. This prevents unintended third-party dependencies from silently injecting unreviewed native permissions or Kotlin/Swift code into your application.
+  <Accordion title="How does wefter init integrate with my existing web project?">
+    `npx wefter init` attaches to any existing web project containing a `package.json`. It creates `wefter.config.json`, appends pinned `@wefterjs/core` and `@wefterjs/cli` dependencies to `package.json`, and writes environment variables (`WEFTER_APP_ID`, `WEFTER_APP_NAME`, `WEFTER_WEB_DIR`) to `.env`. It does not overwrite your existing web source code or UI files.
+  </Accordion>
+
+<Accordion title="Can I hand-edit files inside .wefter/native/?">
+  No. Files inside `.wefter/native/` are disposable and regenerated from scratch
+  on every [`wefter sync`](/cli/sync). Any manual edits made inside
+  `.wefter/native/` will be overwritten. If you need to permanently customize
+  native project files, run [`wefter eject`](/cli/eject) to convert the project
+  into permanent `android/` and `ios/` folders.
+</Accordion>
+
+<Accordion title="How do environment variables (.env) work in Wefter?">
+  Wefter reads `.env` variables automatically during initialization and build
+  commands. Key environment variables include: - `WEFTER_APP_ID`: Reverse-DNS
+  application identifier. - `WEFTER_APP_NAME`: Display application title. -
+  `WEFTER_WEB_DIR`: Compiled web assets folder (`dist`). -
+  `WEFTER_KEYSTORE_PASSWORD`: Password for Android release keystores. -
+  `WEFTER_IOS_SIGNING_IDENTITY`: Apple Developer code signing identity.
+</Accordion>
+
+  <Accordion title="How do I set up multiple build environments (Development, Staging, Production)?">
+    Declare named environment objects under `environments` in `wefter.config.json` (e.g. `development`, `staging`, `production`). Each environment specifies a distinct `appId` and `appName`. When building or running, pass `--env <name>` (e.g., `wefter run android --env production`). Because each environment carries a unique bundle ID, dev and prod apps can co-exist side-by-side on the same physical device.
+  </Accordion>
+</Accordions>
+
+---
+
+## Plugins & Native Capabilities
+
+<Accordions type="single">
+  <Accordion title="Why does wefter sync require explicit plugin declarations in wefter.config.json?">
+    Wefter deliberately avoids scanning `node_modules` for implicit native plugins. Plugins must be explicitly added via [`wefter add`](/cli/add) and declared in `wefter.config.json`'s `plugins` array. This prevents third-party transitive npm dependencies from silently injecting unreviewed native permissions or Kotlin/Swift code into your application.
+  </Accordion>
+
+  <Accordion title="Can I author custom native plugins locally without publishing to npm?">
+    Yes. Set `"pluginsDir": "plugins"` in `wefter.config.json` and scaffold a local plugin inside `./plugins/<plugin-name>` using [`wefter create-plugin`](/cli/create-plugin). `wefter sync` will resolve local plugins directly from `./plugins` without requiring npm publishing.
   </Accordion>
 
 <Accordion title="Must a plugin support both Android and iOS?">
@@ -41,28 +84,59 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   `WefterBridgeError` code `"UNKNOWN_PLUGIN"`.
 </Accordion>
 
-  <Accordion title="Can I hand-edit files inside .wefter/native/?">
-    No. Files inside `.wefter/native/` are disposable and regenerated from scratch on every `wefter sync`. Any manual edits made inside `.wefter/native/` will be overwritten. If you need to permanently customize native project files, run [`wefter eject`](/cli/eject) to turn the project into standard permanent `android/` and `ios/` folders.
+<Accordion title="How does Wefter handle Android Gradle dependencies and iOS Swift packages?">
+  Plugins declare Gradle Maven coordinates in
+  `nativeDependencies.android.gradle` and Swift Package Manager (SPM)
+  coordinates in `nativeDependencies.ios.spm`. During `wefter sync`, Wefter
+  automatically merges Gradle dependencies into `build.gradle.kts` and SPM
+  packages into `Package.swift`.
+</Accordion>
+
+  <Accordion title="Can Kotlin plugin package header lines be customized?">
+    Yes. Plugin authors can write any package header line (e.g. `package dev.wefter.bridge` or `package com.mycompany.plugin`) in Kotlin source files. During `wefter sync`, Wefter automatically detects and replaces the `package <name>` header line with the host application's package namespace.
   </Accordion>
 </Accordions>
 
 ---
 
-## Development Workflow & Security
+## Development & Debugging
 
 <Accordions type="single">
-  <Accordion title="How does live hot-reload work with wefter run --watch?">
-    When running `wefter run <platform> --watch`, Wefter launches the native app shell and configures the WebView to point at your local web dev server URL instead of local static assets. Web UI changes reload instantaneously without requiring native recompilation. Native Kotlin/Swift code changes require running `wefter sync`.
+  <Accordion title="How do I debug the Web UI inside a native Android or iOS WebView?">
+    - **Android**: Connect your physical Android device via USB (with USB Debugging enabled), open Google Chrome on your host machine, and navigate to `chrome://inspect`. You can inspect DOM elements, view console logs, and debug network requests in real time.
+    - **iOS**: Connect your iOS device or open the iOS Simulator, enable Web Inspector in iOS Settings (Settings → Safari → Advanced → Web Inspector), open Safari on macOS, and select Develop → [Device Name] → [WebView Target].
   </Accordion>
 
-<Accordion title="Do I need a Mac to build Android applications?">
-  No. Building Android APKs requires Node.js, JDK 17, and the Android SDK, all
-  of which run on Linux, macOS, and Windows. A Mac is only required when
-  compiling iOS application bundles (`.app`) or running iOS Simulators via
-  Xcode.
+  <Accordion title="How does live hot-reload work with wefter run --watch?">
+    When running `wefter run <platform> --watch`, Wefter compiles a debug app binary configured to point the WebView at your local web dev server URL instead of local static assets. Web UI edits reload instantaneously on mobile devices without requiring native recompilation.
+  </Accordion>
+
+  <Accordion title="What happens if the dev server stops during a --watch session?">
+    If the web dev server becomes unreachable, the app displays a clear `"Dev server unreachable"` overlay instead of failing silently with stale assets. Restart `wefter run <platform> --watch` to reconnect.
+  </Accordion>
+
+  <Accordion title="Do I need a Mac to build Android applications?">
+    No. Building Android APKs requires Node.js, JDK 17, and the Android SDK, all of which run on Linux, macOS, and Windows. A Mac is only required when compiling iOS application bundles (`.app`) or running iOS Simulators via Xcode.
+  </Accordion>
+</Accordions>
+
+---
+
+## Building, Security & Production
+
+<Accordions type="single">
+  <Accordion title="How do I route Single Page Applications (Vue Router, React Router) inside a WebView?">
+    Use **Hash History mode** (`createWebHashHistory` in Vue Router or `HashRouter` in React Router). Hash routes (`/#/profile`, `/#/settings`) work seamlessly with local bundled file asset resolution without requiring custom native server URL rewrite rules.
+  </Accordion>
+
+<Accordion title="What security auditing does wefter plugin validate perform?">
+  [`wefter plugin validate`](/cli/plugin-validate) checks `plugin.json` schemas,
+  verifies `@WefterMethod` parameter signatures, and ensures dangerous Android
+  permissions contain `"PERMISSION_DENIED"` error handling. It validates
+  structural correctness before plugins are declared in `wefter.config.json`.
 </Accordion>
 
-  <Accordion title="What security auditing does wefter plugin validate perform?">
-    [`wefter plugin validate`](/cli/plugin-validate) checks `plugin.json` schemas, verifies `@WefterMethod` parameter signatures, and ensures dangerous Android permissions contain `"PERMISSION_DENIED"` error handling. It validates structural correctness, but does not substitute for reviewing third-party native code before adding it to production apps.
+  <Accordion title="How does wefter.lock.json prevent dependency drift?">
+    `wefter.lock.json` tracks SHA-256 content hashes of all synced `plugin.json` files and native Kotlin/Swift source code. If a plugin's native code or version changes without updating the lockfile, `wefter sync` halts with an integrity error. Pass `--update-lock` to accept intentional changes.
   </Accordion>
 </Accordions>

@@ -24,14 +24,28 @@ wefter run ios --watch
 
 ## Core System Architecture
 
-```mermaid
-graph TD
-    A[Web Application: Vue / React / Svelte / JS] -->|invokeNative / registerHook| B[Wefter JS Bridge Core]
-    B -->|Native Message Dispatcher| C[Kotlin Dispatcher: Android]
-    B -->|Native Message Dispatcher| D[Swift Dispatcher: iOS]
-    C -->|Direct Execution| E[Native Android OS APIs]
-    D -->|Direct Execution| F[Native iOS OS APIs]
-```
+<Steps>
+  <Step>
+    ### Web Application Layer (Vue / React / Svelte / Vanilla JS) Executes
+    inside native OS WebView (`android.webkit.WebView` and `WKWebView`). Calls
+    `invokeNative` and subscribes via `registerHook`.
+  </Step>
+  <Step>
+    ### Wefter JS Bridge Core (`@wefterjs/core`) Serializes native calls and
+    dispatches payloads to `window.AndroidBridge` or
+    `window.webkit.messageHandlers.WefterBridge`.
+  </Step>
+  <Step>
+    ### Native Dispatchers (Kotlin / Swift) Zero-reflection generated
+    dispatchers (`GeneratedRegistry.kt` & `GeneratedRegistry.swift`) route calls
+    directly to annotated plugin methods (`@WefterMethod`).
+  </Step>
+  <Step>
+    ### Native Operating System APIs Executes platform capabilities (camera,
+    hardware storage, sensors, biometrics) and resolves results back to
+    JavaScript Promises.
+  </Step>
+</Steps>
 
 ### 1. Web Application Layer
 
@@ -79,5 +93,25 @@ During [`wefter sync`](/cli/sync), Wefter generates clean, disposable native she
     title="App Configuration Reference"
     href="/docs/app-configuration"
     description="Complete field reference for wefter.config.json, environments, and build flags."
+  />
+  <Card
+    title="Releasing & Production"
+    href="/docs/releasing-and-publishing"
+    description="Complete guide to keystore signing, App Store provisioning, and production builds."
+  />
+  <Card
+    title="Troubleshooting & Diagnostics"
+    href="/docs/troubleshooting"
+    description="Diagnostic matrix for JDK errors, permission crashes, and WebView debugging."
+  />
+  <Card
+    title="Native Bridge & Security"
+    href="/docs/native-bridge-security"
+    description="WebView security model, CSP configuration, and bridge access rules."
+  />
+  <Card
+    title="Offline Assets & SPA Routing"
+    href="/docs/offline-and-assets"
+    description="Offline asset resolution, hash history SPA routing, and media bundling."
   />
 </Cards>

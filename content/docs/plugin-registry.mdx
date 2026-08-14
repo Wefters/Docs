@@ -31,14 +31,29 @@ This explicit design prevents third-party transitive npm dependencies from silen
 
 When [`wefter sync`](/cli/sync) runs, it executes a 5-step native weaving pipeline for every declared plugin:
 
-```mermaid
-graph TD
-    A[wefter sync] --> B[1. Resolve plugin from node_modules or pluginsDir]
-    B --> C[2. Verify version against wefter.lock.json]
-    C --> D[3. Audit @WefterMethod and @WefterHook signatures]
-    D --> E[4. Merge Gradle, ProGuard, Manifest & Info.plist entries]
-    E --> F[5. Generate typed Kotlin & Swift Registry Dispatchers]
-```
+<Steps>
+  <Step>
+    ### 1. Package Resolution Resolves declared plugin packages from
+    `pluginsDir` (defaults to `node_modules`).
+  </Step>
+  <Step>
+    ### 2. Lockfile Integrity Audit Cross-checks resolved plugin versions and
+    native file hashes against `wefter.lock.json`.
+  </Step>
+  <Step>
+    ### 3. Native Method & Hook Signature Audit Audits `@WefterMethod` and
+    `@WefterHook` annotations against method declarations in `plugin.json`.
+  </Step>
+  <Step>
+    ### 4. Native Manifest & Dependency Injection Merges Gradle Maven
+    dependencies into `build.gradle.kts`, SPM packages into `Package.swift`,
+    ProGuard rules, Android permissions, and `Info.plist` usage descriptions.
+  </Step>
+  <Step>
+    ### 5. Static Registry Codegen Generates static, zero-reflection Kotlin
+    (`GeneratedRegistry.kt`) and Swift (`GeneratedRegistry.swift`) dispatchers.
+  </Step>
+</Steps>
 
 1. **Resolution**: Resolves plugin directories from `pluginsDir` (defaults to `node_modules`).
 2. **Lockfile Audit**: Cross-checks resolved plugin version and file hashes against `wefter.lock.json`.

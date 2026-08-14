@@ -33,13 +33,20 @@ my-wefter-plugin/
 
 Wefter plugins support three physical directory configurations:
 
-```mermaid
-graph TD
-    A[Wefter Plugin Package] --> B{Native Source Directories}
-    B --> C[Both Platforms: android/ and ios/]
-    B --> D[Android Only: android/ directory only]
-    B --> E[iOS Only: ios/ directory only]
-```
+<Steps>
+  <Step>
+    ### Dual-Platform Plugin (`android/` and `ios/`) Ships Kotlin and Swift
+    native source code for both Android and iOS applications.
+  </Step>
+  <Step>
+    ### Android-Only Plugin (`android/` only) Ships Kotlin native source code
+    only. Calling this plugin from iOS rejects with `UNKNOWN_PLUGIN`.
+  </Step>
+  <Step>
+    ### iOS-Only Plugin (`ios/` only) Ships Swift native source code only.
+    Calling this plugin from Android rejects with `UNKNOWN_PLUGIN`.
+  </Step>
+</Steps>
 
 ### 1. Dual-Platform Plugin (`android/` and `ios/`)
 

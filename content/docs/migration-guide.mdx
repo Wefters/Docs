@@ -1,0 +1,139 @@
+---
+title: Migration Guide (Capacitor & Cordova to Wefter)
+description: Step-by-step migration guide for converting existing Capacitor or Cordova projects to Wefter.
+---
+
+## Overview
+
+Migrating an existing Capacitor or Cordova application to Wefter simplifies your project structure by eliminating heavy native project folders, reducing build times, and providing zero-reflection bridge dispatching.
+
+---
+
+## Migration Steps Overview
+
+<Steps>
+  <Step>
+    ### 1. Initialize Wefter in Web Directory
+    Run `wefter init` inside your existing web project root directory.
+  </Step>
+  <Step>
+    ### 2. Convert Configuration Schema
+    Convert `capacitor.config.ts` or `config.xml` to `wefter.config.json`.
+  </Step>
+  <Step>
+    ### 3. Replace Client Bridge APIs
+    Replace `@capacitor/*` calls with `@wefterjs/core` `invokeNative` and `registerHook`.
+  </Step>
+  <Step>
+    ### 4. Add Native Plugins
+    Install equivalent native plugin packages via `wefter add`.
+  </Step>
+  <Step>
+    ### 5. Verify and Run Project
+    Run `wefter sync` and launch with `wefter run <platform> --watch`.
+  </Step>
+</Steps>
+
+---
+
+## Step 1: Initialize Wefter
+
+Run `wefter init` inside your existing web project root directory:
+
+```bash
+npx wefter init
+```
+
+The interactive prompt will guide you to specify your reverse-DNS application ID (`appId`), application title (`appName`), and compiled web assets folder (`webDir`, e.g., `dist` or `build`).
+
+---
+
+## Step 2: Convert Configuration Schema
+
+Convert your existing `capacitor.config.ts` or `config.xml` to `wefter.config.json`:
+
+### Capacitor (`capacitor.config.ts`)
+
+```ts
+const config: CapacitorConfig = {
+  appId: "com.company.myapp",
+  appName: "My App",
+  webDir: "dist",
+};
+```
+
+### Wefter (`wefter.config.json`)
+
+```json
+{
+  "webDir": "dist",
+  "environments": {
+    "development": {
+      "appId": "com.company.myapp.dev",
+      "appName": "My App (Dev)"
+    },
+    "production": {
+      "appId": "com.company.myapp",
+      "appName": "My App"
+    }
+  },
+  "plugins": []
+}
+```
+
+---
+
+## Step 3: Replace Client Bridge Calls
+
+Replace legacy Capacitor bridge invocations with `@wefterjs/core` client functions:
+
+### Legacy Capacitor Call
+
+```ts
+import { Camera, CameraResultType } from "@capacitor/camera";
+
+const image = await Camera.getPhoto({
+  quality: 90,
+  resultType: CameraResultType.Uri,
+});
+```
+
+### Wefter Native Call
+
+```ts
+import { invokeNative } from "@wefterjs/core";
+
+const image = await invokeNative<{ path: string }>("camera", "takePicture", {
+  quality: 90,
+});
+```
+
+---
+
+## Step 4: Replace Plugins
+
+Install equivalent Wefter plugins using [`wefter add`](/cli/add):
+
+```bash
+wefter add @wefterjs/camera
+wefter add @wefterjs/storage
+```
+
+`wefter add` automatically validates native permissions and declares the plugin package in `wefter.config.json`'s `plugins` array.
+
+---
+
+## Step 5: Clean Legacy Native Folders
+
+Because Wefter generates clean, disposable native shells under `.wefter/native/` during `wefter sync`, you can safely delete legacy `android/` and `ios/` root folders from your repository:
+
+```bash
+# Optional: Remove legacy Capacitor root native directories
+rm -rf android/ ios/ capacitor.config.ts
+```
+
+Then run `wefter sync`:
+
+```bash
+npx wefter sync
+```

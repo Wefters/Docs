@@ -56,16 +56,22 @@ This cryptographic digest guarantees that any manual edits to native plugin code
 
 During [`wefter sync`](/cli/sync), Wefter compares currently installed plugin package versions in `node_modules` against `wefter.lock.json`:
 
-```mermaid
-graph TD
-    A[wefter sync Execution] --> B{Does wefter.lock.json exist?}
-    B -- No --> C[Create new wefter.lock.json fresh]
-    B -- Yes --> D{Do node_modules versions match lockfile?}
-    D -- Yes --> E[Proceed with sync operation]
-    D -- No --> F{Is --update-lock flag present?}
-    F -- Yes --> G[Update lockfile and proceed]
-    F -- No --> H[Halt with Version Drift Error]
-```
+<Steps>
+  <Step>
+    ### 1. Lockfile Check `wefter sync` checks if `wefter.lock.json` exists in
+    the project root. If missing, it generates a new lockfile fresh.
+  </Step>
+  <Step>
+    ### 2. Version & Hash Comparison Compares `node_modules` plugin versions and
+    SHA-256 source file hashes against locked integrity values.
+  </Step>
+  <Step>
+    ### 3. Drift Resolution - If hashes match: Proceed with sync operation. - If
+    hashes drift without `--update-lock`: Halt with a Version Drift Error. - If
+    `--update-lock` is passed: Recalculate hashes, update `wefter.lock.json`,
+    and complete sync.
+  </Step>
+</Steps>
 
 ### Version Drift Failure Output
 

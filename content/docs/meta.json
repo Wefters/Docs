@@ -14,8 +14,16 @@
     "app-icon",
     "app-splash-screen",
     "app-launch-background",
-    "javascript-apis"
+    "javascript-apis",
+    "---Advanced & Production---",
+    "releasing-and-publishing",
+    "ci-cd-pipelines",
+    "migration-guide",
+    "troubleshooting",
+    "native-bridge-security",
+    "offline-and-assets"
   ],
   "root": true,
-  "description": "Architecture, setup, and configuration", "icon": "BookOpen"
+  "description": "Architecture, setup, configuration, production release, and troubleshooting",
+  "icon": "BookOpen"
 }

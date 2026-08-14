@@ -1,0 +1,113 @@
+---
+title: Background Tasks & Notifications
+description: Handling native Android WorkManager, iOS BGTaskScheduler, local notifications, and push notification streams in plugins.
+---
+
+## Overview
+
+Mobile applications frequently require executing tasks in the background (e.g. background telemetry sync, periodic location updates) or pushing real-time notification events to JavaScript.
+
+This guide explains how Wefter plugins interface with Android `WorkManager`, iOS `BGTaskScheduler`, push notifications (FCM/APNs), and real-time hook streams (`emit`).
+
+---
+
+## 1. Emitting Background Events to JavaScript (`emit`)
+
+When a native background task finishes or a push notification arrives, native plugin code uses `emit(hookName, dataMap)` to push payload data to JavaScript listeners registered with `registerHook()`.
+
+### Android (Kotlin) Background Event Dispatch
+
+```kotlin
+package com.mycompany.push
+
+import dev.wefter.bridge.WefterPlugin
+import dev.wefter.bridge.WefterHook
+
+class PushNotificationPlugin : WefterPlugin() {
+
+    fun onPushNotificationReceived(title: String, body: String) {
+        // Emit notification payload directly to JS registerHook("push:received")
+        emit("push:received", mapOf(
+            "title" to title,
+            "body" to body
+        ))
+    }
+}
+```
+
+### iOS (Swift) Background Event Dispatch
+
+```swift
+import Foundation
+
+@objc(PushNotificationPlugin)
+public class PushNotificationPlugin: WefterPlugin {
+
+    public func handleRemoteNotification(payload: [String: Any]) {
+        // Emit notification payload to JS registerHook("push:received")
+        self.emit("push:received", data: payload)
+    }
+}
+```
+
+---
+
+## 2. JavaScript Event Subscription
+
+Your web application listens for background events using `registerHook` from `@wefterjs/core`:
+
+```ts
+import { registerHook } from "@wefterjs/core";
+
+// Subscribe to push notification event stream
+const subscription = registerHook("push:received", (data) => {
+  const notification = data as { title: string; body: string };
+  console.log(
+    "Received push notification:",
+    notification.title,
+    notification.body,
+  );
+});
+
+// Clean up listener when component unmounts
+subscription.remove();
+```
+
+---
+
+## 3. Android Background Work (`WorkManager`)
+
+Android limits background execution for battery optimization. Use Android `WorkManager` for persistent background tasks:
+
+```kotlin
+package com.mycompany.telemetry
+
+import android.content.Context
+import androidx.work.Worker
+import androidx.work.WorkerParameters
+
+class TelemetryWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
+    override fun doWork(): Result {
+        // Perform background sync task
+        return Result.success()
+    }
+}
+```
+
+---
+
+## 4. iOS Background Execution (`BGTaskScheduler`)
+
+On iOS, register background tasks in `plugin.json`'s `permissions.ios` map and handle `BGTaskScheduler`:
+
+```swift
+import BackgroundTasks
+
+public class TelemetryPlugin: WefterPlugin {
+    public override fun onAppReady() {
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.mycompany.telemetry.refresh", queue: nil) { task in
+            self.handleAppRefresh(task: task as! BGAppRefreshTask)
+        }
+    }
+}
+```

@@ -4,6 +4,8 @@
     "index",
     "---Overview---",
     "installing-and-running",
+    "cli-environment-variables",
+    "scripting-and-automation",
     "hooks",
     "config-role",
     "lockfile-role",

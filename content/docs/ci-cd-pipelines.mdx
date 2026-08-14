@@ -1,0 +1,166 @@
+---
+title: CI/CD Pipelines & Automation
+description: Automating Wefter mobile application builds, tests, and deployments using GitHub Actions, Fastlane, and cloud runners.
+---
+
+## Overview
+
+Automating build, test, and release pipelines ensures that every code change is validated across headless Android SDK and iOS Xcode environments before reaching users.
+
+This guide provides production-ready Continuous Integration and Continuous Delivery (CI/CD) workflows for GitHub Actions, Fastlane, Google Play Console, and Apple TestFlight.
+
+---
+
+## 1. GitHub Actions: Android APK & AAB Build Workflow
+
+Create `.github/workflows/android-build.yml` in your repository:
+
+```yaml
+name: Android Release Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install Node Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Web Application Assets
+        run: pnpm run build
+
+      - name: Decode Android Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+
+      - name: Run Wefter Sync & Android Build
+        env:
+          WEFTER_KEYSTORE_PASSWORD: ${{ secrets.WEFTER_KEYSTORE_PASSWORD }}
+        run: |
+          npx wefter doctor --release-readiness
+          npx wefter build android --release --env production
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: .wefter/native/android/app/build/outputs/apk/release/app-release.apk
+```
+
+---
+
+## 2. GitHub Actions: iOS App Store Archive Workflow
+
+Create `.github/workflows/ios-build.yml` (requires `macos-latest` runner):
+
+```yaml
+name: iOS Release Build
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js & PNPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Web Application
+        run: npm run build
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Run Wefter Sync & iOS Build
+        env:
+          WEFTER_IOS_SIGNING_IDENTITY: ${{ secrets.WEFTER_IOS_SIGNING_IDENTITY }}
+        run: |
+          npx wefter doctor --release-readiness
+          npx wefter build ios --release --env production
+```
+
+---
+
+## 3. Fastlane Integration for Store Deployments
+
+Fastlane automates Play Store and App Store deployments.
+
+### Fastfile Configuration
+
+```ruby
+default_platform(:android)
+
+platform :android do
+  desc "Deploy production APK to Google Play Internal Track"
+  lane :deploy_play_store do
+    gradle(task: "clean assembleRelease", project_dir: ".wefter/native/android")
+    upload_to_play_store(
+      track: 'internal',
+      apk: '.wefter/native/android/app/build/outputs/apk/release/app-release.apk'
+    )
+  end
+end
+
+platform :ios do
+  desc "Deploy release build to Apple TestFlight"
+  lane :deploy_testflight do
+    build_app(
+      workspace: ".wefter/native/ios/App.xcworkspace",
+      scheme: "App",
+      export_method: "app-store"
+    )
+    upload_to_testflight
+  end
+end
+```
+
+---
+
+## Secrets Management Checklist
+
+| Secret Name                   | Platform | Description                                                |
+| ----------------------------- | -------- | ---------------------------------------------------------- |
+| `ANDROID_KEYSTORE_BASE64`     | Android  | Base64-encoded string of your release `.keystore` file.    |
+| `WEFTER_KEYSTORE_PASSWORD`    | Android  | Password for your release keystore alias.                  |
+| `WEFTER_IOS_SIGNING_IDENTITY` | iOS      | Apple Distribution signing certificate name.               |
+| `APPLE_DEVELOPER_KEY`         | iOS      | App Store Connect API Key JSON file for automated uploads. |

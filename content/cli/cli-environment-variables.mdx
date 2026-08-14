@@ -1,0 +1,56 @@
+---
+title: CLI Environment Variables Reference
+description: Complete reference of all environment variables recognized by the Wefter CLI.
+---
+
+## Overview
+
+The Wefter CLI supports environment variables for non-interactive execution, continuous integration (CI) automation, and sensitive release credentials.
+
+Environment variables can be defined in a gitignored `.env` file at the root of your project or exported directly in terminal sessions.
+
+---
+
+## Environment Variables Reference Table
+
+| Variable Name                 | Required / Optional              | Target Command(s)                                       | Description                                                                                              |
+| ----------------------------- | -------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `WEFTER_APP_ID`               | Optional                         | `init`, `sync`, `build`, `run`                          | Overrides default reverse-DNS application identifier (`appId`).                                          |
+| `WEFTER_APP_NAME`             | Optional                         | `init`, `sync`, `build`, `run`                          | Overrides display application title (`appName`).                                                         |
+| `WEFTER_WEB_DIR`              | Optional                         | `init`, `sync`, `build`, `run`                          | Overrides relative web build output directory path (`webDir`).                                           |
+| `WEFTER_KEYSTORE_PASSWORD`    | **Required for Android Release** | `build android --release`, `doctor --release-readiness` | Password for Android release `.keystore` / `.jks` files.                                                 |
+| `WEFTER_IOS_SIGNING_IDENTITY` | **Required for iOS Release**     | `build ios --release`, `doctor --release-readiness`     | Apple Developer distribution signing identity name.                                                      |
+| `CI`                          | Optional                         | All commands                                            | Set to `1` or `true` to suppress ASCII banners and non-essential interactive prompts in CI environments. |
+| `NO_COLOR`                    | Optional                         | All commands                                            | Disables ANSI terminal color output.                                                                     |
+| `VERBOSE`                     | Optional                         | All commands                                            | Set to `1` or `true` to print raw Gradle/xcodebuild stdout and debug logs.                               |
+
+---
+
+## `.env` File Example
+
+```bash
+# Application Configuration Overrides
+WEFTER_APP_ID=com.company.myapp
+WEFTER_APP_NAME="My Production App"
+WEFTER_WEB_DIR=dist
+
+# Android Keystore Password
+WEFTER_KEYSTORE_PASSWORD=super_secret_keystore_password
+
+# iOS Code Signing Identity
+WEFTER_IOS_SIGNING_IDENTITY="iPhone Distribution: Company Name (ABCDE12345)"
+```
+
+---
+
+## Programmatic CI Usage
+
+In GitHub Actions or headless CI runners, pass credentials via job environment blocks:
+
+```yaml
+- name: Run Wefter Build
+  env:
+    WEFTER_KEYSTORE_PASSWORD: ${{ secrets.WEFTER_KEYSTORE_PASSWORD }}
+    CI: "true"
+  run: npx wefter build android --release --env production
+```

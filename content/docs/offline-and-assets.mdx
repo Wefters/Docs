@@ -1,0 +1,120 @@
+---
+title: Offline Assets & SPA Routing
+description: Handling offline asset bundling, Single Page Application (SPA) client-side routing, and static file resolution.
+---
+
+## Overview
+
+Wefter packages your compiled web assets directly inside the mobile application binary (`.apk` or `.app`), enabling 100% offline execution.
+
+This guide explains how static web assets are resolved, how to configure client-side Single Page Application (SPA) routing (Vue Router, React Router, SvelteKit), and how to manage media assets.
+
+---
+
+## 1. Web Asset Resolution (`webDir`)
+
+When you run [`wefter sync`](/cli/sync), Wefter copies the contents of your `webDir` directory (e.g. `dist` or `build`) into the native project assets folder:
+
+- **Android**: `.wefter/native/android/app/src/main/assets/public/`
+- **iOS**: `.wefter/native/ios/App/public/`
+
+### Path Resolution Best Practices
+
+To ensure assets load correctly across both platforms, use **relative paths** in your compiled HTML:
+
+```html
+<!-- Correct: Relative asset paths -->
+<script src="./assets/app.js"></script>
+<link rel="stylesheet" href="./assets/style.css" />
+
+<!-- Avoid: Absolute root paths -->
+<script src="/assets/app.js"></script>
+```
+
+Most web bundlers (Vite, Webpack, Rollup) support relative base path configurations:
+
+```js
+// vite.config.js
+export default defineConfig({
+  base: "./", // Enforces relative asset paths for Wefter native bundling
+  build: {
+    outDir: "dist",
+  },
+});
+```
+
+---
+
+## 2. Single Page Application (SPA) Client-Side Routing
+
+Single Page Applications (SPAs) use client-side routers (Vue Router, React Router, SvelteKit) to navigate between application views without performing full server page reloads.
+
+### Router Mode Recommendation: Hash History vs HTML5 History
+
+| Router Mode                               | Compatibility           | Explanation                                                                                                                                     |
+| ----------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hash History (`createWebHashHistory`)** | **100% Recommended**    | Routes use URL hashes (`/#/profile`, `/#/settings`). Works seamlessly with local file asset loading without requiring native URL rewrite rules. |
+| **HTML5 History (`createWebHistory`)**    | Requires Rewrite Config | Routes use standard paths (`/profile`, `/settings`). Reloading a deep route requires fallback to `index.html`.                                  |
+
+### Vue Router Example (Hash Mode)
+
+```ts
+import { createRouter, createWebHashHistory } from "vue-router";
+import HomeView from "./views/HomeView.vue";
+import SettingsView from "./views/SettingsView.vue";
+
+export const router = createRouter({
+  // Use Web Hash History for mobile WebView compatibility
+  history: createWebHashHistory(),
+  routes: [
+    { path: "/", component: HomeView },
+    { path: "/settings", component: SettingsView },
+  ],
+});
+```
+
+### React Router Example (Hash Router)
+
+```tsx
+import { HashRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile";
+
+export function App() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/profile" element={<Profile />} />
+      </Routes>
+    </HashRouter>
+  );
+}
+```
+
+---
+
+## 3. Working with Static Media & Fonts
+
+Images, video, audio, and custom web fonts bundled inside `webDir` are served locally from device storage with zero network latency.
+
+```html
+<!-- Local bundled image asset -->
+<img src="./images/avatar.png" alt="User Avatar" />
+
+<!-- Local custom web font -->
+<style>
+  @font-face {
+    font-family: "CustomFont";
+    src: url("./fonts/CustomFont.woff2") format("woff2");
+  }
+</style>
+```
+
+---
+
+## Offline Strategy Summary
+
+- **Local Asset Bundling**: All HTML, CSS, JavaScript, images, and fonts specified in `webDir` are bundled into the native APK/app binary.
+- **Offline Reliability**: The web application executes without requiring an active internet connection.
+- **Network Resilience**: Remote API requests (`fetch`) should handle offline states gracefully using standard browser network state checks (`navigator.onLine`).

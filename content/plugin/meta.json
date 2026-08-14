@@ -19,12 +19,14 @@
     "writing-the-js-side",
     "writing-the-kotlin-side",
     "writing-the-swift-side",
+    "native-ui-views",
+    "background-tasks-and-notifications",
     "testing-your-plugin",
     "validating-and-publishing",
     "---Tutorials---",
     "tutorial-complete-plugin"
   ],
   "root": true,
-  "description": "Plugin anatomy, the native API surface, and a full worked master tutorial.",
+  "description": "Plugin anatomy, native API surface, UI views, backgrounding, and master tutorial.",
   "icon": "Puzzle"
 }

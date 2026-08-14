@@ -102,47 +102,68 @@ In `package.json`:
 
 Understanding exactly when hooks execute relative to CLI operations ensures predictable automation:
 
-### 1. `wefter sync` Lifecycle
-
-```mermaid
-graph TD
-    A[wefter sync invocation] --> B[wefter:sync:before hook]
-    B --> C[Load & validate wefter.config.json]
-    C --> D[Audit permissions & check lockfile drift]
-    D --> E[Regenerate native shells & web assets]
-    E --> F[Inject plugins & generate Kotlin/Swift registries]
-    F --> G[Write lockfile & sync freshness marker]
-    G --> H[wefter:sync:after hook]
-```
+<Steps>
+  <Step>
+    ### 1. `wefter:sync:before` Hook Execution Runs ahead of loading
+    `wefter.config.json`. Useful for generating configuration files or compiling
+    web source assets before native bundling begins.
+  </Step>
+  <Step>
+    ### 2. Configuration & Lockfile Validation Load and validate
+    `wefter.config.json`, audit permissions, and verify lockfile drift.
+  </Step>
+  <Step>
+    ### 3. Native Shell & Asset Generation Regenerate native shells, copy web
+    assets into native project directories, inject Gradle/SPM dependencies, and
+    generate Kotlin/Swift registries.
+  </Step>
+  <Step>
+    ### 4. `wefter:sync:after` Hook Execution Runs after all native files,
+    Gradle/Xcode configurations, and lockfiles are written to disk.
+  </Step>
+</Steps>
 
 - **`wefter:sync:before`**: Runs ahead of loading `wefter.config.json`. Useful for generating configuration files or compiling web source assets before native bundling begins.
 - **`wefter:sync:after`**: Runs after all native files, Gradle/Xcode configurations, and lockfiles are written.
 
 ### 2. `wefter build` Lifecycle
 
-```mermaid
-graph TD
-    A[wefter build <platform>] --> B[Validate sync freshness marker]
-    B --> C[wefter:build:before hook]
-    C --> D[Check release security & permissions]
-    D --> E[Invoke native toolchain gradlew / xcodebuild]
-    E --> F[wefter:build:after hook]
-```
+<Steps>
+  <Step>
+    ### 1. Freshness Check & `wefter:build:before` Hook Validates sync freshness
+    marker and executes `wefter:build:before` hook before release security
+    verification.
+  </Step>
+  <Step>
+    ### 2. Native Compilation Invokes native toolchain (`./gradlew
+    assembleDebug/assembleRelease` or `xcodebuild`).
+  </Step>
+  <Step>
+    ### 3. `wefter:build:after` Hook Execution Runs once the compiled APK or
+    `.app` binary artifact exists on disk.
+  </Step>
+</Steps>
 
 - **`wefter:build:before`**: Runs after confirming the project is fresh (synced), but before release-security verification and native compilation (`./gradlew` or `xcodebuild`).
 - **`wefter:build:after`**: Runs once the compiled APK or `.app` artifact exists on disk.
 
 ### 3. `wefter run` Lifecycle
 
-```mermaid
-graph TD
-    A[wefter run <platform>] --> B[Resolve ADB device or iOS Simulator]
-    B --> C[Validate sync freshness marker]
-    C --> D[wefter:run:before hook]
-    D --> E[Optionally start Vite dev server --watch]
-    E --> F[Compile native app & deploy to target]
-    F --> G[wefter:run:after hook]
-```
+<Steps>
+  <Step>
+    ### 1. Target Resolution & `wefter:run:before` Hook Resolves connected ADB
+    device or iOS Simulator, checks sync freshness, and executes
+    `wefter:run:before`.
+  </Step>
+  <Step>
+    ### 2. Dev Server Proxy & Native Compilation Optionally starts web dev
+    server (if `--watch` is specified) and compiles native application binary.
+  </Step>
+  <Step>
+    ### 3. Deployment & `wefter:run:after` Hook Installs binary onto target
+    device, launches app, and executes `wefter:run:after` hook.
+  </Step>
+</Steps>
 
 - **`wefter:run:before`**: Runs before dev server startup, compilation, and device deployment.
 - **`wefter:run:after`**: Runs as soon as the application is installed and launched on the connected device or simulator.

@@ -1,0 +1,114 @@
+---
+title: Native UI Views & Modal Controllers
+description: Presenting native Android Activities, Dialogs, Bottom Sheets, and iOS UIViewController modal screens from plugins.
+---
+
+## Overview
+
+While most plugins provide non-visual system APIs (sensors, storage, hardware state), some plugins need to present native user interface screens—such as native image croppers, biometric prompts, OAuth webview dialogs, or custom camera viewfinders.
+
+This guide explains how to present native Android Activities and iOS `UIViewController` modal controllers from Wefter plugins and return results back to JavaScript.
+
+---
+
+## 1. Android: Presenting Native Activities & Dialogs
+
+On Android, `WefterPlugin` inherits context from `BridgeDispatcher.context`.
+
+### Launching a Native Activity for Result
+
+```kotlin
+package com.mycompany.picker
+
+import android.content.Intent
+import dev.wefter.bridge.WefterPlugin
+import dev.wefter.bridge.WefterMethod
+import dev.wefter.bridge.WefterCall
+
+class MediaPickerPlugin : WefterPlugin() {
+
+    @WefterMethod
+    fun openPicker(call: WefterCall) {
+        val context = bridge?.context ?: run {
+            call.reject("NO_CONTEXT", "Android context is null")
+            return
+        }
+
+        // Launch native Android Intent
+        val intent = Intent(Intent.ACTION_PICK).apply {
+            type = "image/*"
+        }
+
+        // Store pending call for activity result callback
+        pendingCall = call
+        context.startActivity(intent)
+    }
+
+    private var pendingCall: WefterCall? = null
+
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        val selectedUri = data?.data?.toString()
+        if (selectedUri != null) {
+            pendingCall?.resolve(mapOf("uri" to selectedUri))
+        } else {
+            pendingCall?.reject("CANCELLED", "User cancelled image selection")
+        }
+        pendingCall = null
+    }
+}
+```
+
+---
+
+## 2. iOS: Presenting `UIViewController` Modal Screens
+
+On iOS, `WefterPlugin` exposes `viewController` pointing to the host application's active `UIViewController`.
+
+### Presenting a Native `UIAlertController` or Custom ViewController
+
+```swift
+import Foundation
+import UIKit
+
+@objc(MediaPickerPlugin)
+public class MediaPickerPlugin: WefterPlugin {
+
+    // @WefterMethod
+    @objc public func openPicker(_ call: WefterCall) {
+        DispatchQueue.main.async { [weak self] in
+            guard let presentingVC = self?.viewController else {
+                call.reject("NO_VIEW_CONTROLLER", "Host UIViewController unavailable")
+                return
+            }
+
+            let alert = UIAlertController(
+                title: "Select Option",
+                message: "Choose an action",
+                preferredStyle: .actionSheet
+            )
+
+            alert.addAction(UIAlertAction(title: "Camera", style: .default) { _ in
+                call.resolve(["choice": "camera"])
+            })
+
+            alert.addAction(UIAlertAction(title: "Gallery", style: .default) { _ in
+                call.resolve(["choice": "gallery"])
+            })
+
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                call.reject("CANCELLED", "User cancelled action")
+            })
+
+            presentingVC.present(alert, animated: true)
+        }
+    }
+}
+```
+
+---
+
+## Best Practices for Native UI Plugins
+
+- **UI Thread Dispatching**: Always present native view controllers or dialogs on the main UI thread (`DispatchQueue.main.async` on iOS, `Handler(Looper.getMainLooper())` on Android).
+- **Graceful Cancellation**: Always invoke `call.reject("CANCELLED", ...)` if the user dismisses a native modal screen without completing the action.
+- **Memory Safety**: Use `[weak self]` in Swift closures to prevent retain cycles when presenting native view controllers.
