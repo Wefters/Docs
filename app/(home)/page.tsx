@@ -499,32 +499,159 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-fd-border bg-fd-card/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-xs text-fd-muted-foreground sm:flex-row">
-          <div className="flex items-center gap-2">
-            <PackageCheck className="h-4 w-4 text-fd-primary" />
-            <span className="font-medium text-fd-foreground">Wefter Native Runtime</span>
-            <span>— Open Source Architecture</span>
+      <footer className="border-t border-fd-border bg-fd-card/70 backdrop-blur-md">
+        <div className="mx-auto max-w-6xl px-6 pt-14 pb-10">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+            {/* Brand Column (Col Span 2 on large screens) */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <img
+                  src="/Logo/Dark/Logo.svg"
+                  alt="Wefter Logo"
+                  className="h-7 w-auto dark:hidden"
+                />
+                <img
+                  src="/Logo/Light/Logo.svg"
+                  alt="Wefter Logo"
+                  className="h-7 w-auto hidden dark:block"
+                />
+              </div>
+              <p className="text-xs sm:text-sm text-fd-muted-foreground leading-relaxed max-w-sm">
+                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with zero-reflection Kotlin & Swift dispatchers.
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>v0.0.3 Core Architecture</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Column 1: Core Documentation */}
+            <div>
+              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
+                Documentation
+              </h4>
+              <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
+                <li>
+                  <Link href="/docs/installing" className="hover:text-fd-foreground transition-colors">
+                    Installation & Setup
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs/introduction" className="hover:text-fd-foreground transition-colors">
+                    Architecture Overview
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs/app-configuration" className="hover:text-fd-foreground transition-colors">
+                    wefter.config.json
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs/javascript-apis" className="hover:text-fd-foreground transition-colors">
+                    JS Bridge API
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs/native-bridge-security" className="hover:text-fd-foreground transition-colors">
+                    Bridge Security
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 2: CLI Commands */}
+            <div>
+              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
+                CLI Tooling
+              </h4>
+              <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
+                <li>
+                  <Link href="/cli/init" className="hover:text-fd-foreground transition-colors font-mono">
+                    wefter init
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/cli/sync" className="hover:text-fd-foreground transition-colors font-mono">
+                    wefter sync
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/cli/run" className="hover:text-fd-foreground transition-colors font-mono">
+                    wefter run
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/cli/build" className="hover:text-fd-foreground transition-colors font-mono">
+                    wefter build
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/cli/doctor" className="hover:text-fd-foreground transition-colors font-mono">
+                    wefter doctor
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Plugins & Ecosystem */}
+            <div>
+              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
+                Plugins
+              </h4>
+              <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
+                <li>
+                  <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
+                    Plugin Authoring
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/plugin/wefter-method" className="hover:text-fd-foreground transition-colors">
+                    @WefterMethod API
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/plugin/plugin-anatomy" className="hover:text-fd-foreground transition-colors">
+                    Plugin Anatomy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs/plugin-registry" className="hover:text-fd-foreground transition-colors">
+                    Official Registry
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="flex items-center gap-6 font-medium">
-            <Link href="/docs" className="hover:text-fd-foreground transition-colors">
-              Docs
-            </Link>
-            <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
-              Plugin
-            </Link>
-            <Link href="/cli" className="hover:text-fd-foreground transition-colors">
-              CLI
-            </Link>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 hover:text-fd-foreground transition-colors"
-            >
-              <span>GitHub</span>
-              <ExternalLink className="h-3 w-3" />
-            </a>
+
+          {/* Bottom Bar */}
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-fd-border/60 pt-6 text-xs text-fd-muted-foreground sm:flex-row">
+            <div className="flex items-center gap-2">
+              <img src="/Logo/Dark/Icon.svg" alt="Wefter Icon" className="h-4 w-4 dark:hidden" />
+              <img src="/Logo/Light/Icon.svg" alt="Wefter Icon" className="h-4 w-4 hidden dark:block" />
+              <span>&copy; {new Date().getFullYear()} Wefter Native Runtime. Open Source under MIT License.</span>
+            </div>
+            <div className="flex items-center gap-5 font-medium">
+              <Link href="/docs" className="hover:text-fd-foreground transition-colors">
+                Docs
+              </Link>
+              <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
+                Plugins
+              </Link>
+              <Link href="/cli" className="hover:text-fd-foreground transition-colors">
+                CLI
+              </Link>
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 hover:text-fd-foreground transition-colors"
+              >
+                <span>GitHub</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
           </div>
         </div>
       </footer>
