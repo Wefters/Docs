@@ -1,99 +1,95 @@
 ---
-title: Structured errors
-description: The full WefterErrorCode list, throwing your own, and the real limit of Swift's error guard.
+title: Structured Error Handling
+description: WefterBridgeError error codes, rejecting native calls, Kotlin/Swift exception handling, and Swift trap safety.
 ---
 
-Every rejection an app sees is a `WefterBridgeError` with a `.code`,
-covered from the app-consuming side on the Docs tab's
-[JavaScript APIs](/docs/javascript-apis#wefterbridgeerror-and-weftererrorcode)
-page. This page is the plugin-authoring side: what each code means for
-code you're writing, how to throw your own, and where the Swift
-`do/catch` guard genuinely stops protecting you.
+## Overview
 
-## The codes
+When a native plugin call fails, the native layer rejects the execution with a structured error payload containing an error `code` and descriptive `message`.
 
-| Code | Where it comes from | What to do as a plugin author |
-| --- | --- | --- |
-| `TIMEOUT` | JS side, automatically: your method took longer than the caller's timeout. | Nothing to do; this never originates in your native code. |
-| `ABORTED` | JS side, automatically: the caller's `AbortSignal` fired. | Same, never originates natively. |
-| `NO_BRIDGE` | JS side, automatically: no native bridge exists at all. | Never originates natively. |
-| `UNKNOWN_PLUGIN` | The dispatcher, before your code runs: no plugin registered under that name. | Not reachable from inside a method body. |
-| `INVALID_PAYLOAD` | The dispatcher, before your code runs (Android): payload JSON failed to parse. | Not reachable from inside a method body. |
-| `PLUGIN_THREW` | The dispatcher, automatically: your method threw instead of calling `reject`. | Prefer an explicit `reject(callback, "SOME_CODE", "...")` over letting something throw; see below. |
-| `PERMISSION_DENIED` | **You**, explicitly: the conventional code to reject with when a permission is missing. | Reject with this exact string; see [`permissions`](/plugin/permissions) for the full working loop, both platforms. |
-| `UNKNOWN` | Either side: the catch-all for anything that doesn't map to a specific code. | Avoid producing it yourself; prefer a specific code. |
+On JavaScript's side, `invokeNative` catches native rejections and throws a standard `WefterBridgeError` instance.
 
-<Callout type="info">
-  `WefterErrorCode` in `@wefterjs/core` is typed as a closed union of these
-  eight strings, but the `.code` field at runtime is really just whatever
-  string your native code sent, nothing validates it against that union.
-  The generated dispatch classes themselves reject unmatched method names
-  with `"UNKNOWN_METHOD"`, a code that isn't in the public TS type at all.
-  You're free to invent your own codes for your plugin's own error
-  cases, just document them, since an app calling your plugin only
-  learns what codes exist from what you tell them.
-</Callout>
+---
 
-## Throwing your own
+## Standard Error Codes Reference
 
-**Kotlin:**
+The following table lists core error codes exported by `WefterErrorCode` (`@wefterjs/core`):
+
+| Error Code            | Origin             | Description                                                                  | Plugin Author Best Practice                                                      |
+| --------------------- | ------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `"TIMEOUT"`           | `@wefterjs/core`   | Call exceeded caller's `timeoutMs` limit (defaults to 10s).                  | Optimize long-running native tasks or move them to event streams (`emit`).       |
+| `"ABORTED"`           | `@wefterjs/core`   | Call was cancelled by caller's `AbortSignal`.                                | Clean up native task when cancellation is triggered.                             |
+| `"NO_BRIDGE"`         | `@wefterjs/core`   | Web app running outside native WebView environment (browser tab).            | Test for native bridge using `isNativeBridgeAvailable()`.                        |
+| `"UNKNOWN_PLUGIN"`    | `BridgeDispatcher` | Requested plugin is not declared in `wefter.config.json` or native registry. | Verify plugin package name is listed in `plugins` array.                         |
+| `"UNKNOWN_METHOD"`    | `BridgeDispatcher` | Requested method is not registered on native plugin class.                   | Verify `@WefterMethod` spelling and `plugin.json` method declaration.            |
+| `"PLUGIN_THREW"`      | `BridgeDispatcher` | Native code threw an unhandled runtime exception.                            | Catch exceptions inside native method and call `reject()` explicitly.            |
+| `"PERMISSION_DENIED"` | Native Plugin      | Required Android or iOS permission was denied by user.                       | Call `reject(callback, "PERMISSION_DENIED", "...")` when permission check fails. |
+| `"UNKNOWN"`           | Either             | General catch-all error code.                                                | Avoid generic errors; return specific custom error codes.                        |
+
+---
+
+## Returning Errors from Native Code
+
+### Kotlin (Android)
+
+In Kotlin, call `reject(callback, code, message)` or throw `WefterError`:
 
 ```kotlin
-reject(callback, "STORAGE_FULL", "No space left for this write")
+package dev.wefter.bridge
 
-// or, if a throw is genuinely more natural at that point in the code:
-throw WefterError("STORAGE_FULL", "No space left for this write")
-```
+import org.json.JSONObject
 
-`WefterError` is a plain `Exception` subclass carrying a `code`; the
-dispatcher's `catch` block checks `is WefterError` and forwards its code
-verbatim, falling back to `UNKNOWN_METHOD`/`UNKNOWN` only for a plugin's
-own generated routing or a truly unclassified exception.
+class StoragePlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
 
-**Swift:**
+    @WefterMethod
+    fun write(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        val key = payload.optString("key")
+        if (key.isEmpty()) {
+            reject(callback, "INVALID_KEY", "Key parameter must be non-empty")
+            return
+        }
 
-```swift
-struct StorageFullError: Error {}
-
-// @WefterMethod
-func write(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
-    guard hasSpace else {
-        reject(callback, code: "STORAGE_FULL", message: "No space left for this write")
-        return
+        // Alternative: throw WefterError (caught by dispatcher)
+        // throw WefterError("STORAGE_FULL", "Insufficient disk space")
     }
-    // ...
 }
 ```
 
-Any type conforming to `Error` can also be thrown directly, it's caught
-by the `do/catch` wrapping every plugin method call in
-`BridgeDispatcher.userContentController(_:didReceive:)`, which is exactly
-why every `@WefterMethod` function on iOS has to be marked `throws` in
-the first place. `WefterError` itself (a `struct: Error,
-LocalizedError`) is the one to reach for when you want a specific code
-without defining your own type; the dispatcher special-cases it the same
-way Kotlin's does, falling back to `PLUGIN_THREW` for anything else
-thrown.
+### Swift (iOS)
 
-## The real limit of the Swift guard
+In Swift, call `resolve`/`reject` or throw a custom `WefterError`:
 
-Catching a deliberately thrown `Error` is not the same as catching a
-runtime crash, and this matters enough to state plainly rather than let
-a plugin author assume more safety than actually exists. A
-force-unwrapped `nil` or an out-of-bounds array/dictionary access in
-Swift **terminates the process immediately**. No `do/catch` anywhere
-can intercept it, by Apple's own design. That's a genuine, permanent
-difference from Kotlin, where the equivalent mistakes (a null pointer, an
-index out of bounds) surface as catchable exceptions instead and get
-turned into a clean `PLUGIN_THREW` rejection.
+```swift
+import Foundation
 
-There's no framework feature that closes this gap. It isn't a bug to
-fix, it's how the language works. The practical answer is a habit, not a
-mechanism: **never force-unwrap (`!`) and never directly subscript a
-dictionary or array inside a plugin method body.** Use `guard let`,
-optional chaining, or safe subscripting throughout. `wefter create-plugin`
-scaffolds this exact reminder as a comment at the top of every generated
-Swift file. [`writing-the-swift-side`](/plugin/writing-the-swift-side)
-covers this with real before/after examples; this page just establishes
-that the limit exists and why no amount of `throws`/`do`/`catch`
-discipline works around it.
+final class StoragePlugin: WefterPlugin {
+
+    // @WefterMethod
+    func write(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        guard let key = payload["key"] as? String, !key.isEmpty else {
+            reject(callback, code: "INVALID_KEY", message: "Key parameter must be non-empty")
+            return
+        }
+
+        // Alternative: throw custom WefterError
+        // throw WefterError(code: "STORAGE_FULL", message: "Insufficient disk space")
+    }
+}
+```
+
+---
+
+## Swift Runtime Traps vs Exception Safety
+
+<Callout type="warn">
+  **Swift Trap Warning**: Swift's `do/catch` statement catches thrown `Error`
+  instances, but **cannot** catch runtime fatal traps (such as force-unwrapping
+  `nil` values using `!` or accessing out-of-bounds array indices). Swift fatal
+  traps terminate the application process immediately.
+</Callout>
+
+### Best Practice Rules for Swift Plugin Authors
+
+1. **Never Force-Unwrap (`!`)**: Use `guard let` or `if let` optional binding.
+2. **Never Direct Subscript Without Bounds Check**: Validate dictionary values before casting.
+3. **Use Default Fallbacks**: Cast payload arguments safely using `as? String ?? ""`.

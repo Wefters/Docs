@@ -1,20 +1,29 @@
 ---
-title: "@wefterjs/core for plugin authors"
-description: invokeNative, registerHook, and definePlugin, from the angle of writing your own wrapper.
+title: "@wefterjs/core for Plugin Authors"
+description: Creating type-safe TypeScript plugin wrappers using definePlugin, invokeNative, and registerHook.
 ---
 
-`invokeNative` and `registerHook` are already documented on the Docs
-tab's [JavaScript APIs](/docs/javascript-apis) page, from the angle of an
-app calling into a plugin. This page is the other angle: you're the one
-writing the wrapper an app will call. Cross-link freely, a reader
-landing on either page should be able to find the other without
-guessing which tab it lives on.
+## Overview
 
-## The shortcut: `definePlugin`
+The `@wefterjs/core` package provides the client-side JavaScript runtime API for authoring Wefter native plugin client wrappers (`src/index.ts`).
 
-For the common case, a plugin whose methods are all plain
-call-and-response, no events, `@wefterjs/core` ships a helper that skips
-writing `invokeNative` calls by hand entirely:
+Plugin authors use `@wefterjs/core` functions to define typed plugin objects (`definePlugin`), invoke native plugin methods (`invokeNative`), and expose event subscription methods (`registerHook`).
+
+---
+
+## Core Client APIs Summary
+
+| Function       | Signature                                            | Purpose                                                                                              |
+| -------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `definePlugin` | `definePlugin<T>(pluginName, methodMap)`             | Utility that generates typed request/response plugin object wrappers automatically.                  |
+| `invokeNative` | `invokeNative<T>(plugin, method, payload, options?)` | Low-level function that invokes a native plugin method and returns a typed Promise.                  |
+| `registerHook` | `registerHook(hookName, callback)`                   | Subscribes a JavaScript callback to native event streams (`emit`). Returns `{ remove: () => void }`. |
+
+---
+
+## 1. Automatic Type Wrappers: `definePlugin`
+
+For plugins that expose request/response methods, `definePlugin` generates a strongly typed object wrapper automatically:
 
 ```ts
 import { definePlugin } from "@wefterjs/core";
@@ -23,29 +32,26 @@ export interface SensorReading {
   value: number;
 }
 
-export const Sensor = definePlugin<{ read: () => Promise<SensorReading> }>(
-  "sensor",
-  { read: true },
-);
+export interface SensorPluginInterface {
+  read(): Promise<SensorReading>;
+  reset(): Promise<{ ok: boolean }>;
+}
+
+export const Sensor = definePlugin<SensorPluginInterface>("sensor", {
+  read: true,
+  reset: true,
+});
 ```
 
-`definePlugin(pluginName, methodSignatures)` takes your plugin's name and
-an object whose keys are the method names you want exposed (each mapped
-to `true`, the value itself doesn't matter, only the key), and returns
-an object with one function per key, each just a thin call to
-`invokeNative(pluginName, methodName, payload)`. A method typed to take
-no arguments is genuinely callable with no arguments; you're never
-forced to pass `undefined` just to satisfy the type. This is the
-recommended starting point for a plugin whose JS surface is nothing but
-request/response methods.
+### How `definePlugin` Works
 
-## When you still need to write it by hand: events
+`definePlugin` returns an object where each key maps to an asynchronous function calling `invokeNative("sensor", methodName, payload)`.
 
-`definePlugin` only covers `invokeNative`-backed methods, it has no
-concept of hooks or events, so a plugin that pushes data to JS (see
-[architecture-flow's event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener))
-still needs a manually-added `.on()`-style method built on `registerHook`.
-Spread `definePlugin`'s output and add the rest yourself:
+---
+
+## 2. Real-Time Event Subscriptions: `registerHook`
+
+If a native plugin pushes real-time event streams (e.g. sensor ticks, barcode scans, location updates), expose a subscription method using `registerHook`:
 
 ```ts
 import { definePlugin, registerHook } from "@wefterjs/core";
@@ -55,41 +61,50 @@ export interface SensorReading {
 }
 
 export interface SensorEvent {
+  timestamp: number;
   value: number;
 }
 
 export const Sensor = {
-  ...definePlugin<{ read: () => Promise<SensorReading> }>("sensor", { read: true }),
+  ...definePlugin<{ read(): Promise<SensorReading> }>("sensor", { read: true }),
 
-  on(event: "reading", callback: (data: SensorEvent) => void): { remove(): void } {
+  onReading(callback: (data: SensorEvent) => void): { remove(): void } {
     return registerHook("reading", callback as (data: unknown) => void);
   },
 };
 ```
 
-`registerHook(hookName, callback)` returns `{ remove(): void }`.
-Forward that return value out of your own `.on()` method rather than
-swallowing it, so whoever calls your plugin can clean up their listener
-the same way they'd clean up any other subscription.
+---
 
-## Reaching for `invokeNative` directly
+## 3. Custom Invocation & Timeout Control: `invokeNative`
 
-For anything `definePlugin`'s all-or-nothing method list doesn't fit,
-per-call `AbortSignal`/`timeoutMs` options, or a method whose payload
-shape needs runtime validation before it goes over the bridge, call
-`invokeNative` yourself, exactly as `definePlugin` does internally:
+When your plugin requires custom payload transformation, cancellation (`AbortSignal`), or custom timeouts (`timeoutMs`), call `invokeNative` directly:
 
 ```ts
 import { invokeNative } from "@wefterjs/core";
 
+export interface ScanOptions {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
 export const Scanner = {
-  open(options: { timeoutMs?: number } = {}): Promise<{ started: boolean }> {
-    return invokeNative("scanner", "open", {}, { timeoutMs: options.timeoutMs });
+  scan(options: ScanOptions = {}): Promise<{ code: string }> {
+    return invokeNative<{ code: string }>(
+      "scanner",
+      "scan",
+      {},
+      {
+        timeoutMs: options.timeoutMs,
+        signal: options.signal,
+      },
+    );
   },
 };
 ```
 
-Every rejection from either approach is the same
-[`WefterBridgeError`](/plugin/structured-errors) an app calling your
-plugin can branch on. Your wrapper doesn't need to translate or wrap
-errors itself; let them pass through.
+---
+
+## Error Pass-Through
+
+Rejections from `invokeNative` automatically propagate as [`WefterBridgeError`](/plugin/structured-errors) instances. Plugin wrappers should allow native bridge errors to pass through cleanly to callers.

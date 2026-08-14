@@ -1,52 +1,91 @@
 ---
-title: What is a plugin?
-description: What a plugin physically is, and when to actually reach for one.
+title: What is a Plugin?
+description: Physical structure of a Wefter plugin, supported multi-platform directory layouts, and when to create a plugin.
 ---
 
-## What a plugin physically is
+## Overview
 
-A Wefter plugin is a JS package containing a `plugin.json` manifest, a
-`src/index.ts` wrapper your app imports, and native source for whichever
-platform(s) it supports:
+A **Wefter Plugin** is an npm package containing a manifest file (`plugin.json`), a TypeScript client wrapper (`src/index.ts`), and native source code for Android (`Kotlin`) and/or iOS (`Swift`).
 
+Plugins bridge the gap between web application JavaScript running inside a WebView and native operating system APIs.
+
+---
+
+## Physical Directory Anatomy
+
+A Wefter plugin package contains the following structure:
+
+```text
+my-wefter-plugin/
+├── package.json          # NPM package manifest (declares @wefterjs/core dependency)
+├── plugin.json           # Wefter native manifest (permissions, native dependencies, method lists)
+├── src/
+│   └── index.ts          # TypeScript client wrapper exporting invokeNative calls
+├── android/              # Native Kotlin source directory (optional)
+│   └── MyPlugin.kt
+└── ios/                  # Native Swift source directory (optional)
+    └── MyPlugin.swift
 ```
-some-plugin/
-├── plugin.json
-├── src/index.ts
-├── android/   ← Kotlin, optional
-└── ios/       ← Swift, optional
+
+---
+
+## Valid Platform Configurations
+
+Wefter plugins support three physical directory configurations:
+
+```mermaid
+graph TD
+    A[Wefter Plugin Package] --> B{Native Source Directories}
+    B --> C[Both Platforms: android/ and ios/]
+    B --> D[Android Only: android/ directory only]
+    B --> E[iOS Only: ios/ directory only]
 ```
 
-At least one of `android/` or `ios/` has to exist; neither is mandatory on
-its own. A camera plugin that only works on Android today is a complete,
-valid plugin: it simply doesn't have an `ios/` folder yet, and nothing in
-the system treats that as broken or half-finished. `wefter plugin
-validate` passes it. `wefter add` installs it. Calling it from an iOS
-build just rejects with `UNKNOWN_PLUGIN`, the same clean rejection you'd
-get for any plugin name that isn't declared at all. See
-[Plugin anatomy](/plugin/plugin-anatomy) for all three valid shapes.
+### 1. Dual-Platform Plugin (`android/` and `ios/`)
 
-## When to actually build one
+Ships Kotlin and Swift native source code. Both Android and iOS applications can invoke native methods.
 
-The temptation to reach for a plugin when a plugin isn't needed is real,
-and worth resisting. Anything that's just talking to a remote API doesn't
-need one, that's what `fetch()` is for, running in your own JS, no
-bridge involved at all.
+### 2. Android-Only Plugin (`android/` only)
 
-A plugin exists specifically for the boundary between JavaScript and
-something only the operating system can do: reading a sensor, accessing
-the camera, writing to secure device storage, showing a native permission
-dialog. If a feature doesn't cross that boundary, it doesn't belong in a
-plugin, it belongs in your app's own JS, same as it would on the web.
+Ships Kotlin source code only. Calling this plugin from an iOS application cleanly rejects with `WefterBridgeError` code `"UNKNOWN_PLUGIN"`.
+
+### 3. iOS-Only Plugin (`ios/` only)
+
+Ships Swift source code only. Calling this plugin from an Android application cleanly rejects with `WefterBridgeError` code `"UNKNOWN_PLUGIN"`.
 
 <Callout type="info">
-  A useful test: could this run, unmodified, in a plain browser tab? If
-  yes, it doesn't need a plugin. `invokeNative` and `registerHook` exist
-  for the cases where the answer is genuinely no.
+  **Validation Passing**: `wefter plugin validate` passes single-platform
+  plugins without errors. A plugin does not need to support both platforms to be
+  considered complete or publishable.
 </Callout>
 
-## Next
+---
 
-[Architecture &amp; call flow](/plugin/architecture-flow) walks through
-what actually happens, step by step, from a JS call to a resolved
-Promise, and from a plugin's own `emit` to a JS listener receiving data.
+## When to Build a Native Plugin
+
+Before creating a native plugin, evaluate whether your feature requires native OS integration:
+
+### Use Standard Web APIs (No Plugin Needed)
+
+If your application feature can be implemented using standard browser Web APIs, you do **not** need a native plugin:
+
+- Remote HTTP requests → Use standard `fetch()` or `axios`.
+- Local key-value storage → Use `localStorage` or `IndexedDB`.
+- Real-time messaging → Use `WebSocket` or `EventSource`.
+- Basic animations & UI → Use HTML5, CSS3, and JavaScript frameworks.
+
+### Build a Wefter Plugin (Native Plugin Required)
+
+Build a Wefter native plugin when your application requires access to operating system hardware or native SDKs:
+
+- Hardware access (Camera, Barcode Scanners, Bluetooth LE, NFC, Biometric Sensors).
+- Secure hardware storage (Android Keystore, iOS Keychain).
+- Native OS UI components (Native permission dialogs, System Settings, Push Notifications).
+- Background OS tasks and device telemetry.
+
+<Callout type="tip">
+  **The Browser Test**: Ask yourself: *"Could this feature execute inside a
+  standard Chrome or Safari browser tab without native desktop/mobile
+  permissions?"* If **yes**, write it in web JavaScript. If **no**, build a
+  Wefter native plugin.
+</Callout>

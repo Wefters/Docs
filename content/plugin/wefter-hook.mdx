@@ -1,89 +1,82 @@
 ---
-title: "@WefterHook"
-description: Native lifecycle hooks a plugin method can subscribe to, not the JS event-push mechanism.
+title: "@WefterHook Annotation"
+description: Native lifecycle signals, event subscriptions, and host shell lifecycle integration.
 ---
 
-<Callout type="warn">
-  `@WefterHook` is not how a plugin pushes data to JS, that's `emit`,
-  covered on [`wefter-plugin-class`](/plugin/wefter-plugin-class) and
-  [architecture-flow's event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener),
-  and it needs no annotation at all. `@WefterHook` subscribes a no-argument
-  method to a *native-side* lifecycle signal: one native component
-  telling another "this happened," with no JS involved and no data
-  payload. The two mechanisms share the word "hook" and nothing else.
-</Callout>
+## Overview
 
-## The signature
+The `@WefterHook` annotation subscribes a native plugin method to internal native-to-native signals dispatched by the host application shell (`BridgeDispatcher`).
+
+Unlike `emit()`, which pushes real-time event streams from native plugins to JavaScript, `@WefterHook` operates entirely within native code with zero JavaScript involvement or payload data overhead.
+
+---
+
+## Method Signatures
+
+`@WefterHook` methods must take zero parameters and return `Unit` (Kotlin) or `Void` (Swift).
+
+### Kotlin (Android)
 
 ```kotlin
-@WefterHook("appReady")
-fun onAppReady() {
-    // ...
+package dev.wefter.bridge
+
+import android.content.Context
+
+class CameraPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
+
+    @WefterHook("appReady")
+    fun onAppReady() {
+        // Prepare native camera hardware when web app completes initial load
+    }
 }
 ```
+
+### Swift (iOS)
 
 ```swift
-// @WefterHook("appReady")
-func onAppReady() {
-    // ...
+import Foundation
+
+final class CameraPlugin: WefterPlugin {
+
+    // @WefterHook("appReady")
+    func onAppReady() {
+        // Prepare native camera hardware when web app completes initial load
+    }
 }
 ```
 
-The method takes no parameters on either platform, a hook is a plain
-signal, not a data channel. During `wefter sync`, every extracted hook
-gets wired into the generated registry as:
+---
+
+## Registry Generation & Dispatching
+
+During [`wefter sync`](/cli/sync), Wefter extracts methods annotated with `@WefterHook("<name>")` and generates registration code inside `WefterPluginRegistry`:
 
 ```kotlin
+// Generated Kotlin Registry
 dispatcher.subscribeHook("appReady") { pluginInstance.onAppReady() }
 ```
 
-Nothing calls `onAppReady()` until some native code elsewhere calls
-`dispatcher.dispatchHook("appReady")`. That call, and the resulting fan-out
-to every subscriber registered under that name, is the entire mechanism:
-there's no queuing, no data, no cross-platform JS visibility.
+When native application shells execute `dispatcher.dispatchHook("appReady")`, all subscribed plugin hook methods execute synchronously.
 
-## What's actually live today
+---
 
-**Two hook names either native shell actually dispatches today:
-`"appReady"` and `"hideSplash"`.** `"appReady"` fires once when the
-WebView finishes its first page load (`WebViewClient.onPageFinished` on
-Android, the equivalent iOS navigation callback), and again any time
-your JS explicitly calls `invokeNative('__system', 'appReady', {})`.
-`"hideSplash"` is narrower and never automatic, it fires only when your
-JS calls `hideSplash()` from `@wefterjs/core` (a thin wrapper around
-`invokeNative('__system', 'hideSplash', {})`). Both shells' own
-splash-dismissal logic subscribes to `"hideSplash"` internally
-(`dispatcher.subscribeHook("hideSplash") { dismissSplash() }`), which is
-why that hook exists at all; `"appReady"` predates it and stays the
-general-purpose one available to any plugin. See [App Splash
-Screen](/docs/app-splash-screen#dismissal) for the full dismissal model.
+## Active Host Shell Hook Signals
 
-**General lifecycle hooks, `onPause`, `onResume`, are not wired to
-anything real yet.** The `subscribeHook`/`dispatchHook` plumbing itself is
-implemented and unit-tested (Android's `BridgeDispatcherTest.kt` proves
-subscribers fire correctly, using `"onPause"` purely as an illustrative
-hook name), but no Android `Activity` lifecycle callback and no iOS
-`Scene`/`AppDelegate` method actually calls `dispatchHook("onPause")` or
-`dispatchHook("onResume")` in the current shells. You can declare
-`@WefterHook("onPause")` on a plugin today, it validates, extracts, and
-wires into `subscribeHook` exactly like `"appReady"` does, but nothing
-will ever call it. This is deliberately deferred, waiting on a real
-consumer (a camera plugin needing to release hardware when the app
-backgrounds is the anticipated one) to justify wiring the actual
-`dispatchHook` calls into `MainActivity`/`ViewController`.
+The Wefter native application shells dispatch two built-in lifecycle hook signals:
 
-<Callout type="info">
-  This status is also stated on
-  [architecture-flow](/plugin/architecture-flow#native-lifecycle-hooks-wefterhook-subscribehook-dispatchhook).
-  The two pages describe the same fact from two angles and need to be
-  updated together the moment it changes in the real codebase, never
-  just one.
-</Callout>
+| Hook Name      | Dispatch Source                                                                                                                  | Purpose                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `"appReady"`   | `WebView` initial page load completion (`onPageFinished` / `didFinishNavigation`) or `invokeNative("__system", "appReady", {})`. | Signals that the web app has completed DOM rendering and bridge initialization.   |
+| `"hideSplash"` | `hideSplash()` call from `@wefterjs/core` (`invokeNative("__system", "hideSplash", {})`).                                        | Signals that the web app has explicitly requested native splash screen dismissal. |
 
-## Malformed hooks
+---
 
-Same validation posture as `@WefterMethod`: an extra parameter, a missing
-quoted hook name, or the annotation and function separated wrong all fail
-with `Malformed @WefterHook signature at line <n> (android/)` or
-`(ios/)`. Full validation sequence:
-[`validating-and-publishing`](/plugin/validating-and-publishing).
+## Validation Rules
+
+`wefter plugin validate` verifies that every `@WefterHook` declaration includes a valid string name argument and a zero-parameter function body.
+
+If a method signature includes parameters or malformed syntax, validation fails with:
+
+```text
+[ERROR] Malformed @WefterHook signature at line <n> (android/ / ios/)
+```

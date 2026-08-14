@@ -1,140 +1,124 @@
 ---
-title: WefterPlugin
-description: Every base-class helper, both platforms, and the honest asymmetry between them.
+title: WefterPlugin Base Class
+description: Android (Kotlin) and iOS (Swift) base class member references, callback resolvers, event emitters, and WefterBridge instance lookups.
 ---
 
-Every plugin class extends `WefterPlugin`. What it hands you is not the
-same on both platforms, and this page states that plainly rather than
-smoothing it into a false parity. A developer who reads a claim of
-parity here will go looking for something on iOS that was never built,
-lose time, and only then find the real pattern on
-[`permissions`](/plugin/permissions).
+## Overview
 
-## Android: five things
+On both platforms, every Wefter native plugin extends `WefterPlugin`. The base class provides standard helper methods for resolving/rejecting asynchronous JavaScript calls, emitting real-time event hooks, and accessing host application resources (Android `Context` or iOS `UIViewController`).
+
+---
+
+## Android (`Kotlin`): `WefterPlugin`
 
 ```kotlin
+package dev.wefter.bridge
+
+import android.app.Activity
+import android.content.Context
+import org.json.JSONObject
+
 abstract class WefterPlugin(
     protected val context: Context,
     protected val dispatcher: BridgeDispatcher
 )
 ```
 
-| Member | Signature | Purpose |
-| --- | --- | --- |
-| `resolve` | `resolve(callback, data: JSONObject = JSONObject())` | Answer a call successfully. |
-| `reject` | `reject(callback, code: String, message: String)` | Answer with a [structured error](/plugin/structured-errors). |
-| `emit` | `emit(hookName: String, data: JSONObject)` | Push an event to JS, see [the event path](/plugin/architecture-flow#the-event-path-emit-to-a-js-listener). |
-| `hasPermission` | `hasPermission(permission: String): Boolean` | Check whether an Android runtime permission is already granted. |
-| `requestPermission` | `requestPermission(activity: Activity, permission: String, onResult: (granted: Boolean) -> Unit)` | Ask for a permission and receive the real answer. |
+### Member Reference
+
+| Member Name         | Method Signature                                                                                  | Description                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `resolve`           | `resolve(callback: (Result<Any>) -> Unit, data: JSONObject = JSONObject())`                       | Resolves the pending JS Promise with a successful payload.                                   |
+| `reject`            | `reject(callback: (Result<Any>) -> Unit, code: String, message: String)`                          | Rejects the pending JS Promise with a structured [`WefterError`](/plugin/structured-errors). |
+| `emit`              | `emit(hookName: String, data: JSONObject)`                                                        | Pushes an event payload to JavaScript listeners (`registerHook`).                            |
+| `hasPermission`     | `hasPermission(permission: String): Boolean`                                                      | Checks if a runtime Android permission is granted (`ContextCompat.checkSelfPermission`).     |
+| `requestPermission` | `requestPermission(activity: Activity, permission: String, onResult: (granted: Boolean) -> Unit)` | Requests a runtime permission and receives an asynchronous result callback.                  |
+
+### Android Implementation Example
 
 ```kotlin
-class ScannerPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
+package dev.wefter.bridge
+
+import android.content.Context
+import org.json.JSONObject
+
+class BatteryPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
+
     @WefterMethod
-    fun open(payload: JSONObject, callback: (Result<Any>) -> Unit) {
-        resolve(callback, JSONObject().put("started", true))
+    fun getLevel(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        val level = 85 // Read battery level from Android OS
+        resolve(callback, JSONObject().put("level", level))
     }
 }
 ```
 
-`requestPermission` changed recently enough that it's worth stating
-directly: it used to require a plugin author to invent their own Android
-permission request code and had no way to ever learn the result. It now
-generates the request code internally and calls `onResult` with a real
-`Boolean` once Android actually answers, wired all the way through
-`BridgeDispatcher.requestPermission` and the hosting `Activity`'s
-`onRequestPermissionsResult`. The full working loop, check, request,
-resolve/reject, is on [`permissions`](/plugin/permissions).
+---
 
-## iOS: three things
+## iOS (`Swift`): `WefterPlugin`
 
 ```swift
+import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
+
 open class WefterPlugin {
     public let dispatcher: BridgeDispatcher
     public weak var viewController: UIViewController?
+
+    public required init(dispatcher: BridgeDispatcher, viewController: UIViewController?)
 }
 ```
 
-| Member | Signature | Purpose |
-| --- | --- | --- |
-| `resolve` | `resolve(_ callback:, data: [String: Any] = [:])` | Answer a call successfully. |
-| `reject` | `reject(_ callback:, code: String, message: String)` | Answer with a [structured error](/plugin/structured-errors). |
-| `emit` | `emit(_ hookName: String, _ data: [String: Any])` | Push an event to JS. |
+### Member Reference
+
+| Member Name      | Method Signature                                                                  | Description                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `resolve`        | `resolve(_ callback: (Result<Any, Error>) -> Void, data: [String: Any] = [:])`    | Resolves the pending JS Promise with a successful dictionary payload.                            |
+| `reject`         | `reject(_ callback: (Result<Any, Error>) -> Void, code: String, message: String)` | Rejects the pending JS Promise with a structured [`WefterError`](/plugin/structured-errors).     |
+| `emit`           | `emit(_ hookName: String, _ data: [String: Any])`                                 | Pushes an event payload to JavaScript listeners (`registerHook`).                                |
+| `viewController` | `public weak var viewController: UIViewController?`                               | Weak reference to host iOS `UIViewController` for presenting native dialogs or view controllers. |
+
+### iOS Implementation Example
 
 ```swift
-final class ScannerPlugin: WefterPlugin {
+import Foundation
+
+final class BatteryPlugin: WefterPlugin {
+
     // @WefterMethod
-    func open(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
-        resolve(callback, data: ["started": true])
+    func getLevel(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        let level = 85
+        resolve(callback, data: ["level": level])
     }
 }
 ```
 
-That's the whole class. There is no `hasPermission` and no
-`requestPermission` on iOS, and this is a deliberate design choice, not a
-gap waiting to be filled in later. Every iOS permission has its own type
-and its own asynchronous flow, `AVCaptureDevice.authorizationStatus` /
-`.requestAccess(for:completionHandler:)` for camera,
-`CLLocationManager`'s delegate methods for location,
-`PHPhotoLibrary.requestAuthorization` for the photo library, and none of
-them resemble each other closely enough for one generic wrapper to serve
-all of them honestly. A plugin author writing Swift calls the real
-framework API directly, inside their own method body, the same way
-they'd write any other piece of iOS code. See
-[`permissions`](/plugin/permissions) for a full, real example using
-`AVCaptureDevice`.
-
-<Callout type="warn">
-  Don't design a plugin's iOS side around a `hasPermission`-shaped helper
-  that doesn't exist. Every permission type on iOS gets its own
-  hand-written check against its own framework API, there's no shortcut,
-  and manufacturing one yourself just re-adds the complexity the missing
-  helper was avoiding.
+<Callout type="info">
+  **Platform Parity Difference**: Android provides `hasPermission` and
+  `requestPermission` on `WefterPlugin` because Android permissions share a
+  single `PackageManager` callback model. iOS framework permissions
+  (`AVCaptureDevice`, `CLLocationManager`, `PHPhotoLibrary`) each use distinct
+  delegates, requiring plugin authors to call Apple's framework APIs directly.
 </Callout>
 
-## Reaching a plugin instance from outside the dispatcher: `WefterBridge`
+---
 
-A plugin instance is normally only reachable through the dispatcher that
-constructed it — fine as long as every part of your plugin lives inside
-that one class. It stops being fine the moment a plugin needs a *second*
-native component that the dispatcher doesn't own: a launched Activity, a
-presented view controller, a URL handler. The Browser plugin's OAuth flow
-is the concrete case — the redirect lands in a dedicated
-`BrowserAuthActivity`, a completely separate Activity from whatever hosts
-the dispatcher, and it still needs to call `emit()` on the live
-`BrowserPlugin` instance once the redirect resolves.
+## Reaching Plugin Instances: `WefterBridge`
 
-`WefterBridge` is a framework-owned registry that solves this once,
-instead of every multi-component plugin hand-rolling its own static
-accessor:
+When a plugin needs to communicate with external native activities, custom view controllers, or deep-link handlers outside of `WefterPlugin`, use `WefterBridge` to look up active plugin instances by name.
+
+### Android
 
 ```kotlin
-object WefterBridge {
-    fun getPlugin(pluginId: String): WefterPlugin?
-}
+val plugin = WefterBridge.getPlugin("battery") as? BatteryPlugin
+plugin?.emit("levelChanged", JSONObject().put("level", 90))
 ```
+
+### iOS
 
 ```swift
-public enum WefterBridge {
-    public static func plugin(withId pluginId: String) -> WefterPlugin?
+if let plugin = WefterBridge.plugin(withId: "battery") as? BatteryPlugin {
+    plugin.emit("levelChanged", ["level": 90])
 }
 ```
-
-Every plugin is registered automatically — `GeneratedRegistry` calls
-`WefterBridge.register(...)` alongside `dispatcher.register(...)`, so
-there's nothing extra to opt into. From anywhere else in your native code:
-
-```kotlin
-class BrowserAuthActivity : FragmentActivity() {
-    private fun completeWithSuccess(callbackUrl: String) {
-        val plugin = WefterBridge.getPlugin("browser") as? BrowserPlugin
-        plugin?.dispatchAuthCompleted(callbackUrl, sessionId)
-    }
-}
-```
-
-`pluginId` is the same string as `plugin.json`'s `name` field and
-`wefter.config.json`'s `plugins` array — whatever `invokeNative`'s first
-argument uses. The registry only ever holds the currently-live instance
-per plugin name; nothing to unregister by hand, a plugin re-registers
-itself (overwriting the old entry) any time its dispatcher is recreated.
-

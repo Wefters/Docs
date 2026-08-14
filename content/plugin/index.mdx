@@ -1,92 +1,84 @@
 ---
 title: Wefter Plugins
-description: Plugin anatomy, the native API surface, and a full worked tutorial.
+description: Building native capabilities for Wefter applications using Kotlin (Android), Swift (iOS), and TypeScript.
 ---
 
-# Building native capability into a Wefter app
+## Overview
 
-A Wefter plugin pairs a small JS package with real Kotlin and/or Swift
-source, and gives your app a typed, Promise-based call into whatever the
-OS actually offers: a sensor, the camera, secure storage, a native
-permission dialog. This tab is where that native side lives: how a call
-actually travels from JavaScript to native code and back, every method the
-base classes give you on each platform, and a full worked build from
-nothing to a working plugin.
+A **Wefter Plugin** bridges web applications running inside a WebView with native operating system capabilities (camera, biometric authentication, secure hardware storage, Bluetooth, sensors, and native dialogs).
+
+Each plugin pairs a lightweight TypeScript wrapper package (`src/index.ts`) with native source code for Android (`Kotlin`) and/or iOS (`Swift`), communicating over a high-performance bi-directional bridge.
 
 ```ts
 import { invokeNative } from "@wefterjs/core";
 
-const result = await invokeNative("scanner", "open", {});
+// Typed, Promise-based native call from web application JS
+const result = await invokeNative<{ granted: boolean }>(
+  "camera",
+  "requestPermission",
+);
 ```
 
-If you're building an *app* and just need to add an existing plugin,
-[`wefter add`](/cli/add) on the CLI tab is the page you want. This tab is
-for writing the plugin itself.
+<Callout type="info">
+  **App Developer vs Plugin Author**: If you are an application developer adding
+  an existing plugin to your app, refer to [`wefter add`](/cli/add). This
+  section is dedicated to plugin authors building, testing, and publishing
+  native Wefter plugins.
+</Callout>
 
 ---
 
-## Where to start
+## Quick Navigation
 
 <Cards>
   <Card
-    title="What is a plugin?"
+    title="What is a Plugin?"
     href="/plugin/what-is-a-plugin"
-    description="What a plugin physically is, and when to actually reach for one."
+    description="Physical plugin architecture, supported directory layouts, and when to build a native plugin."
   />
   <Card
-    title="Architecture &amp; call flow"
+    title="Architecture & Communication Flow"
     href="/plugin/architecture-flow"
-    description="What really happens between invokeNative and a resolved Promise, step by step."
+    description="Step-by-step trace of invokeNative promises, event emitters, and native lifecycle hooks."
   />
   <Card
-    title="Plugin anatomy"
-    href="/plugin/plugin-anatomy"
-    description="The real, minimal file structure: Android-only, iOS-only, and both."
+    title="WefterPlugin Base Class"
+    href="/plugin/wefter-plugin-class"
+    description="Android (Kotlin) and iOS (Swift) base class APIs, callback resolvers, and error helpers."
   />
   <Card
-    title="Flashlight tutorial"
-    href="/plugin/tutorial-flashlight-plugin"
-    description="A complete build, both platforms, from `wefter create-plugin` to a real device."
+    title="Plugin Validation & CLI"
+    href="/cli/plugin-validate"
+    description="Standalone CLI validation checks for plugin schemas, annotations, and signatures."
   />
 </Cards>
 
 ---
 
-## The four groups on this tab
+## Key Plugin Concepts
 
-**Overview**: what a plugin is, when to build one, and how a single call
-or event actually crosses the JS/native boundary, with real function
-names at every step.
+### 1. Bi-Directional Bridge Execution
 
-**APIs**: the base class every plugin extends on each platform, the
-`@WefterMethod`/`@WefterHook` conventions, the structured error codes,
-the permission story (including the one iOS mistake that will crash your
-app, not just fail a call), and the full `plugin.json` schema.
+Calls placed via `invokeNative(plugin, method, payload)` return standard JavaScript Promises. Under the hood, Wefter generates native dispatcher classes (`<Name>PluginDispatch`) during [`wefter sync`](/cli/sync) that route calls directly to annotated native methods (`@WefterMethod` in Kotlin, `// @WefterMethod` in Swift) with zero reflection overhead.
 
-**Creating Plugins**: the practical, hands-on pages, scaffolding a new
-plugin, writing each side (JS, Kotlin, Swift), testing it, and validating
-it before anyone else installs it.
+### 2. Zero-Overhead Push Events (`emit`)
 
-**Tutorials**: two complete builds. One plain call-and-response
-(flashlight), one event-driven (a plugin that pushes data to JS on its
-own schedule), so you have a working reference for both shapes a plugin
-can take.
+Native plugins can push real-time data streams to JavaScript at any time (e.g. sensor readings, barcode scanner results, device orientation changes) using `emit(hookName, data)`. JavaScript listens via `registerHook(hookName, callback)`.
+
+### 3. Native Manifest & Dependency Injection
+
+Plugins declare native requirements in `plugin.json`. During `wefter sync`, the CLI automatically:
+
+- Merges Android permissions into `AndroidManifest.xml` and iOS permissions into `Info.plist`.
+- Injects Gradle dependencies into `build.gradle.kts` and Swift Package Manager (SPM) packages into `Package.swift`.
+- Merges ProGuard obfuscation rules into `proguard-rules.pro`.
 
 ---
 
-## Two platforms, documented honestly
+## Platform Availability & Parity
 
-Android and iOS are not offered the same surface, and this tab says so
-plainly wherever it's true, rather than papering over it. Android's
-`WefterPlugin` gives you `hasPermission`/`requestPermission` helpers; iOS
-gives you nothing equivalent, on purpose, because there's no single
-generic shape that honestly fits `AVCaptureDevice`, `CLLocationManager`,
-and `PHPhotoLibrary` at once. Where the two platforms genuinely differ,
-[`wefter-plugin-class`](/plugin/wefter-plugin-class) and
-[`permissions`](/plugin/permissions) say so directly instead of
-describing a false parity you'd only discover was wrong once you went
-looking for the Swift equivalent of something that doesn't exist.
+Wefter respects platform-native design patterns rather than forcing false abstractions:
 
-A plugin doesn't have to support both platforms to be complete. One
-shipping only `android/` or only `ios/` is a valid, finished plugin. See
-[What is a plugin?](/plugin/what-is-a-plugin).
+- **Asymmetric Support**: A plugin does not need to support both platforms to be complete. An Android-only plugin (`android/` folder only) or an iOS-only plugin (`ios/` folder only) is fully valid.
+- **Graceful Rejection**: If an app calls a plugin method on an unsupported platform (e.g. calling an Android-only plugin on iOS), `invokeNative` cleanly rejects the Promise with `WefterBridgeError` code `"UNKNOWN_PLUGIN"`.
+- **Platform Specific APIs**: Android provides built-in `hasPermission` / `requestPermission` helpers on `WefterPlugin`, whereas iOS permissions are managed per-framework (`AVCaptureDevice`, `CLLocationManager`, `PHPhotoLibrary`) as mandated by Apple.

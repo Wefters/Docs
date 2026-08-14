@@ -1,68 +1,80 @@
 ---
-title: plugin.json reference
-description: Every field in the plugin manifest, both platforms, what it controls and what it defaults to.
+title: plugin.json Reference
+description: Complete field reference for plugin.json manifests, permissions, native dependencies, and manifest entries.
 ---
 
-The manifest [`wefter plugin validate`](/cli/plugin-validate), [`wefter
-add`](/cli/add), and [`wefter sync`](/cli/sync) all read, via the same
-`validatePluginDirectory` function underneath every one of them.
+## Overview
 
-## Fields
+The `plugin.json` manifest file resides at the root of every Wefter plugin package directory.
 
-| Field | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `name` | `string`, required | none | The plugin's identifier: what `invokeNative`'s first argument and `wefter.config.json`'s `plugins` array both refer to it as. |
-| `permissions.android` | `string[]` | `[]` | Android manifest permission constants, e.g. `"android.permission.CAMERA"`. |
-| `permissions.ios` | `Record<string, string>` | `{}` | Info.plist usage-description key → the human-readable string shown in the OS permission prompt. |
-| `nativeDependencies.android.gradle` | `string[]`, optional | `[]` | Gradle dependency coordinates, e.g. `["androidx.camera:camera-core:1.3.0"]`. A plugin needing several artifacts (CameraX + ML Kit, say) declares all of them here — see below. |
-| `nativeDependencies.android.proguardRules` | `string`, optional | none | Raw ProGuard rule text, merged into the host app's `proguard-rules.pro`. Stays a single string (it's a text blob, not a list of discrete items) — put multiple rules in it separated by `\n`, same as any ProGuard file. |
-| `nativeDependencies.ios.spm` | `{ url, from, product }[]`, optional | none | Swift Package Manager dependencies, merged into the generated `NativeDependencies` package. |
-| `android.manifestEntries` | `ManifestEntry[]` | `[]` | Structural `AndroidManifest.xml` additions — activities and their intent-filters — woven into the generated manifest at sync time. See below. |
-| `methods` | `string[]` | `[]` | Every `@WefterMethod` name your source implements, checked against what's actually found in source, see below. |
-| `hooks` | `string[]` | `[]` | Every `@WefterHook` name your source implements, same cross-check. |
-| `events` | `string[]` | `[]` | Names your plugin `emit`s. Documentation only; nothing validates these against source, since `emit` calls aren't statically scanned the way `@WefterMethod`/`@WefterHook` are. |
+It defines native permissions, Gradle/SPM package dependencies, ProGuard rules, Android manifest components (Activities and Intent Filters), and declared `@WefterMethod`/`@WefterHook` method lists.
 
-## `nativeDependencies.android.gradle` is an array
+---
 
-Every artifact your plugin's native source needs goes in this array —
-there's no limit of one. The Scanner plugin's CameraX + ML Kit dependency
-needs four separate coordinates:
+## Schema Reference Table
+
+| Field Name                                 | Type                     | Required / Optional | Default Value | Description                                                                             |
+| ------------------------------------------ | ------------------------ | ------------------- | ------------- | --------------------------------------------------------------------------------------- |
+| `name`                                     | String                   | **Required**        | None          | Unique plugin package identifier (matches `wefter.config.json`'s `plugins` array).      |
+| `permissions.android`                      | Array of Strings         | Optional            | `[]`          | List of Android manifest permission constants (`android.permission.CAMERA`).            |
+| `permissions.ios`                          | `Record<string, string>` | Optional            | `{}`          | Key-value pairs mapping iOS `Info.plist` usage keys to user prompt description strings. |
+| `nativeDependencies.android.gradle`        | Array of Strings         | Optional            | `[]`          | Maven Gradle dependency coordinates (`group:artifact:version`).                         |
+| `nativeDependencies.android.proguardRules` | String                   | Optional            | None          | Raw ProGuard rules text merged into `proguard-rules.pro`.                               |
+| `nativeDependencies.ios.spm`               | Array of Objects         | Optional            | `[]`          | Swift Package Manager dependencies (`url`, `from`, `product`).                          |
+| `android.manifestEntries`                  | Array of Objects         | Optional            | `[]`          | Android manifest component entries (Activities and Intent Filters).                     |
+| `methods`                                  | Array of Strings         | Optional            | `[]`          | List of `@WefterMethod` function names implemented by native source files.              |
+| `hooks`                                    | Array of Strings         | Optional            | `[]`          | List of `@WefterHook` signal names implemented by native source files.                  |
+| `events`                                   | Array of Strings         | Optional            | `[]`          | List of event names emitted by native plugin code (`emit`).                             |
+
+---
+
+## Field Details & Examples
+
+### 1. `permissions`
+
+```json
+{
+  "permissions": {
+    "android": [
+      "android.permission.CAMERA",
+      "android.permission.ACCESS_FINE_LOCATION"
+    ],
+    "ios": {
+      "NSCameraUsageDescription": "Allows taking photos inside the app.",
+      "NSLocationWhenInUseUsageDescription": "Allows fetching location for tag generation."
+    }
+  }
+}
+```
+
+### 2. `nativeDependencies`
 
 ```json
 {
   "nativeDependencies": {
     "android": {
       "gradle": [
-        "androidx.camera:camera-camera2:1.6.1",
-        "androidx.camera:camera-lifecycle:1.6.1",
-        "androidx.camera:camera-view:1.6.1",
-        "com.google.mlkit:barcode-scanning:17.3.0"
+        "androidx.camera:camera-camera2:1.3.0",
+        "com.google.mlkit:barcode-scanning:17.2.0"
+      ],
+      "proguardRules": "-keep class com.google.mlkit.** { *; }"
+    },
+    "ios": {
+      "spm": [
+        {
+          "url": "https://github.com/google/GoogleSignIn-iOS",
+          "from": "7.0.0",
+          "product": "GoogleSignIn"
+        }
       ]
     }
   }
 }
 ```
 
-`wefter plugin validate` rejects any entry that doesn't look like a
-`group:artifact:version` Maven coordinate. At sync time, `wefter` merges
-every installed plugin's arrays together, deduplicates identical
-coordinates, and — if two plugins declare the **same** `group:artifact`
-at different **major** versions — resolves to the highest version and
-prints a loud warning rather than silently picking one; see
-[`wefter add`](/cli/add) and [`wefter audit`](/cli/audit) for where that
-warning surfaces. A difference in minor/patch version only (`1.3.0` vs
-`1.3.1`) is not treated as a conflict, that's normal Gradle resolution
-territory.
+### 3. `android.manifestEntries`
 
-`nativeDependencies.ios.spm` was already an array for the same reason —
-Wefter never assumed an iOS plugin needed at most one Swift package. Only
-the Android side had the "one string" bug.
-
-## `android.manifestEntries`
-
-For a plugin whose native side needs its own Activity — an OAuth redirect
-handler is the canonical case — declare it structurally instead of asking
-every installer to hand-edit `AndroidManifest.xml`:
+Declares native Android Activities and Intent Filters woven into `AndroidManifest.xml` during `wefter sync`:
 
 ```json
 {
@@ -70,13 +82,18 @@ every installer to hand-edit `AndroidManifest.xml`:
     "manifestEntries": [
       {
         "type": "activity",
-        "name": ".BrowserAuthActivity",
+        "name": ".AuthRedirectActivity",
         "exported": true,
         "intentFilters": [
           {
             "action": "android.intent.action.VIEW",
-            "categories": ["android.intent.category.DEFAULT", "android.intent.category.BROWSABLE"],
-            "data": { "scheme": "wefter" }
+            "categories": [
+              "android.intent.category.DEFAULT",
+              "android.intent.category.BROWSABLE"
+            ],
+            "data": {
+              "scheme": "${appScheme}"
+            }
           }
         ]
       }
@@ -85,115 +102,44 @@ every installer to hand-edit `AndroidManifest.xml`:
 }
 ```
 
-| Field | Type | Purpose |
-| --- | --- | --- |
-| `type` | `"activity"` | The only component type this pass supports. The shape is deliberately extensible to `"service"`/`"provider"`/`"receiver"` later without a breaking schema change, but only `"activity"` validates today. |
-| `name` | `string` | A **single-segment** relative class reference starting with `"."`, e.g. `".BrowserAuthActivity"`. Must resolve to a `class`/`object` your plugin's `android/` source actually declares — `wefter plugin validate` checks this before install, not at build time. |
-| `exported` | `boolean`, default `false` | Whether the component is reachable from outside your app. `wefter audit` and `wefter add` flag `exported: true` components as a distinct risk category from permissions — an exported activity with an intent-filter is attackable from any other app on the device, not just "this plugin can read the camera." |
-| `intentFilters` | `IntentFilter[]` | Structured, not raw XML, so it stays machine-checkable. Each has `action` (string), `categories` (`string[]`), and an optional `data` object (`scheme`/`host`/`path`/`pathPrefix`/`pathPattern`/`mimeType`, all optional strings — the same attributes Android's own `<data>` tag takes). |
+<Callout type="info">
+  **Manifest Placeholders**: `data.scheme` values containing `${placeholder}`
+  variables resolve dynamically against `pluginConfig` in the host app's
+  `wefter.config.json` during `wefter sync`.
+</Callout>
 
-### Why `name` has to be a single segment
+### 4. `methods` & `hooks`
 
-`wefter sync` flattens **every** installed plugin's `android/` source into
-one shared package — the app's own namespace — there are no per-plugin
-subpackages. A relative reference like `.auth.BrowserAuthActivity`
-implies a `auth` subpackage that will never exist once your plugin is
-woven in, and Android fails at runtime with an
-`ActivityNotFoundException` instead of at sync time. `wefter plugin
-validate` rejects a multi-segment `name` before that ever ships, so the
-schema only accepts `.SomeActivity`, never `.some.pkg.SomeActivity`.
-
-### Placeholders resolve from the consuming app's `wefter.config.json`
-
-A value inside `data` can reference `${someKey}`, resolved against the
-**app's own** `pluginConfig` object at sync time — never hardcoded by the
-plugin author, since the value (an OAuth redirect scheme, say) belongs to
-whoever's building the app, not the plugin:
-
-```json
-{ "data": { "scheme": "${appScheme}" } }
-```
-
-```json
-// the consuming app's wefter.config.json
-{ "pluginConfig": { "appScheme": "yourapp" } }
-```
-
-If `wefter sync` hits a placeholder with no matching `pluginConfig` key,
-it fails the sync with an error naming exactly which key is missing —
-never silently drops the entry. `wefter add` surfaces which
-`pluginConfig` keys a plugin needs at install time, before you're
-surprised by a sync failure later. See [App
-Configuration](/docs/app-configuration#fields) for the full
-`pluginConfig` shape.
-
-Only use a placeholder for values that are genuinely app-specific. The
-Browser plugin's own redirect scheme is a fixed plugin constant (every
-app using it goes through `wefter://`), so its `manifestEntries` entry
-uses the literal string `"wefter"`, not a placeholder — there's nothing
-for the consuming app to configure.
-
-### iOS
-
-Not implemented this pass. The equivalent need (`CFBundleURLTypes` for a
-plugin that needs a URL scheme) will extend the existing
-`.xcconfig`-based config injection the same way `android.manifestEntries`
-extends `AndroidManifest.xml` generation, whenever a real plugin needs it.
-
-## Why `permissions.android` and `permissions.ios` are different shapes
-
-This isn't an inconsistency, it's what each platform's own manifest
-format actually needs. Android's manifest just needs a flat list of
-permission constants:
-
-```json
-{ "permissions": { "android": ["android.permission.CAMERA"] } }
-```
-
-iOS requires the app itself to supply the permission dialog's explanation
-text, or the app risks App Store rejection on top of the crash risk
-covered on [`permissions`](/plugin/permissions), so `permissions.ios` is
-a map from the `Info.plist` key to that exact string:
+Lists annotated methods implemented in native source files. `wefter plugin validate` verifies 1:1 parity between declared method names and `@WefterMethod`/`@WefterHook` annotations in Kotlin/Swift source files:
 
 ```json
 {
-  "permissions": {
-    "ios": { "NSCameraUsageDescription": "Used to scan barcodes." }
-  }
+  "methods": ["open", "close", "takePhoto"],
+  "hooks": ["appReady"],
+  "events": ["photoCaptured"]
 }
 ```
 
-Both default to empty; there's nothing to fill in until your plugin
-actually touches something that needs a permission.
+---
 
-## `methods`/`hooks` are checked against source, `events` isn't
-
-`methods` and `hooks` aren't just documentation. `wefter plugin
-validate` scans your native source for every `@WefterMethod`/`@WefterHook`
-it can find, per platform, and fails if the two lists disagree in either
-direction (declared but missing from source, or present in source but
-never declared). Full mechanics on
-[`validating-and-publishing`](/plugin/validating-and-publishing). `events`
-has no such check, it's a courtesy to whoever reads your `plugin.json`,
-since an `emit("scanner:result", ...)` call anywhere in your source isn't
-statically discoverable the way an annotated method is.
-
-## Full example
+## Full `plugin.json` Example
 
 ```json
 {
-  "name": "scanner",
+  "name": "camera-scanner",
   "permissions": {
     "android": ["android.permission.CAMERA"],
-    "ios": { "NSCameraUsageDescription": "Used to scan barcodes." }
+    "ios": {
+      "NSCameraUsageDescription": "Required to scan barcodes."
+    }
   },
   "nativeDependencies": {
     "android": {
-      "gradle": ["androidx.camera:camera-core:1.3.0"],
+      "gradle": ["androidx.camera:camera-camera2:1.3.0"],
       "proguardRules": "-keep class androidx.camera.** { *; }"
     },
     "ios": {
-      "spm": [{ "url": "https://github.com/example/SomeSDK", "from": "1.0.0", "product": "SomeSDK" }]
+      "spm": []
     }
   },
   "android": {
@@ -201,9 +147,6 @@ statically discoverable the way an annotated method is.
   },
   "methods": ["open", "close"],
   "hooks": [],
-  "events": ["scanner:result"]
+  "events": ["scanResult"]
 }
 ```
-
-`wefter create-plugin` scaffolds the empty-everywhere starting point this
-grows from. See [`scaffolding`](/plugin/scaffolding).
