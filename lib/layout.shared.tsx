@@ -1,5 +1,6 @@
 import type { BaseLayoutProps, LayoutTab } from "fumadocs-ui/layouts/shared";
-import { BookOpen, Puzzle, Terminal } from "lucide-react";
+import { BookOpen, Puzzle, Terminal, Package } from "lucide-react";
+import { HeaderGithubStar } from "@/components/github-star";
 
 const DiscordIcon = () => (
   <svg role="img" viewBox="0 0 24 24" fill="currentColor" className="size-4">
@@ -61,6 +62,12 @@ export function baseOptions(): BaseLayoutProps {
         icon: <Terminal className="size-4" />,
         text: "CLI",
         url: "/cli",
+        on: "nav",
+      },
+      {
+        icon: <Package className="size-4" />,
+        text: "Plugins",
+        url: "/plugins",
         active: "nested-url",
         on: "nav",
       },
@@ -71,8 +78,10 @@ export function baseOptions(): BaseLayoutProps {
         text: "Discord",
         url: "https://discord.gg/your-invite",
       },
+      {
+        type: "custom",
+        children: <HeaderGithubStar />,
+      },
     ],
-
-    githubUrl: "https://github.com",
   };
 }

@@ -1,0 +1,78 @@
+[
+  {
+    "id": "haptics",
+    "name": "Native Haptics & Vibration",
+    "packageName": "@wefterjs/haptics",
+    "slug": "haptics",
+    "type": "official",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "version": "0.0.1",
+    "author": "Wefter Core Team",
+    "repositoryUrl": "https://github.com/Wefters/wefter",
+    "npmUrl": "https://www.npmjs.com/package/@wefterjs/haptics",
+    "license": "MIT",
+    "createdAt": "2026-08-14T00:00:00.000Z",
+    "updatedAt": "2026-08-14T00:00:00.000Z",
+    "descriptionMdx": "## Native Haptics Plugin\n\nProvide tactile physical feedback to users using iOS `UIImpactFeedbackGenerator` and Android `Vibrator` / `VibrationEffect` API.\n\n### Installation\n\n```bash\nwefter add @wefterjs/haptics\n```\n\n### Usage Example\n\n```typescript\nimport { invokeNative } from \"@wefterjs/core\";\n\n// Trigger light impact haptic\nawait invokeNative(\"haptics\", \"impact\", { style: \"light\" });\n\n// Trigger notification haptic pattern\nawait invokeNative(\"haptics\", \"notification\", { type: \"success\" });\n```"
+  },
+  {
+    "id": "scanner",
+    "name": "QR & Barcode Frame Scanner",
+    "packageName": "@wefterjs/scanner",
+    "slug": "scanner",
+    "type": "official",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "version": "0.0.1",
+    "author": "Wefter Core Team",
+    "repositoryUrl": "https://github.com/Wefters/wefter",
+    "npmUrl": "https://www.npmjs.com/package/@wefterjs/scanner",
+    "license": "MIT",
+    "createdAt": "2026-08-14T00:00:00.000Z",
+    "updatedAt": "2026-08-14T00:00:00.000Z",
+    "descriptionMdx": "## QR Code & Barcode Scanner Plugin\n\nHigh-performance camera QR code scanning backed by Google ML Kit Vision on Android and AVFoundation metadata output on iOS.\n\n### Installation\n\n```bash\nwefter add @wefterjs/scanner\n```\n\n### Usage Example\n\n```typescript\nimport { invokeNative } from \"@wefterjs/core\";\n\nconst scan = await invokeNative<{ text: string; format: string }>(\n  \"scanner\",\n  \"startScan\"\n);\n\nconsole.log(\"Scanned content:\", scan.text);\n```"
+  },
+  {
+    "id": "secure-storage",
+    "name": "Encrypted Secure Storage",
+    "packageName": "@wefterjs/secure-storage",
+    "slug": "secure-storage",
+    "type": "official",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "version": "0.0.1",
+    "author": "Wefter Core Team",
+    "repositoryUrl": "https://github.com/Wefters/wefter",
+    "npmUrl": "https://www.npmjs.com/package/@wefterjs/secure-storage",
+    "license": "MIT",
+    "createdAt": "2026-08-14T00:00:00.000Z",
+    "updatedAt": "2026-08-14T00:00:00.000Z",
+    "descriptionMdx": "## Encrypted Secure Storage Plugin\n\nPersist sensitive auth tokens, encryption keys, and credentials securely using Android `EncryptedSharedPreferences` and iOS `Keychain`.\n\n### Installation\n\n```bash\nwefter add @wefterjs/secure-storage\n```\n\n### Usage Example\n\n```typescript\nimport { invokeNative } from \"@wefterjs/core\";\n\n// Write token to secure keychain\nawait invokeNative(\"secureStorage\", \"set\", {\n  key: \"jwt_token\",\n  value: \"ey...\"\n});\n\n// Read token\nconst item = await invokeNative<{ value: string }>(\"secureStorage\", \"get\", {\n  key: \"jwt_token\"\n});\n```"
+  },
+  {
+    "id": "community-geolocation",
+    "name": "Community GPS Geolocation",
+    "packageName": "@wefter-community/geolocation",
+    "slug": "community-geolocation",
+    "type": "community",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "version": "1.2.0",
+    "author": "Alex Dev",
+    "repositoryUrl": "https://github.com/wefter-community/geolocation",
+    "npmUrl": "https://www.npmjs.com/package/@wefter-community/geolocation",
+    "license": "MIT",
+    "createdAt": "2026-08-14T00:00:00.000Z",
+    "updatedAt": "2026-08-14T00:00:00.000Z",
+    "descriptionMdx": "## Community Geolocation Plugin\n\nHigh-accuracy GPS location tracking and continuous background position updates for Wefter mobile apps.\n\n### Installation\n\n```bash\nwefter add @wefter-community/geolocation\n```"
+  }
+]

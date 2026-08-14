@@ -21,6 +21,7 @@ import {
   Boxes,
   ExternalLink,
 } from "lucide-react";
+import { GithubStarButton } from "@/components/github-star";
 
 const steps = [
   {
@@ -236,6 +237,8 @@ export default function HomePage() {
               <Code2 className="h-4 w-4 text-fd-muted-foreground" />
               <span>Read Architecture</span>
             </Link>
+
+            <GithubStarButton className="px-5 py-3 text-sm" />
           </div>
 
           {/* Terminal Command Bar */}
@@ -643,7 +646,7 @@ export default function HomePage() {
                 CLI
               </Link>
               <a
-                href="https://github.com"
+                href="https://github.com/Wefters/wefter"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 hover:text-fd-foreground transition-colors"
