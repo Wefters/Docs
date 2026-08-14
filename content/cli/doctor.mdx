@@ -1,6 +1,6 @@
 ---
 title: wefter doctor
-description: Checks your machine is set up to build Wefter apps.
+description: Inspect your environment, SDK paths, native toolchains, connected devices, and release readiness.
 ---
 
 ## Synopsis
@@ -9,112 +9,139 @@ description: Checks your machine is set up to build Wefter apps.
 wefter doctor [--release-readiness] [projectDir]
 ```
 
-## What it checks
+## Overview & Use Cases
 
-Every check runs regardless of earlier failures, all results are reported
-together at the end, not one at a time.
+`wefter doctor` checks your local machine and project environment to verify that all prerequisites for building and running Wefter native applications are properly configured.
 
-**Always checked, both platforms:**
+Instead of waiting for a complex Gradle compilation or `xcodebuild` invocation to fail 5 minutes into a build, `wefter doctor` runs non-destructive diagnostic checks in seconds and prints exact actionable fix instructions for any failing component.
 
-- Node.js version
-- Whether a project's `wefter.config.json` (if present) is valid
+### Primary Use Cases
 
-**Android checks:**
+- Verifying local environment setup after installing Wefter.
+- Debugging missing SDKs, environment variables (`ANDROID_HOME`), or JDK versions.
+- Auditing release-signing configuration prior to creating production release artifacts (`--release-readiness`).
 
-- `ANDROID_HOME` (or `ANDROID_SDK_ROOT`) is set
-- `adb` is reachable on `PATH`
-- JDK version (17 required)
-- A device or emulator is currently connected
+---
 
-**iOS checks (run every time, on every platform):**
+## What It Checks
 
-- Running on macOS at all
-- Xcode is installed (`xcodebuild -version`)
-- Xcode Command Line Tools are installed (`xcode-select -p`)
-- At least one Simulator device is available (`xcrun simctl list devices
-available`)
+All checks execute regardless of earlier failures. Diagnostic results are aggregated and printed together at the end.
 
-Each failing check prints a concrete fix, not just a pass or fail.
+### Core System Checks (Both Platforms)
 
-<Callout type="warn">
-  These four checks run unconditionally, they are **not** skipped on
-  Linux/Windows. Off macOS, `checkMacOS` fails, and the three Xcode/Simulator
-  checks each short-circuit straight to `passed: false` with `fix: "requires
-  macOS"`, a fix you can't actually act on. Since `wefter doctor`'s overall
-  pass/fail requires every check to pass, **`wefter doctor` currently always
-  exits `1` on a non-macOS machine**, even with a perfectly working
-  Android-only setup. There's no "Android-only mode" that silences these yet.
-  Treat those four specific lines as expected noise if you're not building
-  for iOS, and check the other lines for the real signal.
-</Callout>
+- **Node.js Version**: Verifies Node 18+ is running.
+- **Config Schema**: Validates `wefter.config.json` schema if present in `projectDir`.
 
-## `--release-readiness`
+### Android Environment Checks
 
-Extends the base checks with the release-signing checks for **both**
-platforms, unconditionally, not only the platform(s) you've actually
-configured signing for:
+- **`ANDROID_HOME` / `ANDROID_SDK_ROOT`**: Verifies Android SDK path is set.
+- **`adb` Executable**: Verifies `adb` is available on system `PATH`.
+- **JDK 17**: Verifies Java Development Kit version (JDK 17 is required for Gradle).
+- **Connected Devices / Emulators**: Checks for active ADB devices or running emulators.
 
-Both platforms' release security lints run regardless of signing config
-(see [`wefter sync`](/cli/sync)). Beyond that, each platform checks its
-own signing setup. Android fails on "Signing config" if
-`wefter.config.json` has no `signing` block at all (`keystorePath`,
-`keyAlias`); if it does, it also checks that the keystore file exists at
-`keystorePath` and that `WEFTER_KEYSTORE_PASSWORD` is set. iOS fails on
-"iOS signing config" if `wefter.config.json` has no `iosSigning` block at
-all (`teamId`, optional `provisioningProfile`); if it does, it also
-checks that `WEFTER_IOS_SIGNING_IDENTITY` is set.
+### iOS Environment Checks (macOS)
+
+- **macOS Host OS**: Verifies system is running macOS.
+- **Xcode Installation**: Verifies Xcode is installed via `xcodebuild -version`.
+- **Command Line Tools**: Verifies Xcode command line tools path (`xcode-select -p`).
+- **iOS Simulator Devices**: Checks for available iOS simulators (`xcrun simctl list devices`).
+
+---
+
+## Arguments & Options
+
+### Arguments
+
+| Argument     | Type       | Required / Optional | Description                                                                  | Default                                     |
+| ------------ | ---------- | ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
+| `projectDir` | Positional | Optional            | Path to project root directory. Required when running `--release-readiness`. | Current working directory (`process.cwd()`) |
+
+### Options (Flags)
+
+| Flag                  | Type    | Description                                                                             | Default |
+| --------------------- | ------- | --------------------------------------------------------------------------------------- | ------- |
+| `--release-readiness` | Boolean | Includes additional release-signing keystore and iOS provisioning profile verification. | `false` |
+
+---
+
+## `--release-readiness` Checks
+
+When `--release-readiness` is enabled, `wefter doctor` performs additional release security checks for production builds:
+
+- **Android Keystore Configuration**: Verifies `signing` configuration in `wefter.config.json` (`keystorePath`, `keyAlias`) and confirms the keystore file exists on disk and `WEFTER_KEYSTORE_PASSWORD` environment variable is defined.
+- **iOS Signing Configuration**: Verifies `iosSigning` configuration in `wefter.config.json` (`teamId`) and confirms `WEFTER_IOS_SIGNING_IDENTITY` environment variable is set.
+
+---
+
+## Usage Examples
+
+### Run Environment Diagnostics
+
+```bash
+wefter doctor
+```
+
+### Verify Release Readiness for Production Builds
 
 ```bash
 wefter doctor --release-readiness
 ```
 
-<Callout type="info">
-  There's no per-platform opt-out. If you only ship Android and have never
-  configured `iosSigning`, `--release-readiness` still reports "iOS signing
-  config" as a failure demanding one. `iosSigning.teamId` is a config value,
-  not an env var: nothing here reads a `WEFTER_IOS_TEAM_ID` env var, the CLI
-  derives it from your config and sets it internally when it shells out to
-  `xcodebuild`. The only iOS signing env var you actually set yourself is
-  `WEFTER_IOS_SIGNING_IDENTITY`.
-</Callout>
+### Run Diagnostics on a Specific Project Folder
 
-Run this before a real release build, not after, so a signing
-misconfiguration is caught in seconds rather than after a full Gradle or
-`xcodebuild` run fails at the last step.
-
-## Example output
-
-On macOS, with a fully working setup:
-
-```
-✔ Node.js version (v20.11.0)
-✔ ANDROID_HOME set (/home/you/Android/Sdk)
-✔ adb on PATH
-✔ JDK version (17.0.9)
-✔ Connected device or running emulator (1 device(s))
-✔ Running on macOS
-✔ Xcode installed (Xcode 15.2)
-✔ Xcode Command Line Tools (/Applications/Xcode.app/Contents/Developer)
-✔ iOS Simulator available (12 device(s))
+```bash
+wefter doctor --release-readiness ./apps/mobile-app
 ```
 
-On Linux/Windows, Android fully working, iOS checks failing as described above:
+---
 
-```
-✔ Node.js version (v20.11.0)
-✔ ANDROID_HOME set (/home/you/Android/Sdk)
-✔ adb on PATH
-✔ JDK version (17.0.9)
-✔ Connected device or running emulator (1 device(s))
-✘ Running on macOS — found linux
-    Fix: iOS builds require a Mac (local or CI, e.g. GitHub Actions' macos-latest runner) — the rest of the iOS checks below will also fail until then
-✘ Xcode installed
-    Fix: requires macOS
-✘ Xcode Command Line Tools
-    Fix: requires macOS
-✘ iOS Simulator available
-    Fix: requires macOS
+## Execution Output & Log Indicators
+
+### Passing Output Example (macOS Host)
+
+```text
+[INFO] Running environment checks...
+  ✔ Node.js version (v20.11.0)
+  ✔ ANDROID_HOME set (/Users/dev/Library/Android/sdk)
+  ✔ adb on PATH
+  ✔ JDK version (17.0.9)
+  ✔ Connected device or running emulator (1 device(s))
+  ✔ Running on macOS
+  ✔ Xcode installed (Xcode 15.2)
+  ✔ Xcode Command Line Tools (/Applications/Xcode.app/Contents/Developer)
+  ✔ iOS Simulator available (12 device(s))
+[SUCCESS] All checks passed.
 ```
 
-That second run still exits `1` (`Some checks failed — see the Fix lines
-above.`), even though nothing Android-related is actually wrong.
+### Failing Output Example (Missing Android SDK)
+
+```text
+[INFO] Running environment checks...
+  ✔ Node.js version (v20.11.0)
+  ✘ ANDROID_HOME set
+      Fix: Set ANDROID_HOME environment variable to your Android SDK directory (e.g. export ANDROID_HOME=$HOME/Android/Sdk)
+  ✘ adb on PATH
+      Fix: Add $ANDROID_HOME/platform-tools to your PATH
+[ERROR] Some checks failed — see the Fix lines above.
+```
+
+---
+
+## Lifecycle Hooks
+
+`wefter doctor` does **not** trigger CLI lifecycle hooks.
+
+---
+
+## Failure Modes & Error Resolution
+
+| Check Failure                                | Root Cause                                                                              | Actionable Resolution                                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ANDROID_HOME set`                           | `ANDROID_HOME` or `ANDROID_SDK_ROOT` environment variable is not defined.               | Set `export ANDROID_HOME=$HOME/Android/Sdk` in your shell profile (`~/.zshrc` or `~/.bashrc`).                              |
+| `adb on PATH`                                | `adb` binary cannot be found in `$PATH`.                                                | Add `$ANDROID_HOME/platform-tools` to your `$PATH`.                                                                         |
+| `JDK version`                                | System Java version is not JDK 17.                                                      | Install JDK 17 (e.g. `brew install openjdk@17`) and set `JAVA_HOME`.                                                        |
+| `Connected device or running emulator`       | No active Android device or emulator detected.                                          | Launch an Android Virtual Device (AVD) from Android Studio or connect a physical device via USB with USB Debugging enabled. |
+| `Running on macOS`                           | Command executed on Linux or Windows.                                                   | iOS builds require macOS. For Android-only development on Linux/Windows, disregard iOS-specific warnings.                   |
+| `Xcode installed`                            | Xcode application is not installed on macOS.                                            | Install Xcode from the Mac App Store.                                                                                       |
+| `Signing config` (`--release-readiness`)     | Android release keystore missing or `WEFTER_KEYSTORE_PASSWORD` unset.                   | Define `signing` block in `wefter.config.json` and export `WEFTER_KEYSTORE_PASSWORD`.                                       |
+| `iOS signing config` (`--release-readiness`) | `iosSigning` block missing or `WEFTER_IOS_SIGNING_IDENTITY` environment variable unset. | Define `iosSigning.teamId` in `wefter.config.json` and export `WEFTER_IOS_SIGNING_IDENTITY`.                                |

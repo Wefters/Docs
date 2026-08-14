@@ -1,114 +1,108 @@
 ---
 title: wefter audit
-description: Read-only, what it prints, and what it never touches.
+description: Read-only inspection of declared plugins, permissions, Gradle dependencies, exported manifest components, and lockfile drift.
 ---
+
+## Synopsis
 
 ```bash
 wefter audit [projectDir]
 ```
 
-| Argument | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `projectDir` | positional, optional | current working directory | Project root. |
+## Overview & Use Cases
 
-Resolves declared plugins from `wefter.config.json` and reports exactly
-what the next [`wefter sync`](/cli/sync) would weave in, without writing
-anything. No `wefter.lock.json` update, no native project regeneration, no
-`wefter.config.json` change. Safe to run anytime, including in CI as a
-pre-merge check.
+`wefter audit` is a **read-only, non-destructive** command that inspects your declared native plugins in `wefter.config.json` and outputs a comprehensive analysis of permissions, dependencies, exported Android components, required plugin configuration keys, and lockfile drift.
 
-<Callout type="warn">
-  `audit` currently only reports the Android side: `permissions.android`,
-  `nativeDependencies.android.gradle`, and `android.manifestEntries`. It
-  doesn't yet surface a plugin's `permissions.ios` or
-  `nativeDependencies.ios.spm`, even though [`wefter sync`](/cli/sync) does
-  weave both in for iOS. If you need to see what a plugin declares for iOS
-  before it's woven in, read its `plugin.json` directly for now.
-</Callout>
+It performs zero filesystem writes: it does not update `wefter.lock.json`, modify `wefter.config.json`, or touch `.wefter/native/`. It is ideal for pre-merge CI checks, security reviews, and inspecting native impact before running `wefter sync`.
 
-## What it prints
+### Primary Use Cases
 
-**Every resolved plugin**, with its declared permissions, every Gradle
-dependency, and any declared components:
+- Performing a security audit of native permissions and exported manifest components.
+- Inspecting Gradle dependency major-version conflicts between installed plugins.
+- Identifying missing `pluginConfig` keys referenced by plugin manifest placeholders.
+- Verifying lockfile drift between `node_modules` and `wefter.lock.json` in CI pipelines.
 
+---
+
+## What It Does
+
+When invoked, `wefter audit` performs the following analysis:
+
+1. **Loads Project Configuration**: Loads and validates `wefter.config.json` in `projectDir`.
+2. **Resolves Plugins**: Resolves each plugin in `config.plugins` from `node_modules`. Reports uninstalled declared plugins.
+3. **Audits Permissions & Sensitive APIs**: Scans Kotlin sources for sensitive Android API usage (`CameraX`, `LocationManager`) and flags code using sensitive APIs without declared permissions.
+4. **Inspects Exported Components**: Scans manifest entries for components with `exported: true` (components reachable from outside the app via deep links or IPC).
+5. **Checks Gradle Version Conflicts**: Identifies major-version conflicts across plugin Gradle dependencies (e.g. `camera-core` version mismatch).
+6. **Validates Configuration Placeholders**: Identifies `${placeholder}` variables in manifest templates that are missing matching keys in `config.pluginConfig`.
+7. **Detects Lockfile Drift**: Compares installed plugin package versions against entries in `wefter.lock.json`.
+
+---
+
+## Arguments & Options
+
+### Arguments
+
+| Argument     | Type       | Required / Optional | Description                     | Default                                     |
+| ------------ | ---------- | ------------------- | ------------------------------- | ------------------------------------------- |
+| `projectDir` | Positional | Optional            | Path to project root directory. | Current working directory (`process.cwd()`) |
+
+### Options (Flags)
+
+`wefter audit` does not accept flags.
+
+---
+
+## Usage Examples
+
+### Run Audit in Current Project
+
+```bash
+wefter audit
 ```
+
+### Run Audit in CI Workspace
+
+```bash
+wefter audit ./apps/mobile
+```
+
+---
+
+## Execution Output & Log Indicators
+
+```text
 Plugins (2):
-  storage — permissions: none
-  scanner — permissions: android.permission.CAMERA, gradle: androidx.camera:camera-camera2:1.6.1, com.google.mlkit:barcode-scanning:17.3.0
-    component: activity .BrowserAuthActivity (exported)
-```
+  @wefterjs/storage — permissions: none
+  @wefterjs/camera — permissions: android.permission.CAMERA, gradle: androidx.camera:camera-camera2:1.3.0
+    component: activity .CameraActivity (exported)
 
-**Declared but not installed**: plugin names in `config.plugins` with no
-matching package found under `config.pluginsDir`:
-
-```
-Declared but not installed: @wefterjs/plugin-missing
-```
-
-**Exported components**: a category distinct from permissions — an
-exported activity with an intent-filter is reachable from *outside* the
-app, a materially different risk than "this plugin can read the camera":
-
-```
 Exported components (reachable from outside the app):
-  - browser: declares an exported activity (.BrowserAuthActivity) — reachable from outside the app.
-```
+  - @wefterjs/camera: activity .CameraActivity
 
-**Gradle dependency version conflicts**: when two installed plugins
-declare the same `group:artifact` at different *major* versions. Wefter
-still resolves to the highest version so `sync` doesn't fail outright,
-but a silent runtime surprise here is exactly what this warning exists to
-prevent:
-
-```
 Gradle dependency version conflicts:
   - androidx.camera:camera-core: declared at different major versions across plugins (scanner@1.3.0, camera@2.0.0) — highest version wins.
-```
 
-**Required `pluginConfig` keys**: placeholders (`${key}`) referenced by a
-plugin's `android.manifestEntries` that `wefter.config.json`'s
-`pluginConfig` doesn't yet set — `sync` will fail on these, so `audit`
-surfaces them ahead of time:
+Required "pluginConfig" keys not yet set:
+  - cameraAuthToken
 
-```
-Required "pluginConfig" keys not yet set: appScheme
-```
-
-**Permission audit violations**: the same sensitive-API check `sync` runs
-(a plugin's Kotlin source uses `CameraX` or `LocationManager` without
-declaring the matching permission in `plugin.json`):
-
-```
-Permission audit violations:
-  - scanner: uses CameraX but does not declare android.permission.CAMERA in plugin.json
-```
-
-**Lockfile drift**: the same comparison covered on [wefter.lock.json's
-role](/cli/lockfile-role), between each resolved plugin's installed
-version and what's recorded in `wefter.lock.json`:
-
-```
 Lockfile drift:
-  - storage: locked at 0.0.1, found 0.1.0
+  - @wefterjs/storage: locked at 0.0.1, found 0.0.2
 ```
 
-## Reports instead of blocking
+---
 
-This is the key difference from `sync`: where a permission violation or
-lockfile drift *fails* `wefter sync`, `audit` only reports them and still
-exits `0`. It's a look-before-you-sync command, not a gate: useful for
-seeing what a `sync` would object to without actually running it (and
-without needing `--update-lock` to get past drift just to inspect
-plugins). Gradle conflicts and missing `pluginConfig` keys are warnings
-here too — `sync` still weaves and resolves to the highest version rather
-than failing on a conflict, and only fails outright on a placeholder it
-genuinely can't resolve.
+## Lifecycle Hooks
 
-## Exit codes
+`wefter audit` does **not** trigger CLI lifecycle hooks.
 
-`0` on a completed audit, regardless of what it found. `1` only if the
-audit itself couldn't run (e.g. an invalid `wefter.config.json`):
+---
 
-```
-Audit failed: <reason>
-```
+## Failure Modes & Error Resolution
+
+| Error Message                                | Root Cause                                                                       | Actionable Resolution                                                               |
+| -------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `Audit failed: wefter.config.json not found` | Command executed outside a valid Wefter project directory.                       | Run `wefter init` or navigate to project directory containing `wefter.config.json`. |
+| `Audit failed: Invalid config: ...`          | `wefter.config.json` fails schema validation.                                    | Fix schema formatting errors in `wefter.config.json`.                               |
+| `Declared but not installed: <plugin>`       | Plugin listed in `config.plugins` is not installed in `node_modules`.            | Run `pnpm install` or `npm install` to install missing plugin package.              |
+| `Permission audit violations: <plugin>`      | Plugin source uses sensitive APIs without declared permissions in `plugin.json`. | Contact plugin author or add missing permission to plugin manifest.                 |
+| `Lockfile drift: <plugin>`                   | Plugin version in `node_modules` differs from `wefter.lock.json`.                | Run `wefter sync --update-lock` to sync and re-lock plugin versions.                |

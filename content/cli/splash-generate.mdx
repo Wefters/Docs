@@ -1,56 +1,89 @@
 ---
 title: wefter splash generate
-description: Scaffolds an example splash folder, no image source involved.
+description: Scaffolds a starter HTML/CSS splash screen folder template for your application.
 ---
+
+## Synopsis
 
 ```bash
 wefter splash generate [targetPath] [projectDir]
 ```
 
-| Argument | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `targetPath` | positional, optional | `"splash"` | Where to write the scaffolded folder, relative to `projectDir`. |
-| `projectDir` | positional, optional | current working directory | Project root. |
+## Overview & Use Cases
+
+`wefter splash generate` scaffolds an HTML/CSS splash screen directory template with animated CSS styling (`index.html` and `styles.css`).
+
+Unlike traditional native splash screens that require static image PNG files, Wefter renders custom developer-authored HTML/CSS splash screens natively before handing off control to your web application.
+
+### Primary Use Cases
+
+- Generating a starter HTML/CSS splash screen folder template.
+- Creating a custom animated loading screen for web-to-native app startup.
+
+---
+
+## What It Does
+
+When invoked, `wefter splash generate` executes the following sequence:
+
+1. **Path Availability Check**: Resolves `targetPath` relative to `projectDir`. Fails if the target directory already exists to prevent accidental overwrites.
+2. **Directory Creation**: Creates `targetPath` folder recursively.
+3. **Template Scaffolding**: Writes starter files:
+   - **`index.html`**: HTML structure containing a centered branding mark container `<div class="mark"></div>`.
+   - **`styles.css`**: CSS stylesheet containing responsive flexbox centering, background styling (`#0F766E`), and keyframe pulse animation.
+4. **Configuration Guidance Output**: Logs instructions for declaring the splash screen in `wefter.config.json`.
+
+---
+
+## Arguments & Options
+
+### Arguments
+
+| Argument     | Type       | Required / Optional | Description                                                                   | Default                                     |
+| ------------ | ---------- | ------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
+| `targetPath` | Positional | Optional            | Output folder path for scaffolded splash template (relative to `projectDir`). | `"splash"`                                  |
+| `projectDir` | Positional | Optional            | Path to project root directory.                                               | Current working directory (`process.cwd()`) |
+
+### Options (Flags)
+
+`wefter splash generate` does not accept flags.
+
+---
+
+## Usage Examples
+
+### Scaffold Splash Screen in Default `splash/` Folder
 
 ```bash
 wefter splash generate
-wefter splash generate ./resources/splash
 ```
 
-Fails rather than overwriting if something's already at the destination:
+### Scaffold Splash Screen in Custom Directory
 
+```bash
+wefter splash generate ./resources/my-splash
 ```
-<resolved path> already exists — remove it first or choose a different path.
-```
 
-## No image source: this scaffolds HTML, not icons
+---
 
-Unlike [`wefter icon generate`](/cli/icon-generate), this command takes
-no source asset. Wefter's splash screen is developer-authored HTML, not
-generated from an image, so what this command produces is a working
-starting point you're expected to edit by hand, not a final asset. See
-[App Splash Screen](/docs/app-splash-screen) on the Docs tab for the
-full system this folder plugs into: two stages, folder validation, the
-`hideSplash()` dismissal signal, `minDuration`/`maxDuration`/`dismissOn`.
+## Scaffolded Template Code
 
-## The exact scaffold written
-
-`index.html`:
+### `index.html`
 
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <link rel="stylesheet" href="./styles.css">
-</head>
-<body>
-  <div class="mark"></div>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="mark"></div>
+  </body>
 </html>
 ```
 
-`styles.css`:
+### `styles.css`
 
 ```css
 body {
@@ -59,7 +92,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #0F766E;
+  background: #0f766e;
 }
 .mark {
   width: 72px;
@@ -69,18 +102,23 @@ body {
   animation: pulse 1.2s ease-in-out infinite;
 }
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(0.92); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
 }
 ```
 
-A centered, pulsing mark on a solid teal background, meant to be
-replaced, not shipped as-is.
+---
 
-## Wiring it up
+## Enabling in `wefter.config.json`
 
-Scaffolding the folder alone doesn't enable the splash screen. Point
-`wefter.config.json` at it, then sync:
+After scaffolding, declare the splash screen in `wefter.config.json` and run `wefter sync`:
 
 ```json
 {
@@ -98,12 +136,25 @@ Scaffolding the folder alone doesn't enable the splash screen. Point
 wefter sync
 ```
 
-`minDuration`, `maxDuration`, `dismissOn`, and `transition` are all
-optional; full field reference on [App
-Configuration](/docs/app-configuration#splash). The CLI's success output
-after `splash generate` reminds you of the exact config shape:
+---
 
+## Execution Output & Log Indicators
+
+```text
+[SUCCESS] Scaffolded /path/to/project/splash
+[INFO] Set "splash": { "source": "splash" } in wefter.config.json, then `wefter sync`.
 ```
-Scaffolded /path/to/project/splash
-Set "splash": { "source": "splash" } in wefter.config.json, then `wefter sync`.
-```
+
+---
+
+## Lifecycle Hooks
+
+`wefter splash generate` does **not** trigger CLI lifecycle hooks.
+
+---
+
+## Failure Modes & Error Resolution
+
+| Error Message                                                         | Root Cause                            | Actionable Resolution                                           |
+| --------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------- |
+| `<path> already exists — remove it first or choose a different path.` | Target folder already exists on disk. | Pass a different `targetPath` or remove/rename existing folder. |

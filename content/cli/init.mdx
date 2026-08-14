@@ -1,0 +1,151 @@
+---
+title: wefter init
+description: Wrap an existing JS/TS web project with Wefter configuration, package.json dependencies, and environment variables.
+---
+
+## Synopsis
+
+```bash
+wefter init [projectDir]
+```
+
+## Overview & Use Cases
+
+`wefter init` is the entry point for bringing Wefter native capabilities to an existing JavaScript or TypeScript project (Vue, React, Angular, Svelte, Next.js, Vite, etc.).
+
+It does **not** scaffold a new web application from scratch. Instead, it wraps your existing codebase by creating `wefter.config.json`, adding `@wefterjs/core` and `@wefterjs/cli` dependencies to your `package.json`, and writing `.env` configuration keys.
+
+### Primary Use Cases
+
+- Converting an existing web application into a native iOS and Android application.
+- Initializing Wefter configuration (`wefter.config.json`) for the first time.
+- Writing initial `WEFTER_APP_ID`, `WEFTER_APP_NAME`, and `WEFTER_WEB_DIR` variables to `.env`.
+
+---
+
+## What It Does
+
+When invoked, `wefter init` executes the following sequence:
+
+1. **Pre-flight Validation Checks**:
+   - Verifies `wefter.config.json` does not already exist.
+   - Verifies `package.json` exists in `projectDir`.
+   - Verifies `@wefterjs/core` and `@wefterjs/cli` are not already declared in `package.json`.
+   - Detects the project's package manager (`pnpm`, `yarn`, or `npm`) based on lockfiles. Refuses to run if multiple lockfiles are found.
+   - Checks `.env` for conflicting `WEFTER_*` keys to avoid overwriting user values.
+2. **Interactive Configuration Prompt**:
+   - Displays a welcome banner and interactive prompt asking for App ID (reverse-DNS), App Name, and Web Build Output Directory (`webDir`).
+   - Validates App ID format against the reverse-DNS schema (`dev.local.<sanitized_name>`).
+3. **Atomic File Generation (Transactional)**:
+   - **`wefter.config.json`**: Writes project configuration with `webDir`, empty plugins array, and a `development` environment mapping.
+   - **`package.json`**: Appends `@wefterjs/core` to `dependencies` and `@wefterjs/cli` to `devDependencies` with compile-time hardcoded versions.
+   - **`.env`**: Appends a `# --- wefter ---` block containing `WEFTER_APP_ID`, `WEFTER_APP_NAME`, and `WEFTER_WEB_DIR`.
+   - **`.gitignore`**: Appends `.wefter/` build output directory if `.gitignore` exists.
+4. **Success Summary & Next Steps**:
+   - Displays the WEFTER ASCII logo, summary checklist, recommended package installation command (`pnpm install`, `npm install`, or `yarn install`), and community resource links.
+
+<Callout type="info">
+  **No Automatic Installation**: `wefter init` only updates `package.json`. It
+  does not auto-run `npm install` or `pnpm install`, allowing you to review your
+  `package.json` changes and run your package manager when ready.
+</Callout>
+
+---
+
+## Arguments & Options
+
+### Arguments
+
+| Argument     | Type       | Required / Optional | Description                                                        | Default                                     |
+| ------------ | ---------- | ------------------- | ------------------------------------------------------------------ | ------------------------------------------- |
+| `projectDir` | Positional | Optional            | Absolute or relative path to the existing JS/TS project directory. | Current working directory (`process.cwd()`) |
+
+### Options (Flags)
+
+`wefter init` does not take flags. Interactive inputs are gathered via terminal prompts.
+
+---
+
+## Usage Examples
+
+### Basic Invocation in Current Directory
+
+```bash
+cd my-vue-app
+wefter init
+```
+
+### Specifying a Project Directory Path
+
+```bash
+wefter init ./packages/web-app
+```
+
+---
+
+## Interactive Prompts & Defaults
+
+When run interactively in a terminal, `wefter init` presents three styled prompts:
+
+| Prompt Label                 | Suggested Default Value      | Derived From                                                                                         | Validation                                         |
+| ---------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `App ID (reverse-DNS)`       | `dev.local.<sanitized_name>` | `package.json`'s `name` property (lowercased, scope stripped, special characters replaced with `_`). | Must match `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$` |
+| `App name`                   | Capitalized words            | `package.json`'s `name` property (split on `-` and `_`).                                             | Non-empty string                                   |
+| `Web build output directory` | `dist`                       | Standard build output convention (`dist`, `build`, `out`).                                           | Non-empty directory path                           |
+
+<Callout type="info">
+  **Ctrl+C Handling**: Pressing `Ctrl+C` at any interactive prompt cleanly
+  cancels `wefter init`, outputs `✖ Initialization cancelled`, and exits with
+  code `130` without writing any partial files.
+</Callout>
+
+---
+
+## Post-Execution Output
+
+Upon completion, `wefter init` renders a summary:
+
+```text
+   _       __ _____ _____ _____ _____ ____
+  | |     / /| ____|  ___|_   _| ____|  _ \
+  | | /| / / |  _| | |_    | | |  _| | |_) |
+  | |/ |/ /  | |___|  _|   | | | |___|  _ <
+  |__/|__/   |_____|_|     |_| |_____|_| \_\
+
+  🚀 Project successfully initialized with Wefter!
+
+  Config & Files:
+    ✓ Wrote wefter.config.json (appId: dev.local.my_app, webDir: dist)
+    ✓ Added @wefterjs/core@0.0.1 and @wefterjs/cli@0.0.3 to package.json
+    ✓ Wrote WEFTER_* variables to .env
+    ✓ Added .wefter/ to .gitignore
+
+  Next Steps:
+    1. Run pnpm install to install dependencies
+    2. Run wefter add <plugin> to declare native capabilities
+    3. Run wefter sync to build the native shell
+
+  Community & Resources:
+    📖 Docs:    https://wefter.dev
+    💬 Discord: https://discord.gg/wefter
+    ⭐ GitHub:  https://github.com/Wefters/Wefter (Star us on GitHub!)
+```
+
+---
+
+## Lifecycle Hooks
+
+`wefter init` does **not** trigger CLI lifecycle hooks.
+
+---
+
+## Failure Modes & Error Resolution
+
+| Error Message                                                                  | Root Cause                                             | Resolution                                                                                                 |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `wefter.config.json already exists — wefter init only sets up a project once.` | Project has already been initialized with Wefter.      | Edit `wefter.config.json` manually instead of re-running `init`.                                           |
+| `No package.json found in <path>`                                              | Target directory is missing a `package.json` file.     | Run your package manager's `init` command (e.g. `npm init` or `pnpm init`) first to create a package file. |
+| `@wefterjs/core already declared in package.json`                              | Wefter core or CLI dependencies are already declared.  | Update dependency versions manually in `package.json`.                                                     |
+| `Multiple lockfiles found (pnpm-lock.yaml, yarn.lock)`                         | Project contains multiple package manager lockfiles.   | Remove unused lockfile(s) so Wefter can determine your package manager.                                    |
+| `.env already declares WEFTER_APP_ID`                                          | `.env` file contains pre-existing `WEFTER_*` keys.     | Rename or remove conflicting environment keys from `.env`.                                                 |
+| `Invalid config: ...`                                                          | Entered App ID does not conform to reverse-DNS format. | Re-run `wefter init` and enter a valid App ID (e.g., `dev.local.myapp` or `com.example.app`).              |

@@ -1,79 +1,75 @@
 ---
 title: Installing
-description: Assembling a Wefter project today, by hand.
+description: Wrapping an existing web app with Wefter, start to running app.
 ---
 
-<Callout type="warn">
-  As of 2026-08-07, `wefter init` does not exist yet, this page documents the
-  current manual setup. Once `init` ships, this page gets replaced entirely, not
-  appended to.
-</Callout>
-
-Wefter doesn't have a scaffolding command yet, so putting together your
-first project right now means four manual steps: install the two packages,
-write a config file, weave the native project, and run it. This page
-assumes you've already worked through [Environment
+Wefter wraps an existing web app, it doesn't scaffold a new one. If you
+don't already have a Vue, React, Angular, or Svelte project (or anything
+else that produces a static build) with its own `package.json`, start
+that project first; everything below assumes it already exists. This page
+also assumes you've already worked through [Environment
 Setup](/docs/environment-setup) and have a working JDK, Android SDK, and a
 device or emulator ready to go.
 
-## 1. Install the CLI and core package
+## 1. Run `wefter init`
 
-These are two separate packages doing two separate jobs. `@wefterjs/cli` is
-the command-line tool itself, the thing that reads your config and drives
-`sync`, `build`, and `run`. `@wefterjs/core` is the runtime library that
-actually ships inside your compiled app, giving your JS code `invokeNative`
-and `registerHook` to talk to native plugins. The CLI is a dev dependency
-since it never runs on the device, and core is a real dependency since your
-app needs it at runtime.
-
-In your web app's project, or a fresh one:
+From your project root, next to `package.json`:
 
 ```bash
-pnpm add -D @wefterjs/cli
-pnpm add @wefterjs/core
+npx wefter init
 ```
 
-## 2. Create `wefter.config.json`
+You don't need to have installed anything first. `npx` fetches
+`@wefterjs/cli` temporarily to run this one command (see [Installing and
+Running](/cli/installing-and-running) for that behavior in general).
+`init` itself asks three questions, App ID, app name, and your web build
+output directory, each pre-filled with a default guessed from
+`package.json`'s `name`, accept with Enter or type your own:
 
-This file, sitting at your project root next to `package.json`, is what
-`wefter sync` reads to figure out what your native project should actually
-look like. Nothing in it is optional boilerplate; every field changes real
-behavior.
+```
+App ID (reverse-DNS) (dev.local.myapp):
+App name (Myapp):
+Web build output directory (dist):
+```
+
+From those three answers, `init` writes `wefter.config.json`, adds
+`@wefterjs/core` to `dependencies` and `@wefterjs/cli` to
+`devDependencies` (both pinned to the exact CLI version that ran `init`)
+and installs them through whichever package manager your project already
+uses, and writes `WEFTER_APP_ID`/`WEFTER_APP_NAME`/`WEFTER_WEB_DIR` to
+`.env`. It refuses to run a second time in the same project rather than
+overwrite anything, and rolls back every file it touched if any step
+fails partway through. Full behavior, including exactly what gets
+written and every way it can refuse: [`wefter init`](/cli/init).
+
+The config it writes looks like this:
 
 ```json
 {
   "webDir": "dist",
   "environments": {
-    "development": {
-      "appId": "com.yourcompany.app.dev",
-      "appName": "Your App (Dev)"
-    },
-    "production": { "appId": "com.yourcompany.app", "appName": "Your App" }
+    "development": { "appId": "dev.local.myapp", "appName": "Myapp" }
   },
   "plugins": []
 }
 ```
 
-`webDir` points at wherever your frontend's build output lands, `dist` by
-default for a Vite project. This is the folder `sync` copies into the
-native app as its bundled assets.
+`webDir` is the folder `sync` copies into the native app as its bundled
+assets. The `development` entry under `environments` carries its own
+Android application ID, which is what makes a development build and a
+production build two separate, independently installable apps on the
+same device rather than one app that keeps overwriting itself every time
+you rebuild. `init` only ever writes the one `development` environment;
+add a `production` entry (and any others) by hand when you need one, see
+the full [App Configuration reference](/docs/app-configuration).
 
-The two entries under `environments` aren't just labels. Each one carries
-its own Android application ID, which is what makes a development build
-and a production build two separate, independently installable apps on the
-same device, rather than one app that keeps overwriting itself every time
-you rebuild.
-
-`plugins` starts empty on purpose. Wefter doesn't scan your `node_modules`
-looking for anything that might be a plugin. A package only gets woven into
-your app once you explicitly run `wefter add` against it, so this array is
-your project's complete, honest list of every native capability the app can
+`plugins` starts empty, and stays that way until you explicitly run
+`wefter add` against a package. Wefter doesn't scan your `node_modules`
+looking for anything that might be a plugin, so this array is your
+project's complete, honest list of every native capability the app can
 reach.
 
-The full field-by-field breakdown lives on the [App Configuration
-reference](/docs/app-configuration).
-
-## 3. Sync
+## 2. Sync
 
 ```bash
 wefter sync
@@ -91,7 +87,7 @@ fresh from your config. If you ever need to hand-edit the native project
 directly, that's what `wefter eject` is for, and it's a one-way door, not
 something you'd reach for by default.
 
-## 4. Run it
+## 3. Run it
 
 ```bash
 wefter run android --watch

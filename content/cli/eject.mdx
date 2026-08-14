@@ -1,95 +1,105 @@
 ---
 title: wefter eject
-description: The strongest warning on this tab, and what actually still works afterward.
+description: Transfers full ownership of native Android and iOS project shells to your project root (android/ and ios/).
 ---
+
+## Synopsis
 
 ```bash
 wefter eject [projectDir]
 ```
 
-| Argument | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `projectDir` | positional, optional | current working directory | Project root. |
+## Overview & Use Cases
+
+`wefter eject` copies the generated native project shells (`.wefter/native/android` and `.wefter/native/ios`) directly into `android/` and `ios/` at your project root.
+
+Once ejected, Wefter permanently hands 100% native project ownership to you. `wefter sync` will no longer wipe or recreate the native project shells from templates, allowing you to open `android/` in Android Studio and `ios/` in Xcode for custom native development.
+
+### Primary Use Cases
+
+- Adding custom native Kotlin/Swift code directly to your application without writing a separate plugin package.
+- Modifying complex native Android Gradle build scripts, iOS Xcode targets, or third-party native SDK integrations.
+- Integrating native push notification handlers, deep link routers, or custom native UI views.
+
+<Callout type="warn">
+  **One-Way Operation**: `wefter eject` is a one-way operation. There is no
+  `wefter un-eject` command. Once ejected, `wefter sync`, `wefter build`, and
+  `wefter run` will permanently operate against your root `android/` and `ios/`
+  folders.
+</Callout>
+
+---
+
+## What It Does
+
+When invoked, `wefter eject` executes the following sequence:
+
+1. **Ejection Check**: Verifies project has not already been ejected (checks for `.wefter-ejected` file).
+2. **Freshness Sync**: Executes `wefter sync` to ensure `.wefter/native/` files are up-to-date with current configuration and plugins.
+3. **Shell Copying**: Copies `.wefter/native/android` to `<projectDir>/android` and `.wefter/native/ios` to `<projectDir>/ios`.
+4. **Marker Generation**: Writes `.wefter-ejected` marker file containing `true` at project root.
+5. **Path Resolution Update**: All subsequent Wefter CLI commands (`sync`, `build`, `run`) automatically switch path resolution to target root `android/` and `ios/` directories.
+
+---
+
+## What Continues Working Post-Eject
+
+Ejecting does **not** mean losing CLI sync capabilities:
+
+- **Plugin Source Weaving**: `wefter sync` continues to weave native plugin source files into `android/` and `ios/`.
+- **Dependency & Permission Merging**: `wefter sync` continues to merge Gradle dependencies, SPM packages, Android permissions, and iOS `Info.plist` keys.
+- **Bridge Registries**: `wefter sync` continues to regenerate `WefterPluginRegistry.kt` and `WefterPluginRegistry.swift`.
+- **Build & Run Commands**: `wefter build` and `wefter run` continue to compile, install, and run your app using your hand-edited `android/` and `ios/` projects.
+
+---
+
+## Arguments & Options
+
+### Arguments
+
+| Argument     | Type       | Required / Optional | Description                     | Default                                     |
+| ------------ | ---------- | ------------------- | ------------------------------- | ------------------------------------------- |
+| `projectDir` | Positional | Optional            | Path to project root directory. | Current working directory (`process.cwd()`) |
+
+### Options (Flags)
+
+`wefter eject` does not accept flags.
+
+---
+
+## Usage Examples
+
+### Eject Native Projects in Current Directory
 
 ```bash
 wefter eject
 ```
 
-<Callout type="warn">
-  This is a one-way door. There is no `wefter un-eject`, no CLI command
-  that reverses it. Once a project is ejected, `wefter sync` permanently
-  stops regenerating **both** native project shells for it. Every future
-  `wefter sync`/`build`/`run` in this project operates on `android/`
-  and/or `ios/` as hand-owned directories, forever. Only run this once
-  you're actually ready to hand-edit native code, not to "just take a
-  look."
-</Callout>
+### Eject Native Projects in a Specific Directory
 
-## What it does
-
-1. Refuses to run twice: if the project is already ejected, it fails
-   immediately with `Already ejected — android/ and ios/ are already
-   yours.` instead of silently doing nothing.
-2. Runs a full [`wefter sync`](/cli/sync) first, so the project being
-   copied out is fully up to date with your current config and declared
-   plugins, not whatever the last sync happened to leave behind. This
-   means a `sync` failure (a permission audit violation, lockfile drift,
-   a plugin that fails validation) blocks `eject` too, the same as it
-   would block a plain `sync`.
-3. Copies whichever of `.wefter/native/android` and `.wefter/native/ios`
-   currently exist to `<projectDir>/android` and `<projectDir>/ios`
-   respectively (both, in practice, since step 2's `sync` just
-   regenerated both shells). Each is copied independently; nothing here
-   requires both platforms to be present.
-4. Writes a `.wefter-ejected` marker file at the project root containing
-   `true`. Every path-resolution helper in the CLI checks this marker
-   before deciding whether a "native project root" is the disposable
-   `.wefter/native/<platform>` or your own `<platform>/`.
-
-On success:
-
-```
-Ejected. /path/to/project/android, /path/to/project/ios are now yours — wefter will no longer regenerate them automatically.
+```bash
+wefter eject ./apps/mobile-app
 ```
 
-(Singular "is" instead of "are" if, unusually, only one platform's native
-directory existed to copy.)
+---
 
-## "Stops regenerating" doesn't mean "stops running sync"
+## Execution Output & Log Indicators
 
-This is the part worth being precise about: after ejecting, `wefter
-sync` keeps running against both `android/` and `ios/`, and keeps being
-useful. It just skips the steps that would blow away hand-edits.
-Specifically, once ejected, `sync` no longer:
+```text
+[SUCCESS] Ejected. /path/to/project/android, /path/to/project/ios are now yours — wefter will no longer regenerate them automatically.
+```
 
-- wipes and recreates either native shell from Wefter's templates, or
-- rewrites the Android namespace across the Android project (there was
-  never an equivalent rewrite step for iOS to skip, see [`wefter
-  sync`](/cli/sync#what-it-does-in-the-actual-order-it-happens)).
+---
 
-Everything else in [the sync sequence](/cli/sync#what-it-does-in-the-actual-order-it-happens)
-still runs against your now-hand-owned `android/` and `ios/`: web assets
-still get copied into both, newly declared plugins still get their native
-source woven into whichever platform(s) they ship, Gradle deps/Android
-permissions/ProGuard rules/iOS `Info.plist` permissions/SPM dependencies
-all still get merged, both plugin registries still get regenerated, and
-`wefter.lock.json` still gets written. All of it runs inside a
-snapshot-and-restore transaction covering both platforms' generated
-files, so if any step fails, everything `sync` touched is restored to its
-pre-sync state rather than left half-modified. Your other hand-edits
-elsewhere in `android/` or `ios/` are never touched by `sync` at all,
-ejected or not.
+## Lifecycle Hooks
 
-[`wefter build`](/cli/build) and [`wefter run`](/cli/run) behave exactly
-the same post-eject as before, for either platform. They just now
-compile whatever's sitting in `android/`/`ios/`, hand-edits included.
+`wefter eject` does **not** trigger CLI lifecycle hooks.
 
-## Why you'd actually do this
+---
 
-Reach for this the moment you need something Wefter's generated project
-genuinely can't express: custom Gradle configuration, a native
-dependency with awkward setup, hand-written Kotlin outside the plugin
-system. It's explicitly not the default path; the [Installing](/docs/installing)
-and [Development Workflow](/docs/development-workflow) guides on the Docs
-tab never reach for it, because the generated, disposable project is
-meant to cover the common case on its own.
+## Failure Modes & Error Resolution
+
+| Error Message                                            | Root Cause                                                     | Actionable Resolution                                                                              |
+| -------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `Already ejected — android/ and ios/ are already yours.` | Project has already been ejected.                              | Edit `android/` or `ios/` folders directly; `wefter sync` will continue to update plugin bindings. |
+| `Sync failed: ...`                                       | Pre-eject sync failed due to invalid config or lockfile drift. | Fix sync error (e.g. run `wefter sync --update-lock`) before ejecting.                             |

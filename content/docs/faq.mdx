@@ -20,9 +20,9 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
 <Accordion title="Can I use React, Angular, or Svelte instead of Vue?">
   Yes. The bridge doesn't know or care what rendered the page. `invokeNative`
-  and `registerHook` are plain function exports from `@wefterjs/core`, not tied to
-  any component model. Any framework that can produce a static build (or run a
-  dev server Wefter can point a WebView at) works the same way Vue does.
+  and `registerHook` are plain function exports from `@wefterjs/core`, not tied
+  to any component model. Any framework that can produce a static build (or run
+  a dev server Wefter can point a WebView at) works the same way Vue does.
 </Accordion>
 
 <Accordion title="Does the same app code run on both Android and iOS?">
@@ -37,11 +37,12 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
   <Accordion title="Is Wefter production-ready?">
     Both Android and iOS have a real, working bridge, build pipeline, and
-    CLI today. `wefter init` still doesn't exist, so every project is
-    assembled by hand, and the plugin ecosystem is still small. If you need
-    a large library of ready-made plugins today, Wefter isn't there yet. If
-    you're comfortable writing your own plugins as you need them, the core
-    bridge, build pipeline, and CLI are real and working on both platforms.
+    CLI today, including [`wefter init`](/cli/init) for wrapping an
+    existing project. The plugin ecosystem is still small, though. If you
+    need a large library of ready-made plugins today, Wefter isn't there
+    yet. If you're comfortable writing your own plugins as you need them,
+    the core bridge, build pipeline, and CLI are real and working on both
+    platforms.
   </Accordion>
 </Accordions>
 

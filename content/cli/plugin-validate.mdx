@@ -1,142 +1,107 @@
 ---
 title: wefter plugin validate
-description: Standalone usage, the same validation core wefter add and wefter sync both run.
+description: Validates a native plugin directory against Wefter plugin schemas, Kotlin/Swift method signatures, and permission handlers.
 ---
+
+## Synopsis
 
 ```bash
 wefter plugin validate [pluginDir]
 ```
 
-| Argument | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `pluginDir` | positional, optional | current working directory | Directory to validate: a plugin package root, containing `plugin.json` and `android/` and/or `ios/`. |
+## Overview & Use Cases
+
+`wefter plugin validate` validates a Wefter native plugin package directory to ensure it conforms to Wefter plugin schema rules, native method annotations, and permission handling requirements.
+
+It runs the exact same validation engine used by [`wefter add`](/cli/add) and [`wefter sync`](/cli/sync), allowing plugin authors to verify their plugin implementation locally without needing a host application.
+
+### Primary Use Cases
+
+- Verifying custom plugin code during development before publishing or linking.
+- Running CI validation checks on open-source or internal plugin repositories.
+- Debugging method signature mismatches between `plugin.json` and Kotlin/Swift native source files.
+
+---
+
+## What It Checks
+
+When executed, `wefter plugin validate` runs a 7-step inspection suite:
+
+1. **`plugin.json` Presence**: Verifies `plugin.json` exists in `pluginDir`.
+2. **`plugin.json` Schema Validation**: Verifies `name`, `permissions`, `nativeDependencies`, `methods`, `hooks`, and `events` conform to the Wefter plugin schema.
+3. **Native Directory Check**: Verifies that at least one native source directory (`android/` or `ios/`) exists.
+4. **Signature Formatting Audit**: Concatenates `.kt` (Android) and `.swift` (iOS) source files and audits every `@WefterMethod` and `@WefterHook` for correct parameter types:
+   - **Kotlin**: `@WefterMethod fun name(payload: JSONObject, callback: (Result<Any>) -> Unit)`
+   - **Swift**: `// @WefterMethod func name(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws`
+5. **Android Manifest & Gradle Coordinate Checks**:
+   - Verifies class references declared in `android.manifestEntries` resolve to actual `class` or `object` definitions in Kotlin source.
+   - Validates `nativeDependencies.android.gradle` strings conform to Maven coordinate format (`group:artifact:version`).
+6. **Method & Hook Consistency Audit**: Cross-checks methods/hooks declared in `plugin.json` against methods/hooks annotated in native source files across all supported platforms.
+7. **Dangerous Permission Handler Check (Android)**: If `plugin.json` declares dangerous Android permissions (camera, location, contacts, etc.), verifies that Kotlin source includes `PERMISSION_DENIED` handling code.
+
+---
+
+## Arguments & Options
+
+### Arguments
+
+| Argument    | Type       | Required / Optional | Description                                                | Default                                     |
+| ----------- | ---------- | ------------------- | ---------------------------------------------------------- | ------------------------------------------- |
+| `pluginDir` | Positional | Optional            | Path to plugin package directory containing `plugin.json`. | Current working directory (`process.cwd()`) |
+
+### Options (Flags)
+
+`wefter plugin validate` does not accept flags.
+
+---
+
+## Usage Examples
+
+### Validate Plugin in Current Directory
 
 ```bash
-wefter plugin validate ./secure-storage
+wefter plugin validate
 ```
 
-This is the exact same validation function [`wefter add`](/cli/add) runs
-on a freshly-installed package and [`wefter sync`](/cli/sync) runs on
-every declared plugin before weaving, exposed standalone so a plugin
-author can check their work without a full host app project around it at
-all.
+### Validate Plugin in a Specific Directory Path
 
-## What it checks, in order
-
-1. **`plugin.json` exists.** Missing entirely fails with `No plugin.json
-   found — not a Wefter plugin.`
-2. **`plugin.json` matches the schema**: `name` (required string),
-   `permissions.android` (string array, defaults to `[]`),
-   `permissions.ios` (a record of Info.plist key → usage-description
-   string, defaults to `{}`), `nativeDependencies.android.gradle` (a
-   string array, defaults to `[]`), `nativeDependencies.android.proguardRules`
-   (optional string), `nativeDependencies.ios.spm` (an optional array of
-   `{ url, from, product }` Swift Package Manager dependencies),
-   `android.manifestEntries` (an array of structural manifest components —
-   see the [`plugin.json` reference](/plugin/plugin-json-reference#androidmanifestentries)
-   for the full shape, defaults to `[]`), `methods`, `hooks`, `events`
-   (string arrays, all default `[]`). Failure: `Invalid plugin.json:
-   <schema error detail>`.
-3. **At least one of `android/` or `ios/` exists.** Neither present fails
-   with `No android/ or ios/ directory found — a Wefter plugin must ship
-   native source for at least one platform.` A plugin shipping only one
-   platform is valid. Everything below runs only against whichever
-   directory(ies) actually exist.
-4. **Every `@WefterMethod` and `@WefterHook` signature is well-formed, per
-   platform.** All `.kt` files under `android/` are concatenated and
-   scanned (if `android/` exists); all `.swift` files under `ios/` are,
-   separately (if `ios/` exists). A well-formed Kotlin method looks
-   exactly like:
-   ```kotlin
-   @WefterMethod
-   fun methodName(payload: JSONObject, callback: (Result<Any>) -> Unit) {
-   ```
-   and a well-formed Swift method exactly like:
-   ```swift
-   // @WefterMethod
-   func methodName(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
-   ```
-   Note the `//` on the Swift side: Swift methods and hooks are marked
-   with a plain comment, not a bare annotation, the same convention
-   [`wefter create-plugin`](/cli/create-plugin) scaffolds. Hooks follow
-   the equivalent shape on each platform: Kotlin's
-   `@WefterHook("hookName")` and Swift's `// @WefterHook("hookName")`.
-   Anything annotated `@WefterMethod`/`@WefterHook` that doesn't match its
-   platform's shape fails with `Malformed @WefterMethod signature at line
-   <n> (android/)` or `... (ios/)`, the suffix tells you which platform's
-   concatenated source the line number refers to. Any malformed signature
-   on either platform stops validation here; consistency (next step)
-   isn't checked until every signature found is clean.
-5. **(Android only) `android.manifestEntries` and `nativeDependencies.android.gradle`
-   are structurally sound.** Two independent checks, both before the
-   consistency audit below:
-   - Every `manifestEntries[].name` must resolve to a `class`/`object`
-     actually declared somewhere in `android/`'s concatenated source, the
-     same way `methods`/`hooks` get cross-checked. A plugin declaring
-     `android.manifestEntries` with no `android/` directory at all fails
-     outright: `plugin.json declares "android.manifestEntries" but this
-     plugin ships no android/ directory.` A reference that doesn't
-     resolve fails with: `manifestEntries declares ".Foo" but no "class
-     Foo" (or "object Foo") was found in android/ source.`
-   - Every `nativeDependencies.android.gradle` entry must look like a
-     `group:artifact:version` Maven coordinate: `Malformed Gradle
-     coordinate "<value>" in nativeDependencies.android.gradle — expected
-     "group:artifact:version".`
-6. **`plugin.json` and source agree on `methods`/`hooks`, per platform.**
-   For each of `android/`/`ios/` that exists, the `methods`/`hooks`
-   actually found via `@WefterMethod`/`@WefterHook` in *that platform's*
-   source are compared against the *same* full `plugin.json` declaration:
-   ```
-   Plugin "secure-storage": plugin.json's "methods" declares [store, retrieve] but source has [store]. Missing: [retrieve]. Undeclared: [].
-   ```
-   Both directions are checked: a method declared in `plugin.json` but
-   missing from source, and a method present in source but never
-   declared. Because the same declared list is checked against each
-   platform independently, a method you declare in `plugin.json` must be
-   implemented on **every** platform the plugin ships native source for,
-   not just one. There's no way to declare a method as Android-only (or
-   iOS-only) in `plugin.json` itself.
-7. **(Android only) Dangerous permissions have a rejection handler.** If
-   `plugin.json` declares any Android permission from an internal list of
-   sensitive permissions (camera, precise/coarse/background location,
-   contacts, SMS, call log, body sensors, and similar), the plugin's
-   Kotlin source must contain the literal string `PERMISSION_DENIED`
-   somewhere, or validation fails with:
-   ```
-   Plugin "<name>" declares dangerous Android permission(s) (<list>) but no method rejects with "PERMISSION_DENIED" — a denied permission would likely hang or crash instead of failing cleanly. (This is a string match on the source, not a guarantee the handling is correct.)
-   ```
-   As that message says, this is a plain string match, not proof the
-   handling actually does the right thing. There's no iOS equivalent of
-   this check.
-
-<Callout type="info">
-  Step 6 only runs, per platform, once `plugin.json` actually declares at
-  least one method or hook. An empty `methods: []`/`hooks: []` doesn't
-  force your source to have zero `@WefterMethod`/`@WefterHook` functions.
-  The check activates the moment you start declaring, not before.
-</Callout>
-
-## Output
-
-Failure lists every issue found and exits `1`:
-
-```
-Plugin validation failed:
-  - No android/ or ios/ directory found — a Wefter plugin must ship native source for at least one platform.
+```bash
+wefter plugin validate ./plugins/secure-storage
 ```
 
-Success:
+---
 
+## Execution Output & Log Indicators
+
+### Success Output
+
+```text
+[SUCCESS] Plugin is valid.
 ```
-Plugin is valid.
+
+### Failure Output
+
+```text
+[ERROR] Plugin validation failed:
+  - Plugin "secure-storage": plugin.json's "methods" declares [store, retrieve] but source has [store]. Missing: [retrieve].
+  - Malformed Gradle coordinate "camera-core" in nativeDependencies.android.gradle — expected "group:artifact:version".
 ```
 
-with `process.exitCode = 0`.
+---
 
-## Where this fits
+## Lifecycle Hooks
 
-[`wefter create-plugin`](/cli/create-plugin) scaffolds a plugin that
-passes this validation as-shipped. Running `plugin validate` right after
-scaffolding (or after any edit) is the fast standalone check, before
-ever installing the plugin into a real app with [`wefter
-add`](/cli/add).
+`wefter plugin validate` does **not** trigger CLI lifecycle hooks.
+
+---
+
+## Failure Modes & Error Resolution
+
+| Error Message                                                                                                 | Root Cause                                                                                  | Actionable Resolution                                                                               |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `No plugin.json found — not a Wefter plugin.`                                                                 | `plugin.json` is missing in `pluginDir`.                                                    | Run `wefter create-plugin` or create a valid `plugin.json` file.                                    |
+| `Invalid plugin.json: ...`                                                                                    | Schema validation error in `plugin.json`.                                                   | Fix property types or formatting errors in `plugin.json`.                                           |
+| `No android/ or ios/ directory found`                                                                         | Plugin package is missing both `android/` and `ios/` native source folders.                 | Create an `android/` or `ios/` folder containing native plugin source code.                         |
+| `Malformed @WefterMethod signature at line <n>`                                                               | Kotlin or Swift method signature does not match expected parameter types.                   | Ensure method accepts `JSONObject` (Android) or `[String: Any]` (iOS) and a callback function.      |
+| `plugin.json's "methods" declares [...] but source has [...]`                                                 | Discrepancy between methods declared in `plugin.json` and methods annotated in native code. | Update `methods` array in `plugin.json` to match native method definitions.                         |
+| `Plugin "<name>" declares dangerous Android permission(s) ... but no method rejects with "PERMISSION_DENIED"` | Android Kotlin source uses dangerous permissions without explicit rejection handling.       | Include permission denial handling logic returning `PERMISSION_DENIED` error code in Kotlin source. |

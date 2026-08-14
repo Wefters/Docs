@@ -1,27 +1,77 @@
 ---
 title: wefter create-plugin
-description: What gets scaffolded, and the namespace-constraint warning.
+description: Scaffolds a complete, buildable Wefter native plugin boilerplate for Android (Kotlin) and iOS (Swift).
 ---
+
+## Synopsis
 
 ```bash
 wefter create-plugin <name> [targetDir]
 ```
 
-| Argument | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `name` | positional, required | none | Plugin package name, e.g. `secure-storage`. Used as the directory name and (in PascalCase) the generated class name. |
-| `targetDir` | positional, optional | current working directory | Directory to scaffold the new `<name>/` folder into. |
+## Overview & Use Cases
+
+`wefter create-plugin` scaffolds a complete, valid, and buildable native plugin package directory.
+
+It creates cross-platform native boilerplate for Android (`Kotlin`) and iOS (`Swift`), along with TypeScript bridge bindings (`src/index.ts`), `plugin.json` manifest, and `package.json`.
+
+### Primary Use Cases
+
+- Authoring custom native capabilities (e.g. bluetooth, biometrics, SQLite, secure storage) for your Wefter applications.
+- Initializing a new open-source or private npm plugin package for Wefter.
+
+---
+
+## What It Does
+
+When invoked, `wefter create-plugin` executes the following sequence:
+
+1. **Target Directory Resolution**: Resolves output directory at `<targetDir>/<name>`. Fails if the target folder already exists.
+2. **Directory Structure Creation**: Creates `src/`, `android/`, and `ios/` directories.
+3. **File Generation**:
+   - **`package.json`**: NPM package configuration declaring `@wefterjs/core` dependency.
+   - **`plugin.json`**: Plugin manifest declaring permissions, methods, hooks, and events.
+   - **`src/index.ts`**: TypeScript wrapper file for calling `invokeNative`.
+   - **`android/<PluginName>Plugin.kt`**: Android Kotlin plugin class extending `WefterPlugin` with sample `@WefterMethod`.
+   - **`ios/<PluginName>Plugin.swift`**: iOS Swift plugin class extending `WefterPlugin` with sample `// @WefterMethod`.
+   - **`README.md`**: Scaffold documentation README.
+
+---
+
+## Arguments & Options
+
+### Arguments
+
+| Argument    | Type       | Required / Optional | Description                                                                                                             | Default                                     |
+| ----------- | ---------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `<name>`    | Positional | **Required**        | Plugin package name (e.g. `secure-storage`). Used for directory name and PascalCase class name (`SecureStoragePlugin`). | None (must be specified)                    |
+| `targetDir` | Positional | Optional            | Directory to scaffold the plugin folder into.                                                                           | Current working directory (`process.cwd()`) |
+
+### Options (Flags)
+
+`wefter create-plugin` does not accept flags.
+
+---
+
+## Usage Examples
+
+### Scaffold a New Plugin in Current Directory
 
 ```bash
 wefter create-plugin secure-storage
 ```
 
-## What gets scaffolded
+### Scaffold a Plugin in a Specific Monorepo Directory
 
-A working, buildable-as-is starting point at `<targetDir>/<name>/`,
-covering **both** platforms:
-
+```bash
+wefter create-plugin barcode-scanner ./packages
 ```
+
+---
+
+## Scaffolded File Structure
+
+```text
 secure-storage/
 ├── package.json
 ├── plugin.json
@@ -34,56 +84,7 @@ secure-storage/
     └── SecureStoragePlugin.swift
 ```
 
-**`package.json`**: `name` set to `@yourorg/<name>` (edit the scope to
-your own), depends on `@wefterjs/core`:
-
-```json
-{
-  "name": "@yourorg/secure-storage",
-  "version": "0.0.1",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "dependencies": { "@wefterjs/core": "^0.0.1" }
-}
-```
-
-**`plugin.json`**: the manifest [`wefter plugin
-validate`](/cli/plugin-validate) and [`wefter sync`](/cli/sync) both read,
-starting empty for both platforms:
-
-```json
-{
-  "name": "secure-storage",
-  "permissions": { "android": [], "ios": {} },
-  "methods": [],
-  "hooks": [],
-  "events": []
-}
-```
-
-`permissions.android` is a plain string array of Android permission
-constants; `permissions.ios` is a record from Info.plist usage-description
-key to the string you want shown in the OS permission prompt. The shapes
-differ because that's what each platform's manifest format actually
-needs. Both start empty here; there's nothing to fill in until the plugin
-actually touches something that needs a permission.
-
-**`src/index.ts`**: the JS-side export your app will import, with a
-commented example call ready to uncomment:
-
-```ts
-import { invokeNative } from "@wefterjs/core";
-
-export const SecureStorage = {
-  // example(payload: {}): Promise<unknown> {
-  //   return invokeNative("secure-storage", "example", payload);
-  // },
-};
-```
-
-**`android/SecureStoragePlugin.kt`**: a real, minimal working method
-using the `@WefterMethod` convention:
+### Android Kotlin Boilerplate (`android/SecureStoragePlugin.kt`)
 
 ```kotlin
 package dev.wefter.bridge
@@ -99,18 +100,18 @@ class SecureStoragePlugin(context: Context, dispatcher: BridgeDispatcher) : Weft
 }
 ```
 
-**`ios/SecureStoragePlugin.swift`**: the iOS side of the same example
-method, using the `// @WefterMethod` comment marker Swift always uses for
-this (Swift has no source-retention annotation to borrow, so a plain
-comment is the one correct, permanent form the marker takes, not a
-disabled state to enable later):
+<Callout type="warn">
+  **Crucial Android Package Rule**: Always retain `package dev.wefter.bridge` at
+  the top of Kotlin files. During [`wefter sync`](/cli/sync), Wefter
+  automatically replaces this placeholder package name with the host app's real
+  namespace. If changed manually, sync will be unable to rewrite the namespace.
+</Callout>
+
+### iOS Swift Boilerplate (`ios/SecureStoragePlugin.swift`)
 
 ```swift
 import Foundation
 
-// Never force-unwrap (!) or directly subscript a dictionary/array in here — Swift traps
-// (force-unwrap, out-of-bounds) crash the whole app and can't be caught the way a thrown
-// WefterError can. Use guard let / optional chaining / safe subscripting throughout.
 final class SecureStoragePlugin: WefterPlugin {
     // @WefterMethod
     func example(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
@@ -119,59 +120,25 @@ final class SecureStoragePlugin: WefterPlugin {
 }
 ```
 
-<Callout type="info">
-  Both platforms' `example` methods are already fully active as
-  scaffolded. Kotlin's `@WefterMethod` and Swift's `// @WefterMethod` are
-  equally real markers to `wefter plugin validate`/`wefter sync`, they're
-  just expressed differently because Swift has no source-retention
-  annotation to borrow (full explanation on the Plugin tab's
-  [`@WefterMethod`](/plugin/wefter-method) page). There's no "uncomment to
-  activate" step on either side, which is exactly what lets a freshly
-  scaffolded plugin pass validation as-is, on both platforms, immediately.
-</Callout>
+---
 
-**`README.md`**: a one-line stub pointing at the plugin-authoring guide.
+## Execution Output & Log Indicators
 
-## The namespace constraint: Android only, don't change that `package` line
-
-<Callout type="warn">
-  Leave `package dev.wefter.bridge` at the top of every `.kt` file under
-  `android/` exactly as scaffolded, even though it isn't your plugin's
-  real package and never will be.
-</Callout>
-
-Every Wefter plugin's Android source is authored against this one fixed
-placeholder package, on purpose. A plugin author never needs to know
-which namespace any particular host app will actually use. When
-[`wefter sync`](/cli/sync) weaves your plugin's `android/` source into a
-host app, it does a literal string replace of `package dev.wefter.bridge`
-with that app's real namespace, for every `.kt` file it copies in.
-
-If you rename that package line to anything else, even something that
-looks more "correct" for your plugin, the rewrite has nothing to match,
-so your file gets copied in with whatever package you wrote instead of
-the host app's real one. The class ends up outside the namespace the
-generated registry expects it in, and the woven project won't build. The
-class name (`SecureStoragePlugin`) is yours to change freely; the
-`package` line at the top of each file is not.
-
-<Callout type="info">
-  There's no equivalent constraint on the `.swift` side, and nothing to
-  leave alone there. `sync` copies `ios/*.swift` files in verbatim, no
-  string replace of any kind. Swift plugin classes compile straight into
-  the one fixed `WefterBridge` app target regardless of which host app
-  they end up in, so there's no per-app identity for the source itself to
-  need rewriting into.
-</Callout>
-
-## Next steps
-
-```bash
-wefter plugin validate ./secure-storage
+```text
+[SUCCESS] Created plugin scaffold at /path/to/target/secure-storage
+[INFO] Next: implement your native logic in android/, then `wefter add` it into a test project.
 ```
 
-confirms the scaffold (or your edited version of it) passes validation
-standalone, without needing a full app project around it. See [`wefter
-plugin validate`](/cli/plugin-validate). From there, [`wefter
-add`](/cli/add) it into a real project once it's published or linked
-locally.
+---
+
+## Lifecycle Hooks
+
+`wefter create-plugin` does **not** trigger CLI lifecycle hooks.
+
+---
+
+## Failure Modes & Error Resolution
+
+| Error Message           | Root Cause                                      | Actionable Resolution                                             |
+| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
+| `<path> already exists` | Target plugin directory already exists on disk. | Specify a different plugin name or remove the existing directory. |
