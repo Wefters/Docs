@@ -1,19 +1,32 @@
 ---
 title: JavaScript APIs
-description: "@wefterjs/core's public surface: everything your app code can call directly."
+description: Complete function reference for @wefterjs/core runtime APIs, bridge error handling, and mock testing.
 ---
 
-`@wefterjs/core` is what your app imports to talk to native plugins and check
-on the state of the bridge itself. Most of the time, you won't call these
-functions directly. A plugin you've added, like a camera or storage plugin,
-exposes its own functions (`Scanner.open()`, `Storage.get()`) that call into
-these underneath. You'll reach for the functions on this page directly in a
-few real situations: calling a built-in system capability that doesn't have
-its own plugin wrapper, handling errors consistently across every plugin
-you use, or checking whether your app is even running inside the native
-shell before you try to use a plugin at all.
+## Overview
 
-## `invokeNative`
+The `@wefterjs/core` npm package provides client-side JavaScript APIs for communicating with native bridge dispatchers, listening to event streams, and managing application state.
+
+---
+
+## Core Runtime Functions Reference
+
+| Function Signature                                    | Return Type                                        | Description                                                                                  |
+| ----------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `invokeNative<T>(plugin, method, payload?, options?)` | `Promise<T>`                                       | Low-level bridge function invoking a native plugin method.                                   |
+| `definePlugin<T>(pluginName, methodMap)`              | `T`                                                | Generates a typed Promise object wrapper for request/response methods.                       |
+| `registerHook(hookName, callback)`                    | `{ remove(): void }`                               | Subscribes a JS callback to native event streams (`emit`).                                   |
+| `hideSplash()`                                        | `Promise<void>`                                    | Signals completion of web UI mounting to dismiss Stage 2 HTML splash screen.                 |
+| `getDeviceInfo()`                                     | `Promise<{ platform: string; osVersion: string }>` | Asynchronously fetches OS platform and system version directly from native shell.            |
+| `onBridgeReady()`                                     | `Promise<void>`                                    | Resolves once native WebView bridge initialization has completed.                            |
+| `isNativeBridgeAvailable()`                           | `Boolean`                                          | Synchronously checks if JS is executing inside a Wefter native WebView.                      |
+| `getPlatformInfo()`                                   | `{ platform, coreVersion, environment }`           | Synchronously returns platform identifier, `@wefterjs/core` version, and active environment. |
+
+---
+
+## Function Details & Usage Examples
+
+### 1. `invokeNative`
 
 ```ts
 function invokeNative<T = unknown>(
@@ -24,255 +37,132 @@ function invokeNative<T = unknown>(
 ): Promise<T>;
 ```
 
-Calls a single native method and returns its result as a Promise. This is
-the function every plugin's own wrapper calls internally, so you'll mostly
-encounter it secondhand through a plugin's own API, but it's fully public
-and safe to call yourself for anything that doesn't have a dedicated
-wrapper. [`hideSplash`](#hidesplash) and [`getDeviceInfo`](#getdeviceinfo),
-below, are built-in system calls with their own wrapper; `isDebug` isn't,
-so it's a real example of reaching for `invokeNative` directly:
+#### Code Example with Cancellation
 
 ```ts
-const { debug } = await invokeNative<{ debug: boolean }>("__system", "isDebug");
-```
+import { invokeNative } from "@wefterjs/core";
 
-The call rejects, never hangs, in three situations: the native side takes
-longer than `timeoutMs` to respond (10 seconds by default), you pass an
-`AbortSignal` and it fires before the call completes, or there's no native
-bridge to call into at all, which happens if your app is running in a plain
-browser tab rather than the native shell, something that comes up often
-during frontend development before you've built and installed a real APK.
-
-```ts
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 3000);
 
 try {
-  await invokeNative("scanner", "open", {}, { signal: controller.signal });
-} catch (err) {
-  // rejects cleanly if the scan takes longer than 3 seconds
+  const result = await invokeNative<{ active: boolean }>(
+    "camera",
+    "toggleTorch",
+    { enable: true },
+    { signal: controller.signal, timeoutMs: 5000 },
+  );
+} catch (error) {
+  // Catch WefterBridgeError
 }
 ```
 
-Every rejection is a [`WefterBridgeError`](#wefterbridgeerror-and-wefterErrorcode),
-covered below, so you can branch on exactly what went wrong instead of
-parsing an error message.
+---
 
-## `hideSplash`
+### 2. `registerHook`
 
 ```ts
-function hideSplash(): Promise<void>;
-```
+import { registerHook } from "@wefterjs/core";
 
-Signals that your app is ready, so the splash screen (if you configured
-one with `dismissOn: "ready"`, the default) can dismiss. A thin wrapper
-around `invokeNative("__system", "hideSplash", {})`, so it rejects the
-same way any other `invokeNative` call does, most notably with
-`NO_BRIDGE` if there's no native shell to call into. Harmless to call
-when no splash is configured; the native side just no-ops.
-
-```ts
-import { hideSplash } from "@wefterjs/core";
-
-renderApp();
-await hideSplash();
-```
-
-Call it from your main app once your first screen has actually
-rendered, not from inside the splash HTML itself. The splash WebView
-has no bridge access, so it has no way to call this on its own. See
-[App Splash Screen](/docs/app-splash-screen#dismissal) for the full
-dismissal model, including `minDuration`/`maxDuration` and the
-`dismissOn: "timer"` alternative that ignores this call entirely.
-
-## `getDeviceInfo`
-
-```ts
-interface DeviceInfo {
-  platform: string;
-  osVersion: string;
-}
-
-function getDeviceInfo(): Promise<DeviceInfo>;
-```
-
-Returns the OS platform and version straight from the native side:
-`android.os.Build.VERSION.RELEASE` on Android, `UIDevice.current.systemVersion`
-on iOS. This is a built-in system capability, not a plugin: it works in
-every Wefter app with no `wefter add` and no entry in `wefter.config.json`.
-A thin wrapper around `invokeNative("__system", "getDeviceInfo", {})`.
-
-```ts
-import { getDeviceInfo } from "@wefterjs/core";
-
-const { platform, osVersion } = await getDeviceInfo();
-```
-
-This is different from [`getPlatformInfo`](#getplatforminfo), below:
-`getPlatformInfo` is a synchronous, JS-only check with no native round-trip,
-and doesn't know the real OS version. `getDeviceInfo` actually asks the
-native side, so it's async and returns the version that's actually
-installed on the device.
-
-## `registerHook`
-
-```ts
-function registerHook(
-  hookName: string,
-  callback: (data: unknown) => void,
-): { remove(): void };
-```
-
-Subscribes to something the native side pushes to your app on its own
-schedule, rather than something you asked for and waited on. A plugin that
-reports periodic sensor readings, or one that emits an event when a scan
-result comes in, uses this underneath its own `.on()`-style method. Call
-`.remove()` on the object it returns when you're done listening, for
-example when a component that set up the listener unmounts, so you're not
-leaking a handler that fires into code that no longer exists.
-
-```ts
-const listener = registerHook("scanner:result", (data) => {
-  console.log("Scanned:", data);
+const subscription = registerHook("scanner:result", (data) => {
+  console.log("Scanned result:", data);
 });
 
-// later
-listener.remove();
+// Remove listener on component unmount
+subscription.remove();
 ```
 
-## `onBridgeReady`
+---
+
+### 3. `isNativeBridgeAvailable`
 
 ```ts
-function onBridgeReady(): Promise<void>;
-```
+import { isNativeBridgeAvailable, getDeviceInfo } from "@wefterjs/core";
 
-Resolves once the native bridge is actually available. Depending on exactly
-when your app's JS starts running relative to the native shell finishing
-its own setup, calling a plugin function immediately on app start can
-occasionally race against the bridge not being wired up yet. Awaiting this
-once, before your app renders anything that depends on native plugins,
-removes that race entirely.
-
-```ts
-await onBridgeReady();
-// safe to call any plugin function from here on
-```
-
-## `isNativeBridgeAvailable`
-
-```ts
-function isNativeBridgeAvailable(): boolean;
-```
-
-A synchronous, immediate check rather than something you await. Returns
-`true` only when your app is actually running inside the native shell with
-a working bridge, and `false` in a plain browser tab. This is genuinely
-useful day to day: if you're iterating on UI in a regular browser for speed
-before testing on a real device, you can use this to skip a native-only
-feature or show a fallback instead of letting a call to it fail.
-
-```ts
 if (isNativeBridgeAvailable()) {
   const info = await getDeviceInfo();
+  console.log(`Running natively on ${info.platform} ${info.osVersion}`);
 } else {
-  console.log("Running in browser preview, native features unavailable");
+  console.log("Running inside standard web browser tab");
 }
 ```
 
-## `getPlatformInfo`
+---
 
-```ts
-function getPlatformInfo(): {
-  platform: "android" | "ios" | "web";
-  coreVersion: string;
-  environment: string;
-};
-```
+## Bridge Error Handling: `WefterBridgeError`
 
-Returns three things about the environment your app is currently running
-in: which platform it's on, the installed version of `@wefterjs/core`, and
-which entry from your `wefter.config.json` `environments` block the current
-build was made for, `development` or `production`, or whatever names you've
-configured. That last one is useful for anything you want to behave
-differently between a dev build and a production build, like pointing at a
-different API endpoint or showing a debug banner only in development.
-
-```ts
-const { environment } = getPlatformInfo();
-if (environment === "development") {
-  showDebugBanner();
-}
-```
-
-## `WefterBridgeError` and `WefterErrorCode`
+Rejections from `invokeNative` throw instances of `WefterBridgeError` containing a strongly-typed `.code` property:
 
 ```ts
 class WefterBridgeError extends Error {
   readonly code: WefterErrorCode;
 }
-
-type WefterErrorCode =
-  | "TIMEOUT"
-  | "ABORTED"
-  | "NO_BRIDGE"
-  | "UNKNOWN_PLUGIN"
-  | "INVALID_PAYLOAD"
-  | "PLUGIN_THREW"
-  | "PERMISSION_DENIED"
-  | "UNKNOWN";
 ```
 
-Every rejection from `invokeNative`, whether called directly or through a
-plugin's own wrapper, is a `WefterBridgeError` with a `.code` you can branch
-on. Always check `.code`, not the error message text, since the message is
-meant for a person reading logs, not for your app to pattern-match against.
+### `WefterErrorCode` Reference Table
 
-| Code                | What it means                                                                                                | What to do about it                                                                                         |
-| ------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `TIMEOUT`           | The call took longer than its timeout to respond.                                                            | Retry, or show a "taking longer than expected" state.                                                       |
-| `ABORTED`           | Your own `AbortSignal` fired before the call finished.                                                       | Usually expected; no error UI needed if you triggered the abort yourself.                                   |
-| `NO_BRIDGE`         | There's no native bridge to call into, most often because you're running in a browser, not the native shell. | Check `isNativeBridgeAvailable()` before calling, or handle this case explicitly.                           |
-| `UNKNOWN_PLUGIN`    | You called a plugin name that isn't declared in your `wefter.config.json`.                                   | Confirm you ran `wefter add` for it and re-synced.                                                          |
-| `INVALID_PAYLOAD`   | The native side rejected the shape of what you sent.                                                         | Check the plugin's documented payload shape for that method.                                                |
-| `PLUGIN_THREW`      | The plugin's own native code threw an unhandled error.                                                       | A bug in the plugin itself; check its error message for detail, and report it if it's a third-party plugin. |
-| `PERMISSION_DENIED` | An Android runtime permission the plugin needs wasn't granted.                                               | Prompt the user to grant the permission, or explain why it's needed.                                        |
-| `UNKNOWN`           | Something failed that doesn't map to a specific code.                                                        | Read the message for detail; this is the catch-all.                                                         |
+| Code String           | Origin            | Description                                               | Recommended Handling                                           |
+| --------------------- | ----------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
+| `"TIMEOUT"`           | `@wefterjs/core`  | Call exceeded `timeoutMs` limit (default 10,000ms).       | Retry operation or inform user of delay.                       |
+| `"ABORTED"`           | `@wefterjs/core`  | Call was cancelled by `AbortSignal`.                      | Handle clean cancellation state.                               |
+| `"NO_BRIDGE"`         | `@wefterjs/core`  | Execution running outside native WebView (browser tab).   | Check `isNativeBridgeAvailable()` or show browser fallback UI. |
+| `"UNKNOWN_PLUGIN"`    | Native Dispatcher | Plugin name is not declared in `wefter.config.json`.      | Add plugin via `wefter add` and run `wefter sync`.             |
+| `"INVALID_PAYLOAD"`   | Native Dispatcher | Native side failed to parse payload JSON parameters.      | Verify payload matches documented parameters.                  |
+| `"PLUGIN_THREW"`      | Native Dispatcher | Native Kotlin or Swift code threw an unhandled exception. | Inspect native logs for root cause traceback.                  |
+| `"PERMISSION_DENIED"` | Native Plugin     | Required Android or iOS runtime permission was denied.    | Prompt user to grant permission in device settings.            |
+| `"UNKNOWN"`           | Either            | General catch-all error code.                             | Inspect `error.message` for detailed diagnostics.              |
+
+#### Error Catch Example
 
 ```ts
+import { invokeNative, WefterBridgeError } from "@wefterjs/core";
+
 try {
-  await invokeNative("scanner", "open", {});
-} catch (err) {
-  if (err instanceof WefterBridgeError && err.code === "PERMISSION_DENIED") {
-    showPermissionExplanation();
+  await invokeNative("camera", "open");
+} catch (error) {
+  if (error instanceof WefterBridgeError) {
+    switch (error.code) {
+      case "PERMISSION_DENIED":
+        console.error("Camera permission denied");
+        break;
+      case "NO_BRIDGE":
+        console.warn("Running in browser tab");
+        break;
+      default:
+        console.error("Native call failed:", error.message);
+    }
   }
 }
 ```
 
-## Testing your app's plugin usage
+---
 
-From `@wefterjs/core/testing`, for testing your own components that call
-plugins, without needing a real device or emulator running:
+## Unit Testing with `@wefterjs/core/testing`
+
+Mock native bridge responses in Vitest or Jest without a physical device:
 
 ```ts
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from "vitest";
 import { installMockBridge, uninstallMockBridge } from "@wefterjs/core/testing";
 import { getDeviceInfo } from "@wefterjs/core";
 
-installMockBridge({
-  __system: async (method, payload) => {
-    if (method === "getDeviceInfo") return { platform: "android", osVersion: "14" };
-    throw new Error(`unhandled method ${method}`);
-  },
+describe("Web UI Component", () => {
+  afterEach(() => uninstallMockBridge());
+
+  it("fetches mocked device information", async () => {
+    installMockBridge({
+      __system: (method) => {
+        if (method === "getDeviceInfo") {
+          return { platform: "android", osVersion: "14" };
+        }
+        throw new Error(`Unmocked method ${method}`);
+      },
+    });
+
+    const info = await getDeviceInfo();
+    expect(info.platform).toBe("android");
+    expect(info.osVersion).toBe("14");
+  });
 });
-
-// render your component, trigger the call, assert against the mocked response
-const result = await getDeviceInfo();
-expect(result.platform).toBe("android");
-
-uninstallMockBridge();
 ```
-
-Each handler you pass to `installMockBridge` receives `(method, payload)`
-for calls made to that plugin name, and can return or throw whatever result
-you want your test to see, without any of it actually touching a device.
-Call `uninstallMockBridge()` afterward so later tests don't accidentally
-inherit a mock they didn't set up themselves.

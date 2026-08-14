@@ -1,76 +1,64 @@
 ---
-title: App Icon
-description: How the launcher icon is generated, and what ships by default.
+title: App Icon Generation
+description: Generating Android mipmap densities and iOS App Store icon assets from a single source PNG.
 ---
 
-## Source image requirements
+## Overview
 
-The source image **must be at least 1024x1024px**. `sync` rejects anything
-smaller:
-
-```
-Icon source is 512x512px, but must be at least 1024x1024px: /path/to/icon.png
-```
-
-Why 1024 specifically: it's the exact size iOS requires for its App Store
-icon slot, and comfortably larger than the biggest Android asset generated
-(432px, for the `xxxhdpi` adaptive icon foreground layer). One source image
-this size or larger covers every density on both platforms without
-upscaling blur.
-
-## What gets generated
-
-From that one source image, `wefter sync` generates, for every Android
-mipmap density, a legacy launcher icon (`ic_launcher.png`) and an adaptive
-icon foreground layer (`ic_launcher_foreground.png`):
-
-| Density   | Legacy size | Adaptive foreground size |
-| --------- | ----------- | ------------------------ |
-| `mdpi`    | 48px        | 108px                    |
-| `hdpi`    | 72px        | 162px                    |
-| `xhdpi`   | 96px        | 216px                    |
-| `xxhdpi`  | 144px       | 324px                    |
-| `xxxhdpi` | 192px       | 432px                    |
-
-It also writes `mipmap-anydpi-v26/ic_launcher.xml` and
-`ic_launcher_round.xml`, the adaptive icon definitions Android 8+ launchers
-use, plus an `ic_launcher_background` color resource sampled from the
-source image's corner pixel. Without these, adaptive-icon-aware launchers
-auto-wrap a plain legacy icon in a shrunken circle. `sync` avoids that by
-generating proper adaptive layers directly.
-
-For iOS, `wefter sync` generates a single 1024x1024 `icon-1024.png` from
-the same source image, flattened onto a white background (an App Store
-icon can't carry transparency), plus the `Contents.json` entry that points
-Xcode at it.
-
-## Regenerated fresh on every `sync`
-
-Icon output is derived from config every run, not persisted state. Set
-`icon` once in `wefter.config.json` and every `sync` regenerates the full
-icon set, every Android density plus the iOS icon, from that source.
-There's nothing to keep in sync by hand.
+Wefter generates native application launcher icons for both Android and iOS from a single source PNG image specified in `wefter.config.json`.
 
 ```json
-{ "icon": "./resources/icon.png" }
+{
+  "icon": "./resources/icon.png"
+}
 ```
 
-## The default icon when `icon` is omitted
+---
 
-If `icon` isn't set, `sync` doesn't touch the icon files on either
-platform, the app simply keeps the default Wefter launcher icon it ships
-with. A fresh project never shows a broken or missing icon; it shows this
-default until you configure your own.
+## Source Image Requirements
 
-## Previewing without committing to config
+<Callout type="warn">
+  **Minimum Image Dimensions**: The source icon image **must be at least
+  1024x1024px**. `wefter sync` rejects source images smaller than 1024x1024px to
+  prevent pixelated launcher icons.
+</Callout>
+
+- **Format**: PNG image.
+- **Dimensions**: Square 1024x1024px (or larger).
+- **Color Space**: RGBA color space.
+
+---
+
+## Generated Android Icon Assets
+
+During [`wefter sync`](/cli/sync), Wefter resizes the source image into all standard Android mipmap density buckets (`ic_launcher.png` and `ic_launcher_foreground.png`):
+
+| Android Mipmap Density | Legacy Icon Size (`ic_launcher.png`) | Adaptive Foreground Size (`ic_launcher_foreground.png`) |
+| ---------------------- | ------------------------------------ | ------------------------------------------------------- |
+| `mipmap-mdpi`          | 48 x 48 px                           | 108 x 108 px                                            |
+| `mipmap-hdpi`          | 72 x 72 px                           | 162 x 162 px                                            |
+| `mipmap-xhdpi`         | 96 x 96 px                           | 216 x 216 px                                            |
+| `mipmap-xxhdpi`        | 144 x 144 px                         | 324 x 324 px                                            |
+| `mipmap-xxxhdpi`       | 192 x 192 px                         | 432 x 432 px                                            |
+
+In addition to image assets, `wefter sync` generates:
+
+- **`mipmap-anydpi-v26/ic_launcher.xml`**: Adaptive icon definition for Android 8.0+ (API 26+).
+- **`mipmap-anydpi-v26/ic_launcher_round.xml`**: Round adaptive icon definition.
+- **`ic_launcher_background`**: Color resource sampled from the corner pixel of the source image.
+
+---
+
+## Generated iOS Icon Assets
+
+For iOS, `wefter sync` generates `AppIcon.appiconset/icon-1024.png` (flattened on an opaque background as required by Apple) and writes `Contents.json` configured for Xcode compilation.
+
+---
+
+## Previewing Icons with `wefter icon generate`
+
+To generate and preview Android icon assets standalone without modifying `wefter.config.json`, run [`wefter icon generate`](/cli/icon-generate):
 
 ```bash
-wefter icon generate ./my-logo.png
+wefter icon generate ./resources/icon.png
 ```
-
-Generates Android launcher icons from a source image immediately, without
-touching `wefter.config.json`. This preview command is Android only; it
-doesn't touch iOS. Useful for a quick look, but this output is lost on the
-next `wefter sync` unless you also set `icon` in config, at which point
-`sync` generates icons for both platforms together and makes it permanent.
-Full flag reference on the [CLI tab](/cli/icon-generate).

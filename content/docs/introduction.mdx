@@ -1,81 +1,75 @@
 ---
 title: Introduction
-description: What Wefter is, and how it's built.
+description: Technical architecture, native bridge mechanics, and framework capabilities.
 ---
 
-Wefter renders your app inside a native WebView, on Android or iOS, and
-gives that app a direct line to native device features through a typed
-bridge between JavaScript and the native side (Kotlin on Android, Swift on
-iOS). You write one JS codebase, in whichever framework you already use,
-and ship it as a real native app on both platforms.
+## Overview
 
-## What Wefter actually does
+Wefter is an open-source mobile application framework that turns web applications into native Android and iOS applications.
 
-Your app's UI is ordinary web code: HTML, CSS, and JavaScript, running
-inside a WebView the same way it would in a browser tab. Where Wefter adds
-something a plain web app doesn't have is native device access: camera,
-storage, biometrics, and anything else exposed through a plugin, called
-directly from your JS through a single typed bridge function.
+Unlike hybrid frameworks that bundle custom JavaScript runtimes or local HTTP servers, Wefter loads web builds directly into native WebViews (`android.webkit.WebView` and `WKWebView`) and communicates over a low-latency native bridge.
 
 ```ts
 import { invokeNative } from "@wefterjs/core";
 
-const result = await invokeNative("scanner", "open", {});
+// Asynchronous native method call returning a typed Promise
+const result = await invokeNative<{ active: boolean }>(
+  "camera",
+  "toggleTorch",
+  { enable: true },
+);
 ```
 
-There's no backend interpreter running underneath your app, no local
-server your UI talks to, and no framework runtime baked into the native
-shell. A native call goes straight from your JS to a native plugin and
-back, one hop each way.
+---
 
-## Framework-agnostic, genuinely
+## Technical Architecture Breakdown
 
-`invokeNative` and `registerHook` are plain function exports, not tied to
-any component model. Vue, React, Angular, Svelte, or plain JS all call the
-exact same two functions the exact same way. Nothing about the bridge
-knows or cares what rendered the page.
+```text
++-------------------------------------------------------------------+
+|                        Web Application UI                         |
+|             (Vue, React, Svelte, Angular, Vanilla JS)             |
++-------------------------------------------------------------------+
+                                  |
+                      invokeNative() / registerHook()
+                                  |
++-------------------------------------------------------------------+
+|                     Wefter Core Bridge Layer                      |
+|                window.AndroidBridge / webkit.messageHandlers      |
++-------------------------------------------------------------------+
+                 /                                 \
+   Android Bridge Dispatcher                iOS Bridge Dispatcher
+ (BridgeDispatcher.kt)                    (BridgeDispatcher.swift)
+                |                                   |
+   Native Kotlin Plugin                     Native Swift Plugin
+(DeviceTelemetryPlugin.kt)                (DeviceTelemetryPlugin.swift)
+```
 
-## One codebase, two native shells
+### 1. The Native Bridge Protocol
 
-The same app code runs on Android and iOS without any per-platform
-branching in your own JS. Native plugins are written per platform (Kotlin
-for Android, Swift for iOS), but calling one from your app code looks
-identical either way, `invokeNative` resolves to whichever native bridge
-is actually present at runtime.
+When JavaScript calls `invokeNative(plugin, method, payload)`:
 
-## What you get, concretely
+- On **Android**: Payload JSON is dispatched via `window.AndroidBridge.invoke(callId, plugin, method, payloadJson)`.
+- On **iOS**: Payload JSON is dispatched via `window.webkit.messageHandlers.WefterBridge.postMessage({ callId, plugin, method, payload })`.
 
-- **A CLI that does the whole loop.** `wefter sync` weaves your config and
-  plugins into a real native project; `wefter build` produces a real
-  APK/`.app`; `wefter run --watch` builds, installs, launches, and gives
-  you hot reload against a live dev server, on either platform.
-- **A plugin system where nothing is implicit.** Plugins are never
-  auto-discovered from `node_modules`. Every native capability your app
-  can reach is something you explicitly added with `wefter add`, and `add`
-  validates a plugin, checking its manifest, its method signatures, and
-  that the two actually match, before it's ever allowed into your project.
-  A `wefter.lock.json` records exactly what was synced, so drift is caught
-  automatically, not discovered later.
-- **Per-environment builds.** `wefter.config.json` supports named
-  environments (development, production, or whatever you call them), each
-  with its own app ID and name, so a dev build and a production build are
-  genuinely separate, independently installable apps rather than one app
-  that overwrites itself.
-- **Icon and splash handled for you.** Set `icon` in config and `wefter
-  sync` generates everything a platform needs from one source image, per
-  density on Android, per required slot on iOS. `splash` works
-  differently: it's a folder of your own HTML, CSS, and images, copied
-  straight in, not generated, and it's off by default since there's
-  nothing it needs to cover.
-- **A native project you can actually read.** The generated Kotlin/Swift
-  shell is small and readable, fully regenerated from your config on
-  every `sync`, so it never accumulates hand-edited drift you have to
-  reason about later. If you genuinely need to step outside it,
-  `wefter eject` hands you the real project directly.
+The native bridge resolves the target plugin instance from `WefterBridge`, invokes the registered dispatcher method (`<PluginName>PluginDispatch`), and settles the JavaScript Promise via `resolve()` or `reject()`.
 
-## Next
+### 2. High-Performance Codegen (No Reflection)
 
-- [Environment setup](/docs/environment-setup) walks through getting your
-  machine ready, for Android, iOS, or both.
-- [Installing](/docs/installing) walks through putting together your first
-  project.
+During [`wefter sync`](/cli/sync), Wefter generates static Kotlin and Swift registry dispatchers (`GeneratedRegistry.kt` and `GeneratedRegistry.swift`). Native method calls are routed directly to annotated functions (`@WefterMethod` in Kotlin, `// @WefterMethod` in Swift) with **zero runtime reflection overhead**.
+
+---
+
+## Framework Guarantees & Capabilities
+
+1. **Framework Independence**: `@wefterjs/core` exports standalone TypeScript functions (`invokeNative`, `definePlugin`, `registerHook`) compatible with any UI library or framework.
+2. **Deterministic Locking (`wefter.lock.json`)**: Every synced plugin version and file hash is recorded in `wefter.lock.json` to prevent environmental drift across team builds.
+3. **Environment Scoping**: `wefter.config.json` supports named build environments (`development`, `staging`, `production`), allowing different bundle IDs and app names to co-exist on test devices.
+4. **Disposable Native Shells**: `.wefter/native/android` and `.wefter/native/ios` are disposable targets regenerated on `wefter sync`.
+5. **Ejection Support**: Developers can run [`wefter eject`](/cli/eject) at any time to convert disposable shells into standard Android Studio and Xcode projects.
+
+---
+
+## Next Steps
+
+- **[Environment Setup](/docs/environment-setup)**: Configure Node.js, JDK 17, Android SDK, and Xcode.
+- **[Installing](/docs/installing)**: Initialize Wefter in your existing web app using `wefter init`.

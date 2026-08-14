@@ -1,102 +1,107 @@
 ---
 title: Environment Setup
-description: What you need installed before building a Wefter app.
+description: Prerequisite software installation, environment variable configuration, and wefter doctor verification.
 ---
 
-Before building a Wefter app, your machine needs four things in place: a
-JavaScript runtime, a Java runtime the Android build tools can use, the
-Android SDK itself, and something to actually run the app on. Here's what
-each one does and why it's required, not just the version number to
-install.
+## Overview
 
-## Node.js and pnpm (can use npm)
+Before initializing or building a Wefter mobile application, your development environment requires Node.js, JDK 17, the Android SDK, and (optionally for iOS) Xcode.
 
-The Wefter CLI, its plugin tooling, and your app's own frontend build (Vite,
-or whatever bundler your framework uses) all run on Node. Node 18 or newer
-is required because several packages in the toolchain use JavaScript
-runtime features that don't exist in older versions.
+---
 
-pnpm is the package manager the CLI and its own packages are built around.
-You can get by with npm for a plain app project, but pnpm is worth using if
-you're building a plugin package that references other packages of your
-own alongside it.
+## Required Prerequisites Reference Table
 
-## JDK 17
+| Tool / Dependency      | Required Version | Environment Variables                | Target Platform  | Purpose                                                                  |
+| ---------------------- | ---------------- | ------------------------------------ | ---------------- | ------------------------------------------------------------------------ |
+| **Node.js**            | `>= 18.0.0`      | `PATH`                               | All              | Executes Wefter CLI, build scripts, and web bundlers.                    |
+| **JDK (Java Dev Kit)** | `JDK 17`         | `JAVA_HOME`                          | Android          | Required by Android Gradle Plugin (AGP) to compile Kotlin code.          |
+| **Android SDK**        | API Level `24+`  | `ANDROID_HOME` or `ANDROID_SDK_ROOT` | Android          | Android compilation toolchain and `adb` device bridge.                   |
+| **Android ADB**        | Latest           | `PATH` (`platform-tools`)            | Android          | Connects CLI to physical ADB devices and emulators.                      |
+| **Xcode**              | `>= 15.0`        | Xcode Command Line Tools             | iOS (macOS only) | Compiles Swift code, builds iOS `.app` bundles, and runs iOS Simulators. |
+| **CocoaPods**          | `>= 1.12.0`      | `PATH`                               | iOS (macOS only) | Dependency manager for iOS native pods (optional if using SPM).          |
 
-This is easy to get wrong, because it's tempting to assume any recent Java
-install will do. It won't. The Android Gradle Plugin, which is what
-actually compiles your app's Kotlin and Java code, requires JDK 17
-specifically as of its current version. JDK 8 or JDK 11, which used to be
-the standard recommendation for Android work, will fail partway through a
-build with an error that doesn't always point clearly back at the JDK
-version as the cause.
+---
 
-Once installed, set `JAVA_HOME` to point at your JDK 17 install. On macOS
-and Linux this usually means adding a line like `export
-JAVA_HOME=/path/to/jdk-17` to your shell profile. On Windows it's an
-environment variable set through System Properties. Confirm it worked with
-`java -version` in a fresh terminal, since a shell session you already had
-open won't pick up a change you just made.
+## Detailed Installation & Configuration
 
-## The Android SDK
+### 1. Node.js & Package Manager
 
-The SDK is the actual set of tools and platform files Gradle needs to
-compile and package an Android app: the compiler toolchain for a given API
-level, the resource packager, and `adb`, the command-line tool used to
-install and debug apps on a connected device or emulator.
+Verify Node.js version in your terminal:
 
-Two environment variables matter here, `ANDROID_HOME` and its older alias
-`ANDROID_SDK_ROOT`, both of which should point at wherever you installed
-the SDK. If you installed Android Studio, the SDK usually lives under
-something like `~/Android/Sdk` on Linux and macOS, or
-`%LOCALAPPDATA%\Android\Sdk` on Windows, and Studio sets this for you
-automatically. If you're working from the command-line SDK tools alone,
-without the full Studio install, you'll need to set it yourself.
+```bash
+node -v
+# Output should be >= v18.0.0
+```
 
-`platform-tools`, the folder inside the SDK that contains `adb`, needs to
-be on your system `PATH`. Without this, `wefter run` can build an APK just
-fine but will fail the moment it tries to install that APK onto a device,
-since it can't find `adb` to do it with.
+Recommended package manager: `pnpm` (or `npm`/`yarn`).
 
-## A device or emulator
+### 2. JDK 17 Configuration
 
-You need somewhere to actually run the app. Two options:
+<Callout type="important">
+  **Strict Requirement**: Android Gradle Plugin requires **JDK 17**. Using JDK 8
+  or JDK 11 will cause Gradle build failures.
+</Callout>
 
-**A physical Android device**, connected by USB, with Developer Options and
-USB debugging turned on. Developer Options is hidden by default. You unlock
-it by opening Settings, finding the Build Number entry under About Phone,
-and tapping it seven times. Once it's visible, USB debugging is a toggle
-inside the new Developer Options menu.
+Set `JAVA_HOME` in your shell profile (`~/.bashrc`, `~/.zshrc`, or Windows Environment Variables):
 
-**An Android Virtual Device**, or AVD, which is Android's own emulator. If
-you've already created one, you can start it directly from the command
-line with `emulator -avd <name>`, without needing Android Studio open at
-all.
+```bash
+# macOS / Linux example
+export JAVA_HOME=/path/to/jdk-17
+export PATH=$JAVA_HOME/bin:$PATH
+```
 
-## Verify with `wefter doctor`
+Verify JDK version:
 
-You don't need to check any of the above by hand. `wefter doctor` checks
-all of it for you:
+```bash
+java -version
+```
+
+### 3. Android SDK & Environment Variables
+
+Set `ANDROID_HOME` to your Android SDK installation directory:
+
+- **Linux**: `~/Android/Sdk`
+- **macOS**: `~/Library/Android/sdk`
+- **Windows**: `%LOCALAPPDATA%\Android\Sdk`
+
+Export `ANDROID_HOME` and append `platform-tools` (`adb`) to `PATH`:
+
+```bash
+# macOS / Linux example
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+```
+
+Verify `adb` connectivity:
+
+```bash
+adb devices
+```
+
+---
+
+## Verifying Setup with `wefter doctor`
+
+Run [`wefter doctor`](/cli/doctor) to automatically audit your development environment:
 
 ```bash
 wefter doctor
 ```
 
-It runs through, in order: your Node.js version, whether `ANDROID_HOME` is
-set, whether `adb` is reachable on your `PATH`, your JDK version, and
-whether a device or emulator is currently connected. Every failing check
-prints a concrete fix rather than just a pass or fail, so you're never left
-guessing what to do next.
+Sample successful audit output:
 
-Before a release build, run it with `--release-readiness` added, which
-extends the same checks to cover signing configuration and anything else
-that would block a real release:
+```text
+✔ Node.js version (v20.11.0)
+✔ JDK version (JDK 17.0.10)
+✔ ANDROID_HOME (/home/user/Android/Sdk)
+✔ adb executable on PATH
+✔ Connected Android device / emulator detected
+✔ Xcode command line tools installed (macOS)
+```
+
+Before producing production build artifacts, run release verification:
 
 ```bash
 wefter doctor --release-readiness
 ```
-
-<Callout type="info">
-  Full command reference, including flags and exit codes, lives on the [CLI
-  tab's `doctor` page](/cli/doctor).
-</Callout>

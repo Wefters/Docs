@@ -1,126 +1,95 @@
 ---
-title: Plugin Registry
-description: How native plugins get woven into your app, and why nothing is auto-discovered.
+title: Plugin Registry & Weaving Architecture
+description: Explicit plugin declaration rules, the wefter sync weaving pipeline, and lockfile content integrity verification.
 ---
 
-A Wefter plugin pairs a JS package (what your web app imports) with native
-source for whichever platform(s) it supports (`android/*.kt`, `ios/*.swift`,
-or both). `wefter sync` is what fuses these into your generated native
-project, for both platforms.
+## Overview
 
-## Explicit only, no auto-detection
+The Wefter plugin architecture connects npm JavaScript packages (`src/index.ts`) with native source files (`android/*.kt` and `ios/*.swift`).
 
-`sync` reads exactly the `plugins` array in `wefter.config.json` and
-resolves each entry from `node_modules`. It never scans `node_modules`
-looking for anything that looks like a plugin.
+Native plugins are integrated into host projects exclusively via explicit declaration in `wefter.config.json`'s `plugins` array.
 
-A package sitting in `node_modules`, even one your web app directly
-imports, contributes zero native code, permissions, or dependencies unless
-its name is explicitly listed in `plugins`. This keeps a transitive
-dependency from silently gaining a native footprint in your app just
-because it happens to be installed somewhere in your tree.
+---
+
+## 1. Explicit Declaration (No Implicit Auto-Discovery)
+
+Wefter deliberately omits auto-discovery of packages in `node_modules`.
+
+A package installed in `node_modules` (even if directly imported by web JS) contributes **zero native code, zero Android permissions, and zero Gradle/SPM dependencies** unless its name is explicitly declared in `wefter.config.json`:
 
 ```json
 {
-  "plugins": ["@yourorg/scanner-plugin", "@yourorg/storage-plugin"]
+  "plugins": ["@wefterjs/camera", "@wefterjs/storage"]
 }
 ```
 
-## Platform support is per-plugin, not all-or-nothing
+This explicit design prevents third-party transitive npm dependencies from silently injecting unreviewed native permissions or native source files into your mobile application.
 
-A plugin only needs to ship native source for the platform(s) it actually
-supports:
+---
 
-```
-plugins/scanner/
-├── plugin.json
-├── src/index.ts
-├── android/ScannerPlugin.kt   ← optional
-└── ios/ScannerPlugin.swift     ← optional, at least one of the two required
-```
+## 2. The `wefter sync` Weaving Pipeline
 
-`sync` weaves in whichever platform folders each plugin ships, into both
-the Android and iOS projects it generates. A plugin declaring only
-`android/` still works fine in an Android-only project; calling that
-plugin's method from an iOS build it doesn't implement rejects with a
-clear `UNKNOWN_PLUGIN` error rather than silently doing nothing.
+When [`wefter sync`](/cli/sync) runs, it executes a 5-step native weaving pipeline for every declared plugin:
 
-## What `sync` actually does
-
-For each declared plugin, `sync`:
-
-1. Resolves the package directory and reads `plugin.json`.
-2. Verifies the package against `wefter.lock.json` (see below).
-3. Scans the plugin's native source for method/hook markers (`@WefterMethod`
-   annotations on Android, `// @WefterMethod` comments on iOS) and
-   cross-checks them against `plugin.json`'s declared `methods`/`hooks`. A
-   mismatch fails the sync loudly.
-4. Weaves in `permissions.android`, every `nativeDependencies.android.gradle`
-   coordinate, and any `android.manifestEntries` (activities + intent-filters)
-   into the generated `AndroidManifest.xml`/`build.gradle.kts` — the same
-   pass that already merges permissions. A `manifestEntries` placeholder
-   (`${key}`) with no matching `wefter.config.json` `pluginConfig` entry
-   fails the sync with the exact missing key named, rather than silently
-   dropping the entry. Full field shapes on the [`plugin.json`
-   reference](/plugin/plugin-json-reference).
-5. Regenerates the native project's plugin registry from scratch, for
-   both platforms. Every registered plugin instance is also reachable via
-   `WefterBridge.getPlugin(pluginId)` (Kotlin) / `WefterBridge.plugin(withId:)`
-   (Swift) from anywhere in your native code, not just from the dispatcher
-   that constructed it — see [`WefterPlugin`](/plugin/wefter-plugin-class#reaching-a-plugin-instance-from-outside-the-dispatcher-wefterbridge).
-
-`sync` is not incremental or additive. Every run rebuilds the generated
-registry from your current config, for every platform, so there's no
-persistent state that can drift from what's actually declared.
-
-## `wefter add`
-
-```bash
-wefter add @yourorg/some-plugin
+```mermaid
+graph TD
+    A[wefter sync] --> B[1. Resolve plugin from node_modules or pluginsDir]
+    B --> C[2. Verify version against wefter.lock.json]
+    C --> D[3. Audit @WefterMethod and @WefterHook signatures]
+    D --> E[4. Merge Gradle, ProGuard, Manifest & Info.plist entries]
+    E --> F[5. Generate typed Kotlin & Swift Registry Dispatchers]
 ```
 
-Installs the package, validates it against every platform it declares
-support for, and declares it in `wefter.config.json`, all or nothing. If
-validation fails on any platform the plugin claims to support, the package
-is still installed on disk but `wefter.config.json` is left untouched, so
-a bad plugin never silently becomes part of your app.
+1. **Resolution**: Resolves plugin directories from `pluginsDir` (defaults to `node_modules`).
+2. **Lockfile Audit**: Cross-checks resolved plugin version and file hashes against `wefter.lock.json`.
+3. **Signature Audit**: Audits Kotlin (`@WefterMethod`) and Swift (`// @WefterMethod`) method signatures against method declarations in `plugin.json`.
+4. **Native Manifest & Dependency Merging**:
+   - **Android**: Merges permissions into `AndroidManifest.xml`, Gradle Maven coordinates into `build.gradle.kts`, ProGuard rules into `proguard-rules.pro`, and Activities into the manifest.
+   - **iOS**: Merges usage description keys into `Info.plist` and Swift Package Manager (SPM) coordinates into `Package.swift`.
+5. **Registry Generation**: Generates static `GeneratedRegistry.kt` and `GeneratedRegistry.swift` files mapping plugin IDs directly to native plugin class instances.
 
-## `wefter.lock.json`
+---
+
+## 3. Global Plugin Access: `WefterBridge`
+
+Every registered native plugin instance is accessible globally across native code via `WefterBridge`:
+
+### Android (Kotlin)
+
+```kotlin
+val plugin = WefterBridge.getPlugin("camera") as? CameraPlugin
+```
+
+### iOS (Swift)
+
+```swift
+if let plugin = WefterBridge.plugin(withId: "camera") as? CameraPlugin {
+    // Access native plugin instance
+}
+```
+
+---
+
+## 4. Deterministic Lockfile: `wefter.lock.json`
+
+`wefter.lock.json` tracks exact plugin versions and SHA-256 content integrity hashes across `plugin.json` and native source files:
 
 ```json
 {
   "plugins": {
-    "scanner": {
-      "resolved": "0.0.1",
+    "@wefterjs/camera": {
+      "resolved": "1.0.0",
       "integrity": "sha256-b74045472a2336e36fe54a6c9310507e5968064b597a269d963fbd296ebb2403"
     }
   },
-  "syncedAt": "2026-08-07T09:44:05.704Z"
+  "syncedAt": "2026-08-14T10:00:00.000Z"
 }
 ```
 
-The `integrity` hash covers a plugin's `plugin.json`, its resolved version,
-and every native source file across whichever platforms it supports (both
-`android/*.kt` and `ios/*.swift`, if both are present), sorted by filename.
-A plugin adding iOS support to an existing Android-only implementation
-produces a new integrity hash, since real source changed, even if the
-declared version string didn't, exactly the "integrity changed but
-resolved didn't" case worth double-checking when reading a diff.
+If an installed plugin's version or native source changes without updating `wefter.lock.json`, `wefter sync` halts with an integrity drift error.
 
-This is why `nativeDependencies.android.gradle`'s full array and
-`android.manifestEntries` don't need their own separate hashing logic —
-they're both just fields inside `plugin.json`, which is hashed wholesale.
-A plugin that adds a Gradle artifact or an `<activity>` entry changes
-`plugin.json`'s bytes, which changes the integrity hash, which trips
-`--update-lock` the same as any other native-affecting change.
+To accept intentional version updates and recalculate hashes, pass `--update-lock`:
 
-Records the exact resolved version and content hash of every synced
-plugin, and is meant to be committed to version control. `sync` fails if a
-plugin's installed version no longer matches its lock entry (the
-`integrity` hash is recorded for you to check by hand, not compared
-automatically). Pass `--update-lock` to intentionally accept the drift and
-re-lock.
-
-Plugin-authoring depth, the native base classes, method/hook annotations,
-and `plugin.json`'s full schema for both platforms, lives on the
-[Plugin tab](/plugin).
+```bash
+wefter sync --update-lock
+```

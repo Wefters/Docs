@@ -1,120 +1,83 @@
 ---
 title: Wefter Docs
-description: Ship native Android and iOS apps as a WebView + native bridge, no interpreter, no separate mobile codebase.
+description: Complete documentation for Wefter — building cross-platform native Android and iOS mobile applications with web technologies.
 ---
 
-# Build native Android and iOS apps with the JavaScript you already know
+## Overview
 
-Wefter wraps your web app in a thin native shell and gives it typed,
-pluggable access to real device capability, camera, storage, biometrics,
-and more, through a lean bridge between JavaScript and the native side
-(Kotlin on Android, Swift on iOS). No backend interpreter bundled into
-your app, no custom rendering engine to learn, no second codebase to
-maintain. Vue, React, Angular, Svelte, or plain JS, the bridge doesn't
-care which one you bring.
+**Wefter** wraps your web application inside a lightweight native shell and provides direct, typed access to mobile operating system capabilities (camera, hardware storage, biometrics, sensors, and native dialogs).
+
+Wefter uses a bi-directional bridge between JavaScript and native code (Kotlin on Android, Swift on iOS) with zero runtime interpreters, zero bundled node servers, and zero proprietary rendering engines.
 
 ```bash
-npx wefter add @yourorg/scanner-plugin
-npx wefter run android --watch
+# Add a native plugin
+wefter add @wefterjs/camera
+
+# Run on Android with live hot-reloading
+wefter run android --watch
+
+# Run on iOS with live hot-reloading
+wefter run ios --watch
 ```
 
-That's the whole workflow: write JS, declare the native capability you
-need, run one command, see it on a real device. Swap `android` for `ios`
-and it's the same command.
+---
+
+## Core System Architecture
+
+```mermaid
+graph TD
+    A[Web Application: Vue / React / Svelte / JS] -->|invokeNative / registerHook| B[Wefter JS Bridge Core]
+    B -->|Native Message Dispatcher| C[Kotlin Dispatcher: Android]
+    B -->|Native Message Dispatcher| D[Swift Dispatcher: iOS]
+    C -->|Direct Execution| E[Native Android OS APIs]
+    D -->|Direct Execution| F[Native iOS OS APIs]
+```
+
+### 1. Web Application Layer
+
+Your frontend UI code is standard web code (HTML, CSS, JavaScript) built with Vue, React, Angular, Svelte, or Vanilla JavaScript. It runs inside a native WebView (`android.webkit.WebView` on Android, `WKWebView` on iOS).
+
+### 2. Wefter JS Runtime (`@wefterjs/core`)
+
+Exposes lightweight, typed client functions (`invokeNative`, `definePlugin`, `registerHook`) to call native methods and listen to native event streams.
+
+### 3. Native Shell & Bridge Engine
+
+During [`wefter sync`](/cli/sync), Wefter generates clean, disposable native shell projects inside `.wefter/native/android` and `.wefter/native/ios`. Annotated native plugin methods (`@WefterMethod` in Kotlin, `// @WefterMethod` in Swift) are invoked directly with **zero reflection overhead**.
 
 ---
 
-## How it works
+## Key Framework Features
 
-Four moving parts, in order:
-
-**1. You write your app.** Vue, React, Angular, Svelte, or plain JS, the
-same code you'd already write for the web, running inside a native
-WebView, on Android or iOS.
-
-**2. You declare what native capability you need.** `wefter add
-@yourorg/scanner-plugin` installs a plugin package, validates it, and only
-if it passes, declares it in `wefter.config.json`.
-
-**3. `wefter sync` weaves it into a real native project.** Native source
-gets copied in, dependencies and permissions get merged, and a typed
-registry gets generated, all inside a disposable, fully regenerated
-project (`.wefter/native/android` and/or `.wefter/native/ios`) you never
-hand-edit.
-
-**4. `wefter run` builds, installs, and launches it** on a real device or
-emulator/simulator, with live reload while you're actively developing.
-
-At runtime, your JS calls a native method through a single typed bridge
-call, `invokeNative('scanner', 'open', {})`, and gets a real Promise back,
-the same call on either platform. There's no local server sitting between
-your UI and your native code and nothing to boot before that call can go
-through.
+- **Zero-Interpreter Architecture**: No JS engine (Hermes/V8) bundled into your native binary. The host OS WebView executes web code natively.
+- **Framework Agnostic**: Works out-of-the-box with Vite, Next.js, Nuxt, SvelteKit, or plain HTML files.
+- **Single JS Codebase, Dual Platform Shells**: Write one frontend application; Wefter compiles target Android APKs and iOS `.app` bundles seamlessly.
+- **Explicit Plugin Declarations**: Plugins are declared in `wefter.config.json` and validated before installation (`wefter add`).
+- **Disposable Project Generation**: `.wefter/native` is 100% generated from configuration. Eject anytime using [`wefter eject`](/cli/eject).
 
 ---
 
-## Start here
+## Getting Started Topics
 
 <Cards>
   <Card
     title="Introduction"
     href="/docs/introduction"
-    description="What Wefter is and how it's built."
+    description="Architecture overview, design philosophy, and core framework capabilities."
   />
   <Card
     title="Environment Setup"
     href="/docs/environment-setup"
-    description="Get your machine ready: Node, JDK, Android SDK, Xcode if you're targeting iOS."
+    description="Prerequisite installation: Node.js, JDK 17, Android SDK, and iOS Xcode."
   />
   <Card
-    title="Installing"
+    title="Installing & Project Initialization"
     href="/docs/installing"
-    description="Set up your first Wefter project and get it running on a real device."
+    description="Initializing Wefter in an existing web project using wefter init."
   />
   <Card
-    title="App Configuration"
+    title="App Configuration Reference"
     href="/docs/app-configuration"
-    description="The full wefter.config.json reference: every field, what it controls, and what it defaults to."
+    description="Complete field reference for wefter.config.json, environments, and build flags."
   />
 </Cards>
-
----
-
-## Why Wefter
-
-**No interpreter, no bundled backend.** Your app is JS running in a
-WebView, nothing else is spinning up underneath it. Native calls cross a
-single, typed bridge with no server process in between, on either
-platform.
-
-**Framework-agnostic, genuinely.** The bridge doesn't know or care what
-rendered the page. `invokeNative` and `registerHook` are plain function
-exports, not tied to any component model. A Vue app, a React app, and a
-plain `<script>` tag all call the exact same two functions the exact same
-way.
-
-**One codebase, two platforms.** The same JS runs on Android and iOS with
-no per-platform branching in your app code. Plugins are written natively
-per platform, but calling one looks identical either way.
-
-**Small on purpose.** No custom rendering engine, no framework runtime
-baked into the shell. What ships is your app plus a thin native bridge,
-not a bundled browser or interpreter.
-
-**Native code you can actually read.** The generated project isn't a
-black box, it's a small, readable Kotlin shell on Android and Swift shell
-on iOS, plus whatever plugins you declare. Nothing is hidden behind a
-compiled binary or a proprietary format.
-
----
-
-## Where to go next
-
-- Building a plugin, not just an app? Head to the **[Plugin](/plugin)** tab
-  for anatomy, the native API surface, and a full worked tutorial.
-- Looking up a specific command? Head to the **[CLI](/cli)** tab for every
-  command, every flag, every failure mode documented, for both platforms.
-- Want the full architecture story first? Read
-  [Introduction](/docs/introduction), then
-  [Plugin Registry](/docs/plugin-registry) to see exactly how declaration,
-  validation, and weaving fit together.

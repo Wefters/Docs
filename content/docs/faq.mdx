@@ -1,153 +1,68 @@
 ---
-title: FAQ
-description: Questions that came up repeatedly while building Wefter itself.
+title: Frequently Asked Questions (FAQ)
+description: Common architectural questions, plugin management, development workflows, and security FAQs.
 ---
 
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 
-## Architecture
+## Architecture & Bridge Performance
 
 <Accordions type="single">
-  <Accordion title="Why isn't there a backend runtime?">
-    Wefter doesn't bundle an interpreter or server process into the app. Your
-    web app is a static bundle (or a dev server during development) loaded
-    into a WebView. Anything that needs to run natively is a real plugin
-    behind the bridge, not a scripting runtime shipped alongside it. That
-    keeps the app small and means there's no framework boot time, which is
-    also why the [splash screen is decorative, not
-    load-bearing](/docs/app-splash-screen).
+  <Accordion title="Why does Wefter omit a JavaScript interpreter runtime?">
+    Wefter intentionally avoids bundling a JavaScript runtime (like V8 or Hermes) or running a local HTTP node server inside mobile applications. Your web application code executes directly inside the native OS WebView (`android.webkit.WebView` and `WKWebView`). Native calls cross a thin, synchronous-to-asynchronous bridge protocol, minimizing application binary size and startup latency.
   </Accordion>
 
-<Accordion title="Can I use React, Angular, or Svelte instead of Vue?">
-  Yes. The bridge doesn't know or care what rendered the page. `invokeNative`
-  and `registerHook` are plain function exports from `@wefterjs/core`, not tied
-  to any component model. Any framework that can produce a static build (or run
-  a dev server Wefter can point a WebView at) works the same way Vue does.
+<Accordion title="Can I use React, Svelte, Angular, or SolidJS instead of Vue?">
+  Yes. The Wefter runtime (`@wefterjs/core`) is completely framework-agnostic.
+  `invokeNative`, `definePlugin`, and `registerHook` are standalone JavaScript
+  functions with zero UI framework dependencies. Any web framework capable of
+  producing static web builds or serving a local dev server works out of the
+  box.
 </Accordion>
 
-<Accordion title="Does the same app code run on both Android and iOS?">
-  Yes, without any per-platform branching in your own app code. `invokeNative`
-  resolves to whichever native bridge is actually present at runtime and behaves
-  identically either way. The one place platform matters is plugin authoring: a
-  plugin needs a native implementation per platform it supports (`android/`
-  and/or `ios/` inside the plugin's own package), but that's the plugin author's
-  concern, not something your app code has to know about when it simply calls a
-  plugin's function.
-</Accordion>
-
-  <Accordion title="Is Wefter production-ready?">
-    Both Android and iOS have a real, working bridge, build pipeline, and
-    CLI today, including [`wefter init`](/cli/init) for wrapping an
-    existing project. The plugin ecosystem is still small, though. If you
-    need a large library of ready-made plugins today, Wefter isn't there
-    yet. If you're comfortable writing your own plugins as you need them,
-    the core bridge, build pipeline, and CLI are real and working on both
-    platforms.
+  <Accordion title="Does the same frontend application code run on both Android and iOS?">
+    Yes. Web application code written with `invokeNative` runs identically on Android and iOS without per-platform branching. At runtime, `invokeNative` automatically dispatches calls to whichever native platform bridge (`window.AndroidBridge` or `window.webkit.messageHandlers.WefterBridge`) is active.
   </Accordion>
 </Accordions>
 
-## Plugins
+---
+
+## Plugins & Native Code
 
 <Accordions type="single">
-  <Accordion title="What does `wefter sync` actually do, and why doesn't it auto-discover plugins?">
-    `sync` reads the `plugins` array in `wefter.config.json`, resolves each
-    one from `node_modules`, verifies them against `wefter.lock.json`, and
-    regenerates the native project for both platforms from scratch. It
-    deliberately does **not** scan `node_modules` for
-    anything that looks like a plugin. Only packages explicitly listed in
-    `plugins` are ever woven in. This keeps a package that shows up as
-    someone else's transitive dependency from silently ending up with
-    native code in your app. See [Plugin Registry](/docs/plugin-registry).
+  <Accordion title="Why does wefter sync require explicit plugin declarations?">
+    Wefter deliberately avoids scanning `node_modules` for implicit native plugins. Plugins must be explicitly added via [`wefter add`](/cli/add) and declared in `wefter.config.json`'s `plugins` array. This prevents unintended third-party dependencies from silently injecting unreviewed native permissions or Kotlin/Swift code into your application.
   </Accordion>
 
-<Accordion title="Does a plugin need to support both Android and iOS?">
-  No. A plugin only needs an `android/` folder, only an `ios/` folder, or both,
-  whichever platforms it actually implements. `wefter sync` weaves in whichever
-  native source is present for whichever platform you're building. Calling a
-  plugin's method from a platform it doesn't implement rejects with a clear
-  `UNKNOWN_PLUGIN` error rather than silently doing nothing.
+<Accordion title="Must a plugin support both Android and iOS?">
+  No. Wefter supports single-platform plugins (`android/` directory only or
+  `ios/` directory only). If a web app calls a method on an unsupported platform
+  at runtime, `invokeNative` cleanly rejects the Promise with
+  `WefterBridgeError` code `"UNKNOWN_PLUGIN"`.
 </Accordion>
 
-<Accordion title="Is it safe to `wefter add` a plugin I haven't reviewed myself?">
-  Safer than a plain `npm install`, but not a substitute for actually looking at
-  what you're adding. `wefter add` installs the package, then runs it through
-  the same validation `wefter plugin validate` exposes standalone: checking the
-  plugin's manifest, checking its method signatures are well-formed on every
-  platform it declares, and checking the manifest matches what's actually in the
-  source. If any of that fails, the package stays installed but
-  `wefter.config.json` is left completely untouched, so a broken or malformed
-  plugin never silently becomes part of your app. What validation can't do is
-  judge intent. A plugin that's well-formed but does something you didn't want
-  will still pass. Treat validation as a correctness check, not a security
-  audit.
-</Accordion>
-
-<Accordion title="What happens if a plugin update fails validation?">
-  Nothing changes. `wefter add` either succeeds completely, including the write
-  to `wefter.config.json`, or fails completely and leaves your config exactly as
-  it was. There's no partial state where a broken plugin ends up half-declared.
-</Accordion>
-
-  <Accordion title="Can I hand-edit the generated native project?">
-    Not directly, and not by default. `.wefter/native/` is rebuilt from
-    scratch on every `sync`, for both platforms, so anything you edit
-    there gets thrown away. If you genuinely need to
-    hand-edit native code beyond what plugins and config expose, `wefter
-    eject` copies each platform's generated project out to a real,
-    permanent folder (`android/`, `ios/`) and Wefter stops regenerating it.
-    That's a one-way move for the project, not something to reach for
-    casually.
+  <Accordion title="Can I hand-edit files inside .wefter/native/?">
+    No. Files inside `.wefter/native/` are disposable and regenerated from scratch on every `wefter sync`. Any manual edits made inside `.wefter/native/` will be overwritten. If you need to permanently customize native project files, run [`wefter eject`](/cli/eject) to turn the project into standard permanent `android/` and `ios/` folders.
   </Accordion>
 </Accordions>
 
-## Development workflow
+---
+
+## Development Workflow & Security
 
 <Accordions type="single">
-  <Accordion title="What happens if I close the dev server while the app is still running?">
-    `wefter run <platform> --watch` points your app's WebView at a live
-    local dev server rather than a bundled build, the same on both Android
-    and iOS. If that server stops, the app shows a clear in-app message
-    telling you the dev server is unreachable rather than a browser-style
-    connection error. There's no fallback to a previously bundled build;
-    restart `wefter run --watch` and reload.
+  <Accordion title="How does live hot-reload work with wefter run --watch?">
+    When running `wefter run <platform> --watch`, Wefter launches the native app shell and configures the WebView to point at your local web dev server URL instead of local static assets. Web UI changes reload instantaneously without requiring native recompilation. Native Kotlin/Swift code changes require running `wefter sync`.
   </Accordion>
 
-<Accordion title="Does hot reload work for native source changes too?">
-  No, and it isn't trying to. `--watch` gives you live reload for your JS, CSS,
-  and HTML, the same as any Vite dev server, on either platform. Changing a
-  plugin's native source, its `plugin.json`, or anything else that affects the
-  native project requires a real `wefter sync` and rebuild. The two layers are
-  intentionally different: your UI code changes constantly during a session,
-  native plugin code changes rarely once a plugin is written and tested.
+<Accordion title="Do I need a Mac to build Android applications?">
+  No. Building Android APKs requires Node.js, JDK 17, and the Android SDK, all
+  of which run on Linux, macOS, and Windows. A Mac is only required when
+  compiling iOS application bundles (`.app`) or running iOS Simulators via
+  Xcode.
 </Accordion>
 
-<Accordion title="Why does the splash screen exist if there's nothing to wait for?">
-  It doesn't delay anything by default, on either platform. The `splash` field
-  is absent unless you opt in. When you do configure one, it's for branding, a
-  moment of your own artwork instead of a blank frame on cold start, not because
-  the app needs the time. It's a folder of your own HTML and dismisses once you
-  call `hideSplash()`, or on a fixed timer if you'd rather not wire that up. See
-  [App Splash Screen](/docs/app-splash-screen).
-</Accordion>
-
-  <Accordion title="Do I need a Mac to build for Android?">
-    No. Only iOS requires macOS, since `xcodebuild`, `xcrun`, and code
-    signing only run there. Android's toolchain (Gradle, the Android SDK)
-    runs on Linux, macOS, or Windows. If you're only targeting Android, a
-    Mac is never required.
-  </Accordion>
-</Accordions>
-
-## Security
-
-<Accordions type="single">
-  <Accordion title="Can a compromised or malicious web dependency reach native code through the bridge?">
-    Any JS running in your app's WebView can call any plugin method your app has
-    declared, the same way any JS in a browser tab can call any function on the
-    page, on both platforms. The bridge doesn't currently add a
-    permission-confirmation step for individual calls, so this is a real thing
-    to keep in mind: treat your frontend dependencies with the same care you
-    would for a web app that has access to sensitive native features, because
-    from the WebView's side, that's exactly what it is.
+  <Accordion title="What security auditing does wefter plugin validate perform?">
+    [`wefter plugin validate`](/cli/plugin-validate) checks `plugin.json` schemas, verifies `@WefterMethod` parameter signatures, and ensures dangerous Android permissions contain `"PERMISSION_DENIED"` error handling. It validates structural correctness, but does not substitute for reviewing third-party native code before adding it to production apps.
   </Accordion>
 </Accordions>
