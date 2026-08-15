@@ -1,6 +1,6 @@
 ---
 title: wefter add
-description: Installs an npm plugin package, validates native code integrity, audits permissions/conflicts, and declares it in wefter.config.json.
+description: Looks up an npm plugin package on the registry, records the resolved version in package.json, and declares it in wefter.config.json — without running any install command.
 ---
 
 ## Synopsis
@@ -11,14 +11,14 @@ wefter add <plugin> [projectDir]
 
 ## Overview & Use Cases
 
-`wefter add` installs an npm package containing a Wefter native plugin, validates its directory structure and native signatures, checks for security or version conflicts, and appends the plugin package name to `wefter.config.json`.
+`wefter add` registers a Wefter native plugin in your project **without running any package-manager install command**. It fetches the package metadata (name, resolved version, description) directly from the npm registry, adds the dependency to `package.json`, and appends the plugin name to the `plugins` array in `wefter.config.json`.
 
-It acts as a **validation gate**: if the installed npm package fails native validation (e.g. malformed native annotations or missing native code), `wefter add` refuses to declare it in `wefter.config.json`.
+Because no install is executed, `wefter add` works identically regardless of whether your project uses **npm, pnpm, yarn, or bun**. After running it, the CLI tells you the exact command to install the package with whichever manager you are using.
 
 ### Primary Use Cases
 
-- Adding a native capability plugin (e.g. camera, geolocation, secure storage) to your Wefter app.
-- Safely validating third-party plugin packages before declaring them in your project configuration.
+- Quickly declaring a native capability plugin (camera, biometrics, secure storage, …) in your Wefter project.
+- Keeping `wefter.config.json` and `package.json` in sync without touching your lockfile or node\_modules.
 
 ---
 
@@ -27,20 +27,35 @@ It acts as a **validation gate**: if the installed npm package fails native vali
 When invoked, `wefter add` executes the following sequence:
 
 1. **Config Validation**: Validates `wefter.config.json` in `projectDir`. Halts if project configuration is invalid.
-2. **Package Specification Check**: Verifies `<plugin>` matches valid npm package naming syntax (`name` or `name@version`).
-3. **Check Pre-existing Declaration**: If the plugin is already declared in `wefter.config.json`, logs a warning and exits cleanly without modifying files.
-4. **NPM Package Installation**: Runs package installation (`npm install <plugin>`) inside `projectDir`.
-5. **Native Plugin Validation (`pluginValidate`)**:
-   - Verifies `plugin.json` matches schema.
-   - Verifies native source directory (`android/` or `ios/`) exists.
-   - Audits Kotlin (`@WefterMethod`/`@WefterHook`) and Swift signatures against declared `plugin.json` method lists.
-6. **Config Update**: Appends plugin package name to `plugins` array in `wefter.config.json`.
-7. **Audit Warnings Output**: Logs warnings if the newly added plugin exports Android manifest components, requires missing `pluginConfig` keys, or has Gradle dependency version conflicts.
+2. **Package Spec Check**: Verifies `<plugin>` matches valid npm package naming syntax (`name`, `name@version`, or `name@dist-tag`).
+3. **Duplicate Check**: If the plugin is already declared in `wefter.config.json`, logs a warning and exits cleanly without modifying any files.
+4. **Registry Fetch**: Calls the npm registry (`registry.npmjs.org`) to resolve the package name and latest (or pinned) version. Fails fast with a clear error if the package is not found.
+5. **`package.json` Update**: Adds `"<name>": "^<version>"` to the `dependencies` field of the project's `package.json` (if one exists and does not already pin the package).
+6. **`wefter.config.json` Update**: Appends the plugin package name to the `plugins` array.
+7. **Install Hint**: Detects which package manager you are using from your lockfile and prints the exact command to run.
 
-<Callout type="warn">
-  **Validation Gate**: If a plugin fails validation during step 5, `wefter add` leaves `wefter.config.json` completely
-  untouched. Unvalidated plugins can never be silently woven into your native project by `wefter sync`.
+<Callout type="info">
+  **No install is run.** `wefter add` never calls `npm install`, `pnpm add`, `yarn add`, or `bun add`. The actual installation is left entirely to you, so your lockfile and workspace policies are never bypassed.
 </Callout>
+
+<Callout type="info">
+  **No local validation yet.** Because the package has not been installed yet, native plugin validation (schema, annotations, source checks) is deferred to `wefter sync`, which runs the full validation pass once the package is actually present in `node_modules`.
+</Callout>
+
+---
+
+## Package Manager Detection
+
+`wefter add` detects your package manager from lockfile presence in `projectDir`:
+
+| Lockfile found         | Install hint shown          |
+| ---------------------- | --------------------------- |
+| `pnpm-lock.yaml`       | `pnpm add <name>@<version>` |
+| `yarn.lock`            | `yarn add <name>@<version>` |
+| `bun.lockb` / `bun.lock` | `bun add <name>@<version>` |
+| _(none of the above)_  | `npm install <name>@<version>` |
+
+The hint is informational only — nothing is executed automatically.
 
 ---
 
@@ -48,10 +63,10 @@ When invoked, `wefter add` executes the following sequence:
 
 ### Arguments
 
-| Argument     | Type       | Required / Optional | Description                                                                                     | Default                                     |
-| ------------ | ---------- | ------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `<plugin>`   | Positional | **Required**        | npm package specifier (`name` or `name@version`, e.g. `@wefterjs/camera` or `my-plugin@1.2.0`). | None (must be specified)                    |
-| `projectDir` | Positional | Optional            | Path to project root directory.                                                                 | Current working directory (`process.cwd()`) |
+| Argument     | Type       | Required / Optional | Description                                                                                      | Default                                     |
+| ------------ | ---------- | ------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `<plugin>`   | Positional | **Required**        | npm package specifier (`name`, `name@version`, or `name@tag`, e.g. `@wefterjs/camera@1.2.0`).   | None (must be specified)                    |
+| `projectDir` | Positional | Optional            | Path to project root directory.                                                                  | Current working directory (`process.cwd()`) |
 
 ### Options (Flags)
 
@@ -61,13 +76,13 @@ When invoked, `wefter add` executes the following sequence:
 
 ## Usage Examples
 
-### Installing a Scoped Plugin
+### Adding a Scoped Plugin (latest version)
 
 ```bash
 wefter add @wefterjs/camera
 ```
 
-### Installing a Specific Version of a Plugin
+### Pinning a Specific Version
 
 ```bash
 wefter add my-custom-plugin@1.2.0
@@ -81,22 +96,36 @@ wefter add @wefterjs/device ./apps/mobile-app
 
 ---
 
-## Execution Output & Log Indicators
+## Execution Output
 
-### Success Output
+### Success
 
 ```text
-[SUCCESS] Validated and added @wefterjs/camera to wefter.config.json.
-[INFO] Run `wefter sync` to weave it into the native project.
+[SUCCESS] Added @wefterjs/camera@0.1.0 to wefter.config.json.
+[INFO] Now install it with your package manager:
+[INFO]   pnpm add @wefterjs/camera@0.1.0
+[INFO] Then run `wefter sync` to weave it into the native project.
 ```
 
-### Success Output with Warnings (Exported Components / Missing Config Keys)
+### Already Declared
 
 ```text
-[SUCCESS] Validated and added @wefterjs/auth to wefter.config.json.
-[WARN] Declares exported component(s), reachable from outside the app: activity .AuthRedirectActivity
-[WARN] Requires "pluginConfig" key(s) not yet set in wefter.config.json: authDomain
-[INFO] Run `wefter sync` to weave it into the native project.
+[WARN] @wefterjs/camera is already declared in wefter.config.json — nothing to add.
+```
+
+---
+
+## Recommended Workflow
+
+```bash
+# 1. Declare the plugin (fetches version, updates config & package.json)
+wefter add @wefterjs/camera
+
+# 2. Install with your package manager (command shown by step 1)
+pnpm add @wefterjs/camera@0.1.0
+
+# 3. Weave into native project (runs full validation at this point)
+wefter sync
 ```
 
 ---
@@ -109,9 +138,9 @@ wefter add @wefterjs/device ./apps/mobile-app
 
 ## Failure Modes & Error Resolution
 
-| Error Message                                           | Root Cause                                                     | Actionable Resolution                                                                  |
-| ------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `"<spec>" doesn't look like a valid npm package name`   | Specifier format is invalid.                                   | Pass a valid npm package name or `package@version`.                                    |
-| `<plugin> is already declared in wefter.config.json`    | Plugin name is already in `plugins` array.                     | No action required (or run `wefter sync` to refresh native dependencies).              |
-| `<plugin> failed validation and will NOT be added: ...` | Installed package failed native schema or annotation checks.   | Fix plugin source/manifest or choose a compliant plugin version.                       |
-| `npm install failed with exit code ...`                 | npm registry error or network failure during package download. | Check internet connection, package name spelling, or private npm registry credentials. |
+| Error Message                                         | Root Cause                                               | Actionable Resolution                                                                  |
+| ----------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `"<spec>" doesn't look like a valid npm package name` | Specifier format is invalid.                             | Pass a valid npm package name or `package@version`.                                    |
+| `<plugin> is already declared in wefter.config.json`  | Plugin name is already in `plugins` array.               | No action required (or run `wefter sync` to refresh native dependencies).              |
+| `Package "<spec>" was not found on the npm registry`  | Package does not exist or is not yet published.          | Check the package name spelling or publish the package first.                          |
+| `npm registry returned HTTP <N> for "<spec>"`         | Registry returned an unexpected error (auth, rate-limit).| Check network access, npm auth tokens, or private registry configuration.              |

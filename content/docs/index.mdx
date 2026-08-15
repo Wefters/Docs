@@ -62,7 +62,7 @@ During [`wefter sync`](/cli/sync), Wefter generates clean, disposable native she
 - **Zero-Interpreter Architecture**: No JS engine (Hermes/V8) bundled into your native binary. The host OS WebView executes web code natively.
 - **Framework Agnostic**: Works out-of-the-box with Vite, Next.js, Nuxt, SvelteKit, or plain HTML files.
 - **Single JS Codebase, Dual Platform Shells**: Write one frontend application; Wefter compiles target Android APKs and iOS `.app` bundles seamlessly.
-- **Explicit Plugin Declarations**: Plugins are declared in `wefter.config.json` and validated before installation (`wefter add`).
+- **Explicit Plugin Declarations**: Plugins are declared in `wefter.config.json` via `wefter add` (which fetches version info from the npm registry) and fully validated at `wefter sync` time.
 - **Disposable Project Generation**: `.wefter/native` is 100% generated from configuration. Eject anytime using [`wefter eject`](/cli/eject).
 
 ---

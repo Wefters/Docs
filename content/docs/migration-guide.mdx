@@ -112,14 +112,17 @@ const image = await invokeNative<{ path: string }>("camera", "takePicture", {
 
 ## Step 4: Replace Plugins
 
-Install equivalent Wefter plugins using [`wefter add`](/cli/add):
+Declare equivalent Wefter plugins using [`wefter add`](/cli/add), then install them with your package manager:
 
 ```bash
 wefter add @wefterjs/camera
 wefter add @wefterjs/storage
+
+# Then install (wefter add prints the exact command for your package manager)
+pnpm add @wefterjs/camera @wefterjs/storage
 ```
 
-`wefter add` automatically validates native permissions and declares the plugin package in `wefter.config.json`'s `plugins` array.
+`wefter add` fetches the resolved version from the npm registry, adds the dependency to `package.json`, and declares the plugin in `wefter.config.json`'s `plugins` array. Validation (native permissions, annotations) runs when you next call `wefter sync`.
 
 ---
 

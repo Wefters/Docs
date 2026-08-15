@@ -22,7 +22,7 @@ npx wefter <command> [options]
 | [`wefter sync`](/cli/sync)                       | Resolves declared plugins and regenerates Android and iOS native project shells.                | Android & iOS       |
 | [`wefter build`](/cli/build)                     | Compiles native Android APK binaries or iOS Simulator `.app` bundles via Gradle / Xcode.        | Android & iOS       |
 | [`wefter run`](/cli/run)                         | Compiles, deploys, and launches app binaries with optional Vite hot reload (`--watch`).         | Android & iOS       |
-| [`wefter add`](/cli/add)                         | Installs an npm plugin package, validates native code integrity, and declares it in config.     | Cross-platform      |
+| [`wefter add`](/cli/add)                         | Fetches plugin info from the npm registry, adds it to `package.json`, and declares it in `wefter.config.json`. | Cross-platform      |
 | [`wefter audit`](/cli/audit)                     | Read-only inspection of declared plugins, permissions, Gradle dependencies, and lockfile drift. | Android & iOS       |
 | [`wefter icon generate`](/cli/icon-generate)     | Generates Android legacy and adaptive launcher icons from a high-res source image.              | Android             |
 | [`wefter splash generate`](/cli/splash-generate) | Scaffolds a starter HTML/CSS splash screen template folder.                                     | Cross-platform      |
@@ -78,8 +78,11 @@ npx wefter init
 # 2. Audit local machine prerequisites
 npx wefter doctor
 
-# 3. Add a native capability plugin
+# 3. Add a native capability plugin (fetches version, updates package.json & config)
 npx wefter add @wefterjs/camera
+
+# 4. Install the package with your package manager
+pnpm add @wefterjs/camera@<version>
 
 # 4. Weave configuration & plugins into native shells
 npx wefter sync

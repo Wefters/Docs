@@ -7,7 +7,7 @@ description: Running wefter plugin validate checks and publishing your plugin pa
 
 Before publishing a Wefter plugin package to npm, validate its schema and native method signatures using [`wefter plugin validate`](/cli/plugin-validate).
 
-`wefter plugin validate`, [`wefter add`](/cli/add), and [`wefter sync`](/cli/sync) all run the exact same underlying validation engine (`validatePluginDirectory` from `@wefterjs/registry-codegen`).
+`wefter plugin validate` and [`wefter sync`](/cli/sync) both run the exact same underlying validation engine (`validatePluginDirectory` from `@wefterjs/registry-codegen`). [`wefter add`](/cli/add) does **not** run validation — it only fetches registry metadata and updates config. Validation happens on the next `wefter sync`.
 
 ---
 
@@ -100,9 +100,15 @@ npm publish --access public
 
 ## Consuming the Published Plugin
 
-Once published, application developers can install and declare your plugin using a single command:
+Once published, application developers declare and install your plugin in two steps:
 
 ```bash
+# 1. Declare in config and add to package.json
 wefter add @myorg/scanner-plugin
+
+# 2. Install with their package manager (wefter add shows the exact command)
+pnpm add @myorg/scanner-plugin@<version>
+
+# 3. Weave into native project (runs full validation here)
 wefter sync
 ```
