@@ -22,49 +22,49 @@
 
 ---
 
-Built with [Next.js](https://nextjs.org) and [Fumadocs](https://fumadocs.dev),
-content authored in MDX.
+The source code for the official Wefter documentation website published at [wefter.dev](https://wefter.dev). The site is built with [Next.js](https://nextjs.org) and [Fumadocs](https://fumadocs.dev), with documentation pages authored in MDX.
 
-## What's here
+## Content sections
 
-The site has three content sections, each its own tab:
+The site is organized into three primary documentation sections:
 
-| Section          | Route     | Source                             |
-| ---------------- | --------- | ---------------------------------- |
-| Docs             | `/docs`   | [`content/docs`](content/docs)     |
-| CLI reference    | `/cli`    | [`content/cli`](content/cli)       |
+| Section | Route | Content source directory |
+| --- | --- | --- |
+| Guides and architecture | `/docs` | [`content/docs`](content/docs) |
+| CLI command reference | `/cli` | [`content/cli`](content/cli) |
 | Plugin authoring | `/plugin` | [`content/plugin`](content/plugin) |
 
-Layout for each section lives under [`app/`](app) (`app/docs`, `app/cli`,
-`app/plugin`, plus `app/(home)` for the landing page), with shared chrome in
-[`layouts/`](layouts) and [`components/`](components).
+Application page layouts are defined under [`app/`](app) (`app/docs`, `app/cli`, `app/plugin`, and `app/(home)` for the landing page). Shared layout components and chrome reside in [`layouts/`](layouts) and [`components/`](components).
 
 ## Getting started
 
-Requires Node 18+ and [pnpm](https://pnpm.io).
+Prerequisites: Node.js 18 or later and [pnpm](https://pnpm.io).
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-The site runs at [localhost:3000](http://localhost:3000).
+The development server starts at `http://localhost:3000`.
 
-## Scripts
+## Command scripts
 
-| Command      | What it does                 |
-| ------------ | ---------------------------- |
-| `pnpm dev`   | Start the Next.js dev server |
-| `pnpm build` | Production build             |
-| `pnpm start` | Serve the production build   |
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Starts the Next.js development server with fast refresh. |
+| `pnpm build` | Compiles the production build. |
+| `pnpm start` | Serves the production build locally. |
 
 ## Contributing
 
-Docs content is plain MDX under [`content/`](content), each section has its
-own `meta.json` controlling sidebar order. Fix a typo, clarify a page, or add
-a missing one, then open a PR against
-[github.com/Wefters/Docs](https://github.com/Wefters/Docs).
+Documentation content is written in MDX files under [`content/`](content). Each folder contains a `meta.json` file that defines page ordering and navigation hierarchy in the sidebar.
 
-For questions or discussion about Wefter itself, join
-[discord.gg/wefter](https://discord.gg/wefter).
-</content>
+To propose edits or add new guides:
+
+1. Edit the target MDX file under `content/`.
+2. Verify local rendering with `pnpm dev`.
+3. Open a pull request against [github.com/Wefters/Docs](https://github.com/Wefters/Docs).
+
+## License
+
+[MIT](LICENSE) © 2026 Sandip Ghimire
