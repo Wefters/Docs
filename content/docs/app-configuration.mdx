@@ -23,6 +23,7 @@ It specifies web build directories, declared native plugins, environment variabl
 | `icon`             | String                        | Optional            | None                     | Path to source icon PNG image (minimum 1024x1024px).                                     |
 | `splash`           | Boolean or Object             | Optional            | `false`                  | Splash screen configuration object (or `false` to disable).                              |
 | `launchBackground` | String                        | Optional            | Sampled / `#FFFFFF`      | 6-digit hex background color (`#RRGGBB`) rendered natively during OS launch.             |
+| `landscape`        | Boolean                       | Optional            | `false`                  | Locks the app exclusively to landscape mode from initial launch (portrait disabled).     |
 | `signing`          | Object                        | Optional            | None                     | Android release keystore signing configuration.                                          |
 | `iosSigning`       | Object                        | Optional            | None                     | iOS Apple Developer signing configuration.                                               |
 
@@ -77,6 +78,22 @@ It specifies web build directories, declared native plugins, environment variabl
 
 ---
 
+## Landscape Mode (`landscape`)
+
+Setting `"landscape": true` forces the application to launch and run exclusively in landscape mode (ideal for games, dashboards, and media players):
+
+```json
+{
+  "landscape": true
+}
+```
+
+- **Android**: Configures `android:screenOrientation="sensorLandscape"` on `MainActivity` so the app starts in landscape without any portrait flash and allows rotating 180° between left and right landscape.
+- **iOS**: Configures `UISupportedInterfaceOrientations` in `Info.plist` to `UIInterfaceOrientationLandscapeLeft` and `UIInterfaceOrientationLandscapeRight`, completely disallowing portrait mode.
+- **Runtime Query**: Import `isLandscape()` from `@wefterjs/core` to detect orientation programmatically.
+
+---
+
 ## Release Signing Configuration
 
 ### Android Signing (`signing`)
@@ -124,6 +141,7 @@ It specifies web build directories, declared native plugins, environment variabl
     "transition": "fade"
   },
   "launchBackground": "#14161C",
+  "landscape": false,
   "signing": {
     "keystorePath": "./release.keystore",
     "keyAlias": "release"
