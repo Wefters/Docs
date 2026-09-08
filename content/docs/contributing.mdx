@@ -1,0 +1,205 @@
+---
+title: Contribution Guide
+description: Guidelines, environment setup, and workflows for contributing to Wefter core, plugins, and documentation.
+---
+
+## Overview
+
+Wefter is an open-source mobile application framework that enables developers to build native Android and iOS mobile applications using standard web technologies. We welcome contributions from developers of all experience levels, including bug fixes, documentation improvements, new device plugins, and core performance optimizations.
+
+---
+
+## Code of conduct
+
+All contributors, maintainers, and community members are expected to follow our code of conduct. Please review the [Code of Conduct](https://github.com/Wefters/.github/blob/main/CODE_OF_CONDUCT.md) before participating in discussions or opening pull requests. We strive to maintain a welcoming, respectful, and collaborative environment.
+
+---
+
+## Ecosystem repository map
+
+The Wefter project is organized across several focused repositories in the [Wefters GitHub organization](https://github.com/Wefters):
+
+<Cards>
+  <Card
+    title="Wefter Monorepo"
+    href="https://github.com/Wefters/Wefter"
+    description="Contains runtime bridge packages, CLI tools, developer tools, native code generators, and shell templates."
+  />
+  <Card
+    title="Official Plugins"
+    href="https://github.com/Wefters/Plugins"
+    description="Collection of 15 official device capability plugins maintained as git submodules."
+  />
+  <Card
+    title="Demo Application"
+    href="https://github.com/Wefters/Demo-App"
+    description="Showcase Vue 3 application verifying all plugins and devtools in a live mobile environment."
+  />
+  <Card
+    title="Documentation Portal"
+    href="https://github.com/Wefters/Docs"
+    description="Official documentation website source built with Next.js, Fumadocs, and MDX."
+  />
+</Cards>
+
+---
+
+## Development environment prerequisites
+
+To develop and test changes across the Wefter codebase, configure the following tools on your workstation:
+
+1. **Node.js**: Version 18 or later (LTS recommended).
+2. **pnpm**: Version 9 or later (`npm install -g pnpm`).
+3. **Java Development Kit**: JDK 17 (required for Android Gradle compilation).
+4. **Android SDK**: Command-line tools, platform-tools, and SDK platform 36 with `ANDROID_HOME` or `ANDROID_SDK_ROOT` set in your shell environment.
+5. **Xcode**: Version 16 or later on macOS (required for compiling iOS targets).
+
+Run `wefter doctor` in your terminal to verify your development environment automatically:
+
+```bash
+npx wefter doctor
+```
+
+---
+
+## Ways to contribute
+
+### 1. Reporting bugs
+
+If you encounter unexpected behavior, build errors, or native runtime issues:
+
+- Search existing issues in the relevant repository to check if the bug was already reported.
+- Open an issue using the structured bug report form.
+- Provide your operating system, device model, Node version, and the complete output of `wefter doctor`.
+- Include a minimal code reproduction snippet or link to a reproduction repository.
+
+### 2. Suggesting features and new plugins
+
+Before writing significant code for a large feature or new device plugin:
+
+- Open an issue using the feature request or new plugin proposal form.
+- Clearly describe the use case, motivation, and proposed TypeScript API interface.
+- If you are proposing a new plugin, outline the underlying Android and iOS native APIs required.
+- Join the [Wefter Discord](https://discord.gg/wefter) to discuss architectural proposals with the maintainers.
+
+### 3. Improving documentation
+
+Documentation accuracy is critical for developer success. You can contribute documentation improvements directly:
+
+- Documentation source files are located in `Docs/content/` (`docs/`, `cli/`, `plugin/`).
+- Content is written in MDX.
+- Run `pnpm dev` in the `Docs` directory to preview edits live at `http://localhost:3000`.
+- Update the relevant `meta.json` file when adding new pages or adjusting sidebar order.
+
+### 4. Contributing to core packages
+
+The core monorepo (`Wefter`) uses pnpm workspaces. Packages include:
+
+- `@wefterjs/core`: Runtime bridge library included in mobile bundles.
+- `@wefterjs/cli`: The `wefter` binary managing compilation, sync, and device running.
+- `@wefterjs/devtools`: Vite devtools plugin and inspection dashboard.
+- `@wefterjs/registry-codegen`: Native build generator and manifest merger.
+- `shells/android-template`: Android application template written in Kotlin.
+- `shells/ios-template`: iOS application template written in Swift.
+
+```bash
+# Clone the repository
+git clone https://github.com/Wefters/Wefter.git
+cd Wefter
+
+# Install dependencies and build all packages
+pnpm install
+pnpm build
+
+# Run unit tests across all packages
+pnpm test
+```
+
+### 5. Contributing to official plugins
+
+Each plugin in `Plugins/` maintains native Android (Kotlin) and iOS (Swift) code alongside a TypeScript wrapper (`src/index.ts`):
+
+- Follow the [Plugin Authoring Guide](/plugin) to understand plugin layout conventions.
+- Validate plugin consistency using the CLI:
+  ```bash
+  wefter plugin validate .
+  ```
+- Run plugin unit test suites using Vitest:
+  ```bash
+  pnpm test
+  ```
+
+---
+
+## Pull request workflow
+
+Follow these steps to submit changes:
+
+1. **Fork the target repository** on GitHub to your personal account.
+2. **Create a descriptive feature branch**:
+   ```bash
+   git checkout -b fix/cli-doctor-android-sdk-path
+   ```
+3. **Make your changes**, adhering to the project coding standards described below.
+4. **Run test suites and builds**:
+   ```bash
+   pnpm build
+   pnpm test
+   ```
+5. **Commit your work** with clear, imperative commit messages:
+   ```bash
+   git commit -m "fix(cli): correct Android SDK path resolution in doctor checks"
+   ```
+6. **Push to your fork** and open a pull request against the `main` or `master` branch.
+7. **Complete the pull request template**, checking off relevant test items and linking related issues (`Fixes #123`).
+
+---
+
+## Coding standards and guidelines
+
+### TypeScript and JavaScript
+
+- Use TypeScript in strict mode with explicit type annotations on public interfaces and function signatures.
+- Avoid using `any` unless parsing raw JSON payloads from bridge dispatches that cannot be typed at compile time.
+- Format code using the repository Prettier and ESLint configurations.
+
+### Android (Kotlin)
+
+- Follow idiomatic Kotlin style guidelines and modern Android development practices.
+- Never execute long-running operations or blocking I/O on the main thread. Dispatch background work using Kotlin coroutines.
+- Clean up resources (listeners, broadcast receivers, hardware sensors) when activities pause or stop.
+- Map native exceptions into bridge rejections using descriptive `WefterBridgeError` codes.
+
+### iOS (Swift)
+
+- Follow modern Swift conventions using Swift concurrency (`async`/`await`) where applicable.
+- Ensure thread safety when dispatching messages between the WebKit process and background queues.
+- Avoid force unwrapping optionals (`!`). Handle missing device hardware or permissions gracefully.
+
+### Documentation prose
+
+- Write clear, concise, and factual technical explanations.
+- Avoid promotional language, vague claims, or unnecessary filler phrases.
+- Use sentence case in headings (for example, `## Getting started` instead of `## Getting Started`).
+- Do not use em dashes or en dashes in prose; use commas, colons, or parentheses instead.
+- Avoid decorative emojis in headings and lists.
+
+---
+
+## Testing strategy
+
+All contributions should include corresponding tests where appropriate:
+
+1. **Unit tests**: Vitest test suites execute in milliseconds and test TypeScript wrappers and CLI functions.
+2. **Bridge mocks**: Use `@wefterjs/core/testing` (`installMockBridge`) to test plugin wrappers in Node.js and JSDOM without emulators.
+3. **Interactive verification**: Test your changes in the `Demo-App` project to verify end-to-end integration on a physical device or emulator.
+
+---
+
+## Community resources
+
+- **Documentation**: [wefter.dev](https://wefter.dev)
+- **Discord**: [discord.gg/wefter](https://discord.gg/wefter)
+- **GitHub Organization**: [github.com/Wefters](https://github.com/Wefters)
+- **Security Inquiries**: Review our [Security Policy](https://github.com/Wefters/.github/blob/main/SECURITY.md) for private vulnerability reporting.
+

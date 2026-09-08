@@ -1,0 +1,156 @@
+---
+title: App Configuration Overview
+description: Architecture, schema specification, validation rules, and lifecycle of wefter.config.json.
+---
+
+## Overview
+
+The `wefter.config.json` manifest file resides at the root of every Wefter web application. It acts as the single source of truth connecting your web front end build system to native Android and iOS shell projects.
+
+When running `wefter sync` or `wefter build`, the Wefter CLI parses this configuration file, validates all fields against strict JSON schemas, and programmatically configures native project manifests, Gradle dependencies, Xcode build settings, asset catalogs, and static dispatchers inside the `.wefter/native/` directory.
+
+---
+
+## Configuration Categories
+
+App configuration is divided into dedicated functional domains. Select any topic below or browse using the sidebar dropdown selector:
+
+<Cards>
+  <Card
+    title="Build Environments"
+    href="/docs/app-configuration/environments"
+    description="Configure multi-stage deployments, distinct app IDs, display names, and iOS bundle identifiers."
+  />
+  <Card
+    title="Web Directory"
+    href="/docs/app-configuration/web-dir"
+    description="Set build output directories, single page application asset bundling, and sync mechanics."
+  />
+  <Card
+    title="Declaring Plugins"
+    href="/docs/app-configuration/plugins"
+    description="Specify native capability plugins, custom resolution directories, and manifest placeholder injections."
+  />
+  <Card
+    title="App Launcher Icons"
+    href="/docs/app-configuration/app-icon"
+    description="Generate Android adaptive mipmaps and iOS App Store icon assets from a single 1024x1024px image."
+  />
+  <Card
+    title="Splash Screen"
+    href="/docs/app-configuration/splash-screen"
+    description="Design custom HTML splash screens, 2-stage loading models, duration limits, and dismissal events."
+  />
+  <Card
+    title="Launch Background"
+    href="/docs/app-configuration/launch-background"
+    description="Eliminate cold start white flashes using native OS background colors and automatic CSS sampling."
+  />
+  <Card
+    title="Landscape Mode"
+    href="/docs/app-configuration/landscape"
+    description="Lock application orientation to landscape on Android sensorLandscape and iOS interface orientations."
+  />
+  <Card
+    title="Android Release Signing"
+    href="/docs/app-configuration/android-signing"
+    description="Configure release keystores, key aliases, and environment variable credentials for production APKs and AABs."
+  />
+  <Card
+    title="iOS Code Signing"
+    href="/docs/app-configuration/ios-signing"
+    description="Set Apple Developer Team IDs, provisioning profiles, and automated export signing options."
+  />
+</Cards>
+
+---
+
+## Full `wefter.config.json` Schema Reference
+
+The table below outlines all available top-level properties in `wefter.config.json`:
+
+| Property | Type | Required / Optional | Default | Description |
+| --- | --- | --- | --- | --- |
+| `webDir` | String | **Required** | `"dist"` | Directory containing compiled web production assets. Copied to native shells during sync. |
+| `environments` | `Record<string, Environment>` | **Required** | `{ development: {...} }` | Named dictionary of environment definitions (`appId`, `appName`, `iosBundleId`). |
+| `plugins` | Array of Strings | Optional | `[]` | Explicit list of native plugin npm package names to compile into native shells. |
+| `pluginsDir` | String | Optional | `"node_modules"` | Root directory where declared plugin packages are resolved. |
+| `pluginConfig` | `Record<string, string>` | Optional | `{}` | Key-value store used to replace `${key}` placeholders in native plugin manifests. |
+| `icon` | String | Optional | None | Relative path to source PNG image (minimum 1024x1024px) for launcher icons. |
+| `splash` | Boolean or Object | Optional | `false` | Custom HTML splash screen configuration object or `false` to disable. |
+| `launchBackground` | String | Optional | Sampled / `#FFFFFF` | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch. |
+| `landscape` | Boolean | Optional | `false` | Forces application into landscape mode immediately upon launch. |
+| `signing` | Object | Optional | None | Android release keystore signing configuration for production builds. |
+| `iosSigning` | Object | Optional | None | iOS Apple Developer signing configuration for distribution builds. |
+
+---
+
+## Complete Example
+
+A comprehensive `wefter.config.json` manifest demonstrating all configuration options:
+
+```json
+{
+  "webDir": "dist",
+  "environments": {
+    "development": {
+      "appId": "dev.local.myapp",
+      "appName": "My App (Dev)"
+    },
+    "staging": {
+      "appId": "staging.company.myapp",
+      "appName": "My App (Staging)"
+    },
+    "production": {
+      "appId": "com.company.myapp",
+      "appName": "My App",
+      "iosBundleId": "com.company.myapp.ios"
+    }
+  },
+  "plugins": [
+    "@wefterjs/camera",
+    "@wefterjs/haptics",
+    "@wefterjs/secure-storage"
+  ],
+  "pluginConfig": {
+    "GOOGLE_MAPS_KEY": "AIzaSyD-ExampleKey12345"
+  },
+  "icon": "./resources/icon.png",
+  "splash": {
+    "source": "./resources/splash",
+    "minDuration": 400,
+    "maxDuration": 5000,
+    "dismissOn": "ready",
+    "transition": "fade"
+  },
+  "launchBackground": "#050814",
+  "landscape": false,
+  "signing": {
+    "keystorePath": "./release.keystore",
+    "keyAlias": "my-key-alias"
+  },
+  "iosSigning": {
+    "teamId": "ABCDE12345"
+  }
+}
+```
+
+---
+
+## Validation and Diagnostics
+
+Validate your configuration at any time by running `wefter doctor`:
+
+```bash
+wefter doctor
+```
+
+The doctor command verifies:
+- `wefter.config.json` syntax and schema adherence.
+- Existence of `webDir` and entry `index.html`.
+- Resolution of declared native plugins in `pluginsDir`.
+- Icon dimensions (must be at least 1024x1024px).
+- HTML splash source directory and entry `index.html`.
+- Validity of hex color values in `launchBackground`.
+- Existence of Android keystore files if `signing` is specified.
+

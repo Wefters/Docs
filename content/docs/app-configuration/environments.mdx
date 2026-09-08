@@ -1,0 +1,105 @@
+---
+title: Build Environments
+description: Managing multi-stage deployments, distinct application IDs, display names, and iOS bundle overrides.
+---
+
+## Overview
+
+Modern mobile workflows require separate configurations for development, staging, QA, and production releases. Installing multiple versions of your application side by side on a physical device or emulator requires distinct application identifiers.
+
+Wefter addresses this natively through the `environments` dictionary in `wefter.config.json`.
+
+---
+
+## Schema Reference
+
+The `environments` property is a required dictionary where each key represents an environment name, mapping to an environment configuration object:
+
+```json
+{
+  "environments": {
+    "<environment-name>": {
+      "appId": "string",
+      "appName": "string",
+      "iosBundleId": "string"
+    }
+  }
+}
+```
+
+### Environment Fields
+
+| Field | Type | Required / Optional | Default | Description |
+| --- | --- | --- | --- | --- |
+| `appId` | String | **Required** | None | Reverse-DNS Android application ID (e.g. `com.company.myapp`). Also used as default iOS bundle ID unless `iosBundleId` is set. |
+| `appName` | String | **Required** | None | Human-readable application name displayed on the home screen, app launcher, and system task switcher. |
+| `iosBundleId` | String | Optional | Value of `appId` | Explicit iOS bundle identifier override when Apple App Store requirements differ from Android package naming. |
+
+---
+
+## Example Multi-Stage Configuration
+
+```json
+{
+  "environments": {
+    "development": {
+      "appId": "dev.local.myapp",
+      "appName": "My App (Dev)"
+    },
+    "staging": {
+      "appId": "staging.company.myapp",
+      "appName": "My App (Staging)"
+    },
+    "production": {
+      "appId": "com.company.myapp",
+      "appName": "My App",
+      "iosBundleId": "com.company.myapp.ios"
+    }
+  }
+}
+```
+
+---
+
+## Selecting Environments via CLI
+
+By default, Wefter uses the `development` environment if no flag is passed. You can target any defined environment using the `--env` flag:
+
+### Running on Physical Devices or Emulators
+
+```bash
+# Launch development environment (default)
+wefter run --platform android
+
+# Launch staging environment
+wefter run --platform android --env staging
+
+# Launch production environment on iOS simulator
+wefter run --platform ios --env production
+```
+
+### Compiling Production Binaries
+
+```bash
+# Compile staging APK / AAB
+wefter build --platform android --env staging
+
+# Compile production release build
+wefter build --platform android --env production --release
+```
+
+---
+
+## Platform Synchronization Mechanics
+
+During `wefter sync`:
+
+### Android Shell Updates
+- Writes `appId` to `defaultConfig.applicationId` inside `.wefter/native/android/app/build.gradle.kts`.
+- Writes `appName` to `<string name="app_name">` in `res/values/strings.xml`.
+- Configures distinct launcher shortcuts and application namespaces so development, staging, and production APKs can be installed simultaneously on the same test device.
+
+### iOS Shell Updates
+- Writes `iosBundleId` (or fallback `appId`) to `PRODUCT_BUNDLE_IDENTIFIER` in Xcode build settings.
+- Writes `appName` to `CFBundleDisplayName` and `CFBundleName` in `Info.plist`.
+

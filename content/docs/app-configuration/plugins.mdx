@@ -1,0 +1,102 @@
+---
+title: Declaring Native Plugins
+description: Specifying native capability plugins, custom resolution directories, and manifest placeholder injections.
+---
+
+## Overview
+
+Unlike legacy hybrid toolkits that perform automatic runtime reflection or scan `node_modules` dynamically, Wefter requires native capability plugins to be declared explicitly in `wefter.config.json`.
+
+Explicit declaration ensures deterministic builds, prevents unverified native code execution, and allows Wefter's static code generator (`@wefterjs/registry-codegen`) to weave type-safe Kotlin and Swift dispatchers with zero reflection overhead.
+
+---
+
+## Schema Reference
+
+| Property | Type | Required / Optional | Default | Description |
+| --- | --- | --- | --- | --- |
+| `plugins` | Array of Strings | Optional | `[]` | Explicit array of plugin package names to weave into native shells. |
+| `pluginsDir` | String | Optional | `"node_modules"` | Root directory where declared plugin packages are resolved from. |
+| `pluginConfig` | `Record<string, string>` | Optional | `{}` | Key-value store resolved by plugin `android.manifestEntries` and iOS plist placeholders (`${key}`). |
+
+```json
+{
+  "plugins": [
+    "@wefterjs/camera",
+    "@wefterjs/biometric",
+    "@wefterjs/secure-storage"
+  ],
+  "pluginsDir": "node_modules",
+  "pluginConfig": {
+    "MAPS_API_KEY": "AIzaSyD-ExampleKey12345"
+  }
+}
+```
+
+---
+
+## Adding and Removing Plugins via CLI
+
+The fastest way to manage native plugins is through the Wefter CLI:
+
+```bash
+# Install and register a plugin in one step
+wefter add @wefterjs/scanner
+
+# Remove a plugin and unregister native bindings
+wefter remove @wefterjs/scanner
+```
+
+Running `wefter add` performs three actions automatically:
+1. Installs the npm package into your web project dependencies.
+2. Appends the package name to the `plugins` array in `wefter.config.json`.
+3. Runs `wefter sync` to generate native dispatchers and merge permissions.
+
+---
+
+## Custom Plugin Resolution (`pluginsDir`)
+
+In monorepos, pnpm workspaces, or projects utilizing local custom plugins, native packages may reside outside the immediate root `node_modules`:
+
+```json
+{
+  "pluginsDir": "../packages/plugins",
+  "plugins": [
+    "my-local-sensor-plugin",
+    "@company/internal-auth-plugin"
+  ]
+}
+```
+
+Wefter searches `pluginsDir` first for matching package names before falling back to standard Node module resolution.
+
+---
+
+## Injecting Manifest Placeholders (`pluginConfig`)
+
+Third-party native plugins frequently require API keys or configuration strings inside native manifest files (`AndroidManifest.xml` on Android or `Info.plist` on iOS).
+
+Instead of requiring developers to manually edit native files in `.wefter/native/`, plugins define placeholder strings in their `wefter-plugin.json` manifest:
+
+```json
+{
+  "android": {
+    "manifestEntries": [
+      "<meta-data android:name=\"com.google.android.geo.API_KEY\" android:value=\"${MAPS_API_KEY}\" />"
+    ]
+  }
+}
+```
+
+You satisfy these placeholders directly through `pluginConfig`:
+
+```json
+{
+  "pluginConfig": {
+    "MAPS_API_KEY": "AIzaSyD-ExampleKey12345"
+  }
+}
+```
+
+During `wefter sync`, `@wefterjs/registry-codegen` substitutes `${MAPS_API_KEY}` with the declared value before merging manifest entries into native shells.
+

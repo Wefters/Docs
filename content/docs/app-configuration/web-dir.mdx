@@ -1,0 +1,97 @@
+---
+title: Web Directory and Asset Bundling
+description: Configuring web asset compilation output directories, SPA routing considerations, and native shell synchronization.
+---
+
+## Overview
+
+Wefter runs your web user interface directly inside native OS WebViews (`android.webkit.WebView` on Android and `WKWebView` on iOS). To package your web app into standalone native binaries, Wefter needs to know where your compiled production assets reside.
+
+The `webDir` property declares this directory path relative to the project root.
+
+---
+
+## Schema Reference
+
+| Property | Type | Required / Optional | Default | Description |
+| --- | --- | --- | --- | --- |
+| `webDir` | String | **Required** | `"dist"` | Relative folder path containing compiled web production assets (`index.html`, JavaScript, CSS, and media). |
+
+```json
+{
+  "webDir": "dist"
+}
+```
+
+---
+
+## Common Web Framework Output Directories
+
+Set `webDir` according to your UI build tooling:
+
+| Framework / Bundler | Typical Output Directory | `wefter.config.json` Value |
+| --- | --- | --- |
+| Vite (Vue, React, Svelte) | `dist` | `"webDir": "dist"` |
+| Next.js (`output: 'export'`) | `out` | `"webDir": "out"` |
+| Astro (`output: 'static'`) | `dist` | `"webDir": "dist"` |
+| Nuxt (`nuxi generate`) | `.output/public` | `"webDir": ".output/public"` |
+| Angular CLI | `dist/<project-name>/browser` | `"webDir": "dist/my-app/browser"` |
+| Vanilla HTML / CSS / JS | `src` or `public` | `"webDir": "public"` |
+
+---
+
+## Synchronization Pipeline
+
+When you run `wefter sync`:
+
+```bash
+wefter sync
+```
+
+1. **Verification**: Checks that the directory specified in `webDir` exists and contains an entry `index.html` file.
+2. **Purge & Copy**: Clears existing web assets in native shells and mirrors your compiled web files:
+   - Android shell destination: `.wefter/native/android/app/src/main/assets/public/`
+   - iOS shell destination: `.wefter/native/ios/Resources/public/`
+3. **MIME Type & Asset Integrity**: Ensures local file paths and media files are registered for native WebView asset loaders (`androidx.webkit.WebViewAssetLoader` on Android and local scheme handlers on iOS).
+
+---
+
+## Base Path and Single Page Application Routing
+
+Because native WebViews serve web assets from local file systems or custom asset schemes (`https://appassets.androidplatform.net/` on Android and `wefter://localhost/` on iOS), relative path resolution is essential:
+
+### Vite Configuration (`vite.config.ts`)
+
+Configure `base: "./"` so script and stylesheet tags resolve relatively:
+
+```typescript
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+
+export default defineConfig({
+  plugins: [vue()],
+  base: "./",
+  build: {
+    outDir: "dist",
+    emptyOutDir: true
+  }
+});
+```
+
+### Next.js Configuration (`next.config.mjs`)
+
+Configure static HTML export:
+
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: "export",
+  distDir: "out",
+  images: {
+    unoptimized: true
+  }
+};
+
+export default nextConfig;
+```
+

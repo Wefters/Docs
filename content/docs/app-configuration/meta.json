@@ -1,0 +1,19 @@
+{
+  "title": "App Configuration",
+  "pages": [
+    "index",
+    "environments",
+    "web-dir",
+    "plugins",
+    "app-icon",
+    "splash-screen",
+    "launch-background",
+    "landscape",
+    "android-signing",
+    "ios-signing"
+  ],
+  "defaultOpen": true,
+  "collapsible": true,
+  "icon": "Settings"
+}
+

@@ -1,0 +1,89 @@
+---
+title: iOS Code Signing
+description: Setting Apple Developer Team IDs, provisioning profiles, and automated Xcode code signing configurations.
+---
+
+## Overview
+
+Distributing an iOS application to test devices via TestFlight or submitting to the Apple App Store requires code signing with Apple Developer certificates and provisioning profiles.
+
+Wefter simplifies iOS code signing through the `iosSigning` configuration object in `wefter.config.json`.
+
+---
+
+## Schema Reference
+
+| Property | Type | Required / Optional | Default | Description |
+| --- | --- | --- | --- | --- |
+| `teamId` | String | **Required** | None | 10-character Apple Developer Team ID from your Apple Developer account. |
+| `provisioningProfile` | String | Optional | Automatic | Name or UUID of a manual provisioning profile. Omit for automatic signing. |
+
+```json
+{
+  "iosSigning": {
+    "teamId": "ABCDE12345"
+  }
+}
+```
+
+---
+
+## Finding Your Apple Developer Team ID
+
+1. Log into your account at [developer.apple.com](https://developer.apple.com).
+2. Navigate to **Membership Details** in the sidebar.
+3. Copy your 10-character alphanumeric **Team ID** (for example, `ABCDE12345`).
+
+---
+
+## Automatic vs Manual Signing
+
+### Automatic Signing (Recommended)
+
+When `provisioningProfile` is omitted, Wefter configures Xcode for automatic code signing:
+
+```json
+{
+  "iosSigning": {
+    "teamId": "ABCDE12345"
+  }
+}
+```
+
+Xcode automatically creates, downloads, and updates developer certificates and App Store provisioning profiles associated with your Apple Developer account during compilation.
+
+### Manual Provisioning Profiles
+
+For enterprise deployments or restricted CI/CD environments that require explicitly installed provisioning profiles, specify the profile name:
+
+```json
+{
+  "iosSigning": {
+    "teamId": "ABCDE12345",
+    "provisioningProfile": "Company_InHouse_Distribution_Profile"
+  }
+}
+```
+
+---
+
+## Building Signed iOS Binaries via CLI
+
+To compile a signed iOS archive or standalone IPA package, run `wefter build`:
+
+```bash
+# Build signed production archive
+wefter build --platform ios --release
+
+# Build and export IPA for TestFlight distribution
+wefter build --platform ios --release --export-method app-store
+```
+
+Supported export methods include:
+- `app-store`: Upload to App Store Connect and TestFlight.
+- `ad-hoc`: Direct distribution to registered UDID devices.
+- `development`: Local debugging on development devices.
+- `enterprise`: In-house distribution under an Apple Developer Enterprise program.
+
+Outputs are generated inside `.wefter/native/ios/build/`.
+

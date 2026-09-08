@@ -1,0 +1,73 @@
+---
+title: App Launcher Icons
+description: Generating Android adaptive mipmaps and iOS App Store icon assets from a single 1024x1024px source image.
+---
+
+## Overview
+
+Wefter automatically generates production-ready native application launcher icons for Android and iOS from a single source PNG image specified in `wefter.config.json`.
+
+```json
+{
+  "icon": "./resources/icon.png"
+}
+```
+
+During `wefter sync`, the CLI resizes, crops, and formats the source image into all required platform-specific density buckets and XML adaptive icon definitions.
+
+---
+
+## Source Image Requirements
+
+The source icon image must adhere to strict sizing and format constraints:
+
+| Requirement | Specification | Rationale |
+| --- | --- | --- |
+| **Dimensions** | 1024 x 1024 pixels (minimum) | Sizing below 1024x1024px produces pixelation on modern ultra-high-density mobile displays. |
+| **Aspect Ratio** | 1:1 square | Non-square images are rejected during validation. |
+| **File Format** | PNG image | Lossless compression ensures crisp edges across generated assets. |
+| **Color Space** | RGBA | Supports transparent backgrounds for adaptive foreground layers. |
+
+---
+
+## Generated Android Icon Assets
+
+Android requires two icon paradigms: legacy flat icons for Android 7.1 and below, and adaptive icons for Android 8.0+ (API 26+).
+
+During `wefter sync`, Wefter compiles both:
+
+| Android Mipmap Density | Legacy Icon (`ic_launcher.png`) | Adaptive Foreground (`ic_launcher_foreground.png`) |
+| --- | --- | --- |
+| `mipmap-mdpi` | 48 x 48 px | 108 x 108 px |
+| `mipmap-hdpi` | 72 x 72 px | 162 x 162 px |
+| `mipmap-xhdpi` | 96 x 96 px | 216 x 216 px |
+| `mipmap-xxhdpi` | 144 x 144 px | 324 x 324 px |
+| `mipmap-xxxhdpi` | 192 x 192 px | 432 x 432 px |
+
+### Adaptive Icon Definitions
+
+In addition to resized image files, `wefter sync` generates:
+- **`mipmap-anydpi-v26/ic_launcher.xml`**: Adaptive vector mask referencing foreground and background layers.
+- **`mipmap-anydpi-v26/ic_launcher_round.xml`**: Circular adaptive definition for Pixel and modern launcher themes.
+- **`values/colors.xml` (`ic_launcher_background`)**: Background color automatically sampled from the corner pixel of your source image.
+
+---
+
+## Generated iOS Icon Assets
+
+For iOS, Xcode requires an asset catalog entry containing an opaque 1024x1024px image:
+
+- Destination: `.wefter/native/ios/WefterApp/Assets.xcassets/AppIcon.appiconset/icon-1024.png`
+- Manifest: Writes `Contents.json` specifying Xcode universal idiom rules.
+- Apple Compliance: Ensures the image contains no transparent alpha channels, as required by Apple App Store submission guidelines.
+
+---
+
+## Standalone Previewing via CLI
+
+You can generate and preview icon assets independently without modifying your `wefter.config.json` manifest by running `wefter icon generate`:
+
+```bash
+wefter icon generate --source ./resources/logo.png
+```
+

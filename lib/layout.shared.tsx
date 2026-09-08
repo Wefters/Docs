@@ -42,6 +42,7 @@ export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
       title: <NavTitle />,
+      transparentMode: "top",
     },
     links: [
       {
@@ -81,6 +82,7 @@ export function baseOptions(): BaseLayoutProps {
       {
         type: "custom",
         children: <HeaderGithubStar />,
+        on: "nav",
       },
     ],
   };

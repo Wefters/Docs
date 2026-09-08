@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -22,6 +23,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { GithubStarButton } from "@/components/github-star";
+import { WovenBackground } from "@/components/home/woven-background";
 
 const steps = [
   {
@@ -193,134 +195,154 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative flex min-h-screen flex-1 flex-col overflow-hidden bg-fd-background text-fd-foreground selection:bg-fd-primary/20">
-      {/* Dynamic Background Glow Layer */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[500px] w-full max-w-7xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,var(--color-fd-primary)/0.12,transparent_65%)] blur-3xl" />
+    <div className="relative isolate flex min-h-screen flex-1 flex-col overflow-hidden bg-fd-background text-fd-foreground selection:bg-fd-primary/20 transition-colors duration-300 -mt-14">
+      {/* Woven Background Pattern (SVG with mobile to PC scaling & light/dark theme support) */}
+      <WovenBackground />
 
       {/* Hero Section */}
-      <section className="mx-auto w-full max-w-6xl px-6 pt-16 pb-14 md:pt-20 md:pb-20">
-        <div className="flex flex-col items-center text-center">
-          {/* Eyebrow Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/60 px-3.5 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur-md transition-colors hover:border-fd-primary/40">
-            <Sparkles className="h-3.5 w-3.5 text-fd-primary" />
-            <span>Wefter Architecture v0.0.3</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          </div>
+      <section className="relative z-10 mx-auto w-full max-w-(--fd-layout-width) px-6 pt-28 pb-16 md:pt-36 md:pb-24">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8 lg:gap-12 w-full">
+          {/* Left Column: Hero Content (60% Width) */}
+          <div className="relative flex w-full flex-col items-start text-left md:w-[60%] shrink-0">
+            {/* Soft ambient center shadow/glow to blend and elevate typography over the weave */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-28 sm:-left-40 md:-left-56 -right-8 sm:-right-16 top-1/2 -translate-y-1/2 h-[155%] -z-10 select-none
+                         bg-[radial-gradient(ellipse_85%_75%_at_32%_48%,rgba(255,255,255,0.94)_0%,rgba(255,255,255,0.8)_42%,rgba(255,255,255,0.3)_68%,transparent_88%)]
+                         dark:bg-[radial-gradient(ellipse_85%_75%_at_32%_48%,rgba(3,7,18,0.96)_0%,rgba(3,7,18,0.85)_44%,rgba(3,7,18,0.35)_70%,transparent_90%)]
+                         blur-3xl"
+            />
 
-          {/* Headline (Max 2 lines) */}
-          <h1 className="mt-6 text-3xl font-extrabold tracking-tight sm:text-5xl md:text-6xl max-w-4xl leading-[1.1]">
-            Build Native Mobile Apps with the{" "}
-            <span className="bg-gradient-to-r from-fd-primary via-blue-500 to-indigo-500 bg-clip-text text-transparent">
-              Web Code You Already Know
-            </span>
-          </h1>
-
-          {/* Subtext (Max 20 words) */}
-          <p className="mt-5 max-w-2xl text-base sm:text-lg text-fd-muted-foreground leading-relaxed">
-            Compile Vue, React, Svelte, and Vanilla JS into lightweight native shells with zero-reflection Kotlin & Swift dispatchers.
-          </p>
-
-          {/* Action CTAs */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/docs/installing"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-fd-primary px-5 py-3 text-sm font-semibold text-fd-primary-foreground shadow-md shadow-fd-primary/15 transition-all hover:bg-fd-primary/90 hover:scale-[1.01] active:scale-[0.98]"
-            >
-              <span>Get Started</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-
-            <Link
-              href="/docs/introduction"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-fd-border bg-fd-card/80 px-5 py-3 text-sm font-semibold text-fd-foreground backdrop-blur-sm transition-all hover:bg-fd-accent hover:border-fd-border/80"
-            >
-              <Code2 className="h-4 w-4 text-fd-muted-foreground" />
-              <span>Read Architecture</span>
-            </Link>
-
-            <GithubStarButton className="px-5 py-3 text-sm" />
-          </div>
-
-          {/* Terminal Command Bar */}
-          <div className="mt-10 w-full max-w-xl overflow-hidden rounded-xl border border-fd-border bg-fd-card/90 shadow-xl text-left backdrop-blur-md">
-            <div className="flex items-center justify-between border-b border-fd-border/70 bg-fd-muted/30 px-4 py-2.5">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <Terminal className="h-3.5 w-3.5 text-fd-muted-foreground" />
-                  <span className="font-mono text-xs text-fd-muted-foreground font-medium">Quick Setup</span>
-                </div>
-                <div className="flex gap-1 border-l border-fd-border/60 pl-3">
-                  {(Object.keys(installOptions) as Array<keyof typeof installOptions>).map((pm) => (
-                    <button
-                      key={pm}
-                      onClick={() => setPmTab(pm)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-mono font-medium transition-colors ${
-                        pmTab === pm
-                          ? "bg-fd-primary text-fd-primary-foreground"
-                          : "text-fd-muted-foreground hover:text-fd-foreground hover:bg-fd-muted/60"
-                      }`}
-                    >
-                      {installOptions[pm].label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={handleCopy}
-                className="inline-flex items-center gap-1.5 rounded-md border border-fd-border/60 bg-fd-background/80 px-2.5 py-1 text-xs font-medium text-fd-muted-foreground transition-all hover:text-fd-foreground hover:bg-fd-accent"
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-3.5 w-3.5 text-emerald-500" />
-                    <span className="text-emerald-500">Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" />
-                    <span>Copy</span>
-                  </>
-                )}
-              </button>
+            {/* Eyebrow Badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/60 px-3.5 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur-md transition-colors hover:border-fd-primary/40">
+              <Sparkles className="h-3.5 w-3.5 text-fd-primary" />
+              <span>Wefter Architecture v0.0.3</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </div>
-            <div className="p-4 font-mono text-xs sm:text-sm text-fd-foreground space-y-1.5">
-              {installOptions[pmTab].lines.map((line, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <span className="text-fd-primary font-bold select-none">$</span>
-                  <span className="truncate">{line}</span>
+
+            {/* Headline (Max 2 lines) */}
+            <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-[3.2rem] lg:text-[3.5rem] leading-[1.08] text-balance text-fd-foreground">
+              Build Native Mobile Apps with the{" "}
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-300 bg-clip-text text-transparent">
+                Web Code You Already Know
+              </span>
+            </h1>
+
+            {/* Subtext (Max 20 words) */}
+            <p className="mt-5 max-w-xl text-base sm:text-lg text-fd-muted-foreground dark:text-slate-200 leading-relaxed text-pretty">
+              Compile Vue, React, Svelte, and Vanilla JS into lightweight native shells with zero-reflection Kotlin &
+              Swift dispatchers.
+            </p>
+
+            {/* Action CTAs */}
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/docs/installing"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-fd-primary px-5 py-3 text-sm font-semibold text-fd-primary-foreground shadow-md shadow-fd-primary/15 transition-all hover:bg-fd-primary/90 hover:scale-[1.01] active:scale-[0.98]"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+
+              <Link
+                href="/docs/introduction"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-fd-border bg-fd-card/80 px-5 py-3 text-sm font-semibold text-fd-foreground backdrop-blur-sm transition-all hover:bg-fd-accent hover:border-fd-border/80"
+              >
+                <Code2 className="h-4 w-4 text-fd-muted-foreground" />
+                <span>Read Architecture</span>
+              </Link>
+
+              <GithubStarButton className="px-5 py-3 text-sm" />
+            </div>
+
+            {/* Terminal Command Bar */}
+            <div className="mt-10 w-full max-w-xl overflow-hidden rounded-xl border border-fd-border bg-fd-card/90 shadow-xl text-left backdrop-blur-md">
+              <div className="flex items-center justify-between border-b border-fd-border/70 bg-fd-muted/30 px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <Terminal className="h-3.5 w-3.5 text-fd-muted-foreground" />
+                    <span className="font-mono text-xs text-fd-muted-foreground font-medium">Quick Setup</span>
+                  </div>
+                  <div className="flex gap-1 border-l border-fd-border/60 pl-3">
+                    {(Object.keys(installOptions) as Array<keyof typeof installOptions>).map((pm) => (
+                      <button
+                        key={pm}
+                        onClick={() => setPmTab(pm)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-mono font-medium transition-colors ${
+                          pmTab === pm
+                            ? "bg-fd-primary text-fd-primary-foreground"
+                            : "text-fd-muted-foreground hover:text-fd-foreground hover:bg-fd-muted/60"
+                        }`}
+                      >
+                        {installOptions[pm].label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                <button
+                  onClick={handleCopy}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-fd-border/60 bg-fd-background/80 px-2.5 py-1 text-xs font-medium text-fd-muted-foreground transition-all hover:text-fd-foreground hover:bg-fd-accent"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-emerald-500">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="p-4 font-mono text-xs sm:text-sm text-fd-foreground space-y-1.5">
+                {installOptions[pmTab].lines.map((line, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-fd-primary font-bold select-none">$</span>
+                    <span className="truncate">{line}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Framework Badges */}
+            <div className="mt-8 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-mono uppercase tracking-wider text-fd-muted-foreground mr-1">
+                Supports:
+              </span>
+              {frameworks.map((fw) => (
+                <span key={fw.name} className={`rounded-full border px-3 py-0.5 text-xs font-medium ${fw.color}`}>
+                  {fw.name}
+                </span>
               ))}
             </div>
           </div>
 
-          {/* Framework Badges */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-xs font-mono uppercase tracking-wider text-fd-muted-foreground mr-1">
-              Supports:
-            </span>
-            {frameworks.map((fw) => (
-              <span
-                key={fw.name}
-                className={`rounded-full border px-3 py-0.5 text-xs font-medium ${fw.color}`}
-              >
-                {fw.name}
-              </span>
-            ))}
+          {/* Right Column: Mobile Layer Visual (40% Width, Matches Content Height) */}
+          <div className="hidden md:flex w-full md:w-[40%] items-center justify-center relative self-stretch">
+            <div className="relative w-full h-full flex items-center justify-center py-2">
+              <Image
+                src="/images/mobile-preview.webp"
+                alt="Wefter Mobile Architecture Layer"
+                width={3900}
+                height={4416}
+                priority
+                className="w-auto h-auto max-h-[540px] lg:max-h-[600px] max-w-full object-contain filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.22)] dark:drop-shadow-[0_25px_45px_rgba(0,0,0,0.65)] select-none pointer-events-none transition-transform duration-500 hover:scale-[1.02]"
+              />
+            </div>
           </div>
         </div>
       </section>
 
       {/* Stats & Architectural Metrics */}
-      <section className="border-y border-fd-border/60 bg-fd-card/40 backdrop-blur-xs">
-        <div className="mx-auto max-w-6xl px-6 py-8">
+      <section className="relative z-10 border-y border-fd-border/60 bg-fd-card/40 backdrop-blur-xs">
+        <div className="mx-auto max-w-(--fd-layout-width) px-6 py-8">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             {stats.map((stat) => (
               <div key={stat.label} className="text-center md:text-left">
-                <div className="text-lg sm:text-xl font-bold tracking-tight text-fd-foreground">
-                  {stat.value}
-                </div>
-                <div className="mt-1 text-xs font-medium text-fd-muted-foreground">
-                  {stat.label}
-                </div>
+                <div className="text-lg sm:text-xl font-bold tracking-tight text-fd-foreground">{stat.value}</div>
+                <div className="mt-1 text-xs font-medium text-fd-muted-foreground">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -334,13 +356,14 @@ export default function HomePage() {
             Unified JS Call, Direct Native Dispatch
           </h2>
           <p className="mt-3 max-w-2xl text-sm sm:text-base text-fd-muted-foreground">
-            Invoke native capabilities asynchronously from JavaScript and receive strongly-typed Promises directly from Kotlin and Swift.
+            Invoke native capabilities asynchronously from JavaScript and receive strongly-typed Promises directly from
+            Kotlin and Swift.
           </p>
         </div>
 
-        <div className="mt-10 overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-2xl">
+        <div className="mt-10 overflow-hidden rounded-2xl border border-fd-border bg-fd-card/80 backdrop-blur-md shadow-2xl">
           {/* Tab Bar Header */}
-          <div className="flex items-center justify-between border-b border-fd-border bg-fd-muted/20 px-4 pt-2">
+          <div className="flex items-center justify-between border-b border-fd-border/70 bg-fd-muted/20 px-4 pt-2">
             <div className="flex gap-1 overflow-x-auto">
               {(["js", "kotlin", "swift"] as const).map((tab) => (
                 <button
@@ -348,7 +371,7 @@ export default function HomePage() {
                   onClick={() => setActiveTab(tab)}
                   className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all ${
                     activeTab === tab
-                      ? "border-fd-primary text-fd-primary bg-fd-card rounded-t-lg"
+                      ? "border-fd-primary text-fd-primary bg-fd-card/80 rounded-t-lg"
                       : "border-transparent text-fd-muted-foreground hover:text-fd-foreground"
                   }`}
                 >
@@ -363,7 +386,7 @@ export default function HomePage() {
           </div>
 
           {/* Code Viewer */}
-          <div className="p-5 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto bg-fd-card text-fd-foreground">
+          <div className="p-5 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto bg-fd-card/60 backdrop-blur-sm text-fd-foreground">
             <pre>
               <code>{codeExamples[activeTab].code}</code>
             </pre>
@@ -373,7 +396,7 @@ export default function HomePage() {
 
       {/* 4-Step Process Pipeline */}
       <section className="border-t border-fd-border bg-fd-card/20 py-16 md:py-24">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-(--fd-layout-width) px-6">
           <div className="flex flex-col items-center text-center">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl text-fd-foreground">
               How Wefter Operates
@@ -387,7 +410,7 @@ export default function HomePage() {
             {steps.map((step) => (
               <div
                 key={step.number}
-                className="group relative flex flex-col justify-between rounded-xl border border-fd-border bg-fd-card p-5 shadow-xs transition-all hover:border-fd-primary/50 hover:shadow-md"
+                className="group relative flex flex-col justify-between rounded-xl border border-fd-border/80 bg-fd-card/70 backdrop-blur-md p-5 shadow-xs transition-all hover:border-fd-primary/50 hover:bg-fd-card/85 hover:shadow-md"
               >
                 <div>
                   <div className="flex items-center justify-between">
@@ -399,9 +422,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <h3 className="mt-4 text-base font-semibold text-fd-foreground">{step.title}</h3>
-                  <p className="mt-2 text-xs sm:text-sm text-fd-muted-foreground leading-relaxed">
-                    {step.description}
-                  </p>
+                  <p className="mt-2 text-xs sm:text-sm text-fd-muted-foreground leading-relaxed">{step.description}</p>
                 </div>
               </div>
             ))}
@@ -410,7 +431,7 @@ export default function HomePage() {
       </section>
 
       {/* Bento Feature Grid */}
-      <section className="mx-auto w-full max-w-6xl px-6 py-16 md:py-24">
+      <section className="mx-auto w-full max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <div className="flex flex-col items-center text-center">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl text-fd-foreground">
             Architected for High-Performance Mobile Runtime
@@ -426,7 +447,7 @@ export default function HomePage() {
             return (
               <div
                 key={feat.title}
-                className={`group rounded-2xl border border-fd-border bg-fd-card p-6 shadow-xs transition-all hover:border-fd-primary/40 hover:shadow-md ${feat.span}`}
+                className={`group rounded-2xl border border-fd-border/80 bg-fd-card/70 backdrop-blur-md p-6 shadow-xs transition-all hover:border-fd-primary/40 hover:bg-fd-card/85 hover:shadow-md ${feat.span}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fd-primary/10 text-fd-primary group-hover:bg-fd-primary group-hover:text-fd-primary-foreground transition-colors">
@@ -437,9 +458,7 @@ export default function HomePage() {
                   </span>
                 </div>
                 <h3 className="mt-5 text-lg font-semibold text-fd-foreground">{feat.title}</h3>
-                <p className="mt-2 text-xs sm:text-sm text-fd-muted-foreground leading-relaxed">
-                  {feat.description}
-                </p>
+                <p className="mt-2 text-xs sm:text-sm text-fd-muted-foreground leading-relaxed">{feat.description}</p>
               </div>
             );
           })}
@@ -448,11 +467,9 @@ export default function HomePage() {
 
       {/* Navigation & Documentation Cards */}
       <section className="border-t border-fd-border bg-fd-card/30 py-16 md:py-20">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-(--fd-layout-width) px-6">
           <div className="flex flex-col items-center text-center">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-fd-foreground">
-              Explore Documentation
-            </h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-fd-foreground">Explore Documentation</h2>
             <p className="mt-2 text-sm text-fd-muted-foreground">
               Jump directly into runtime guides, plugin development, and CLI tools.
             </p>
@@ -461,7 +478,7 @@ export default function HomePage() {
           <div className="mt-10 grid gap-6 sm:grid-cols-3">
             <Link
               href="/docs"
-              className="group rounded-xl border border-fd-border bg-fd-card p-6 transition-all hover:border-fd-primary/50 hover:shadow-lg"
+              className="group rounded-xl border border-fd-border/80 bg-fd-card/70 backdrop-blur-md p-6 transition-all hover:border-fd-primary/50 hover:bg-fd-card/85 hover:shadow-lg"
             >
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-fd-foreground group-hover:text-fd-primary">Docs Guide</span>
@@ -474,7 +491,7 @@ export default function HomePage() {
 
             <Link
               href="/plugin"
-              className="group rounded-xl border border-fd-border bg-fd-card p-6 transition-all hover:border-fd-primary/50 hover:shadow-lg"
+              className="group rounded-xl border border-fd-border/80 bg-fd-card/70 backdrop-blur-md p-6 transition-all hover:border-fd-primary/50 hover:bg-fd-card/85 hover:shadow-lg"
             >
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-fd-foreground group-hover:text-fd-primary">Plugin Authoring</span>
@@ -487,7 +504,7 @@ export default function HomePage() {
 
             <Link
               href="/cli"
-              className="group rounded-xl border border-fd-border bg-fd-card p-6 transition-all hover:border-fd-primary/50 hover:shadow-lg"
+              className="group rounded-xl border border-fd-border/80 bg-fd-card/70 backdrop-blur-md p-6 transition-all hover:border-fd-primary/50 hover:bg-fd-card/85 hover:shadow-lg"
             >
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-fd-foreground group-hover:text-fd-primary">CLI Reference</span>
@@ -502,25 +519,18 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-fd-border bg-fd-card/70 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-6 pt-14 pb-10">
+      <footer className="border-t border-fd-border/70 bg-fd-card/60 backdrop-blur-lg">
+        <div className="mx-auto max-w-(--fd-layout-width) px-6 pt-14 pb-10">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
             {/* Brand Column (Col Span 2 on large screens) */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2.5">
-                <img
-                  src="/Logo/Dark/Logo.svg"
-                  alt="Wefter Logo"
-                  className="h-7 w-auto dark:hidden"
-                />
-                <img
-                  src="/Logo/Light/Logo.svg"
-                  alt="Wefter Logo"
-                  className="h-7 w-auto hidden dark:block"
-                />
+                <img src="/Logo/Dark/Logo.svg" alt="Wefter Logo" className="h-7 w-auto dark:hidden" />
+                <img src="/Logo/Light/Logo.svg" alt="Wefter Logo" className="h-7 w-auto hidden dark:block" />
               </div>
               <p className="text-xs sm:text-sm text-fd-muted-foreground leading-relaxed max-w-sm">
-                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with zero-reflection Kotlin & Swift dispatchers.
+                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with
+                zero-reflection Kotlin & Swift dispatchers.
               </p>
               <div className="flex items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -600,9 +610,7 @@ export default function HomePage() {
 
             {/* Column 3: Plugins & Ecosystem */}
             <div>
-              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
-                Plugins
-              </h4>
+              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">Plugins</h4>
               <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
                 <li>
                   <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
@@ -658,6 +666,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }

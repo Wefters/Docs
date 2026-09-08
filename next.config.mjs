@@ -23,6 +23,25 @@ const config = {
     }
     return [];
   },
+  async redirects() {
+    return [
+      {
+        source: "/docs/app-icon",
+        destination: "/docs/app-configuration/app-icon",
+        permanent: true,
+      },
+      {
+        source: "/docs/app-splash-screen",
+        destination: "/docs/app-configuration/splash-screen",
+        permanent: true,
+      },
+      {
+        source: "/docs/app-launch-background",
+        destination: "/docs/app-configuration/launch-background",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withMDX(config);

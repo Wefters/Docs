@@ -1,0 +1,58 @@
+---
+title: Native Launch Background
+description: Configuring OS-level native cold-start launch background colors and automatic CSS color sampling.
+---
+
+## Overview
+
+The native launch background (`launchBackground`) is the OS-level background color displayed by the mobile operating system the moment an application icon is tapped, prior to any WebView initialization or web asset loading.
+
+Configuring `launchBackground` prevents jarring white flashes during cold app starts on dark-themed applications.
+
+---
+
+## Schema Reference
+
+| Property | Type | Required / Optional | Default | Description |
+| --- | --- | --- | --- | --- |
+| `launchBackground` | String (6-digit hex `#RRGGBB`) | Optional | Sampled from `splash.source` or `#FFFFFF` | OS-level background color displayed before WebViews initialize. |
+
+```json
+{
+  "launchBackground": "#050814"
+}
+```
+
+---
+
+## Automatic Color Sampling Fallback
+
+If `launchBackground` is omitted from `wefter.config.json` but a custom `splash` folder is declared, Wefter automatically samples colors during `wefter sync`:
+
+1. Inspects the `index.html` file inside `splash.source`.
+2. Scans inline `<style>` tags and referenced `.css` stylesheets for `background` or `background-color` declarations on `body`, `:root`, or `html` selectors.
+3. Automatically extracts the first detected 6-digit hex color (`#RRGGBB`) and sets it as the native launch background.
+4. If no background color rule is found, Wefter falls back to clean white (`#FFFFFF`).
+
+---
+
+## Native Platform Architecture
+
+During `wefter sync`, Wefter applies the launch background color directly into native platform manifests and resources:
+
+### Android Implementation
+- Writes color definition into `.wefter/native/android/app/src/main/res/values/colors.xml`:
+  ```xml
+  <color name="splashBackground">#050814</color>
+  ```
+- Android 12+ (API 31+) Splash API: Sets `windowSplashScreenBackground` on `Theme.App.Starting` in `styles.xml`.
+- Legacy Android (API 21-30): Sets `android:windowBackground` on `MainActivity` theme, ensuring a solid native canvas appears instantly before WebView construction.
+
+### iOS Implementation
+- Normalizes the 6-digit hex code into RGB floating-point values (between 0.0 and 1.0).
+- Updates `.wefter/native/ios/WefterApp/LaunchScreen.storyboard`, injecting the color into the view controller's root view `<color>` XML element:
+  ```xml
+  <color key="backgroundColor" red="0.0196" green="0.0314" blue="0.0784" alpha="1" colorSpace="custom" />
+  ```
+- Guarantees iOS devices render the native launch screen without delay before the main `WKWebView` mounts.
+

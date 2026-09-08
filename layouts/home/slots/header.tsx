@@ -27,7 +27,7 @@ import { useTranslations } from "@fuma-translate/react";
 export const navItemVariants = cva("[&_svg]:size-4", {
   variants: {
     variant: {
-      main: "inline-flex items-center gap-1 p-2 text-fd-muted-foreground transition-colors hover:text-fd-accent-foreground data-[active=true]:text-fd-primary",
+      main: "inline-flex items-center gap-1 p-2 text-fd-foreground/80 font-medium transition-colors hover:text-fd-foreground data-[active=true]:text-fd-primary",
       button: buttonVariants({
         color: "secondary",
         className: "gap-1.5",
@@ -88,7 +88,7 @@ export function Header(props: ComponentProps<"header">) {
       {nav?.children}
       <div className="flex flex-row items-center justify-end gap-4 flex-1 max-lg:hidden">
         {slots.searchTrigger && <slots.searchTrigger.full hideIfDisabled className="w-full max-w-[240px]" />}
-        <div className="w-px h-5 bg-fd-muted" />
+        <div className="w-px h-5 bg-fd-border/50" />
         <ul className="flex flex-row items-center gap-1.5 max-sm:hidden">
           {navItems
             .filter((item) => !isSecondary(item))
@@ -96,7 +96,7 @@ export function Header(props: ComponentProps<"header">) {
               <NavigationMenuLinkItem key={i} item={item} className="text-sm" />
             ))}
         </ul>
-        <div className="w-px h-5 bg-fd-muted" />
+        <div className="w-px h-5 bg-fd-border/50" />
         <ul className="flex flex-row gap-2 items-center empty:hidden">
           {navItems.filter(isSecondary).map((item, i) => (
             <NavigationMenuLinkItem
@@ -106,7 +106,7 @@ export function Header(props: ComponentProps<"header">) {
             />
           ))}
         </ul>
-        <div className="w-px h-5 bg-fd-muted" />
+        <div className="w-px h-5 bg-fd-border/50" />
         {slots.themeSwitch && <slots.themeSwitch />}
         {slots.languageSelect && (
           <slots.languageSelect.root>
@@ -152,9 +152,12 @@ export function Header(props: ComponentProps<"header">) {
           <Primitive.Root
             className={(s) =>
               cn(
-                "backdrop-blur-lg border-b transition-[box-shadow,background-color,border-radius]",
-                open && "max-lg:shadow-lg max-lg:rounded-b-2xl",
-                (open || !isNavTransparent || s.open) && "bg-fd-background/80",
+                "transition-[box-shadow,background-color,border-color,border-radius] duration-200",
+                open && "max-lg:shadow-lg max-lg:rounded-b-2xl max-lg:bg-fd-background/90 max-lg:backdrop-blur-lg",
+                isNavTransparent && !open && !s.open
+                  ? "bg-gradient-to-b from-white/80 via-white/40 to-transparent dark:from-black/80 dark:via-black/40 dark:to-transparent backdrop-blur-[2px] border-b border-black/[0.04] dark:border-white/[0.04]"
+                  : "bg-fd-background/80 dark:bg-black/70 backdrop-blur-md border-b border-fd-border/40 shadow-xs",
+                s.open && "bg-fd-background/90 dark:bg-black/85",
               )
             }
           >

@@ -1,0 +1,83 @@
+---
+title: Android Keystore Signing
+description: Configuring release keystores, key aliases, and secure credential handling for production Android APK and AAB builds.
+---
+
+## Overview
+
+Deploying an Android application to physical test devices without developer mode or publishing binaries to the Google Play Store requires digital cryptographic signing using an Android Keystore (`.keystore` or `.jks` file).
+
+Wefter provides automated signing integration via the `signing` block in `wefter.config.json`.
+
+---
+
+## Schema Reference
+
+| Property | Type | Required / Optional | Description |
+| --- | --- | --- | --- |
+| `keystorePath` | String | **Required** | Relative path to your release `.keystore` or `.jks` file from the project root. |
+| `keyAlias` | String | **Required** | Alias name assigned to the signing key within the keystore. |
+
+```json
+{
+  "signing": {
+    "keystorePath": "./release.keystore",
+    "keyAlias": "my-release-key"
+  }
+}
+```
+
+---
+
+## Generating a Production Keystore
+
+If you do not already possess a release keystore, generate one using the Java `keytool` utility included with the Java Development Kit (JDK):
+
+```bash
+keytool -genkey -v \
+  -keystore release.keystore \
+  -alias my-release-key \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000
+```
+
+Store `release.keystore` in your project root or credentials directory, and ensure `.gitignore` excludes sensitive `.keystore` binaries from public repositories.
+
+---
+
+## Secure Credential Management via Environment Variables
+
+Never commit keystore passwords or key passwords into `wefter.config.json`.
+
+Wefter automatically detects and reads password credentials from environment variables or your local `.env` file during build execution:
+
+```bash
+# .env file (excluded from git)
+WEFTER_KEYSTORE_PASSWORD=your_secure_keystore_password
+WEFTER_KEY_PASSWORD=your_secure_key_password
+```
+
+| Environment Variable | Description |
+| --- | --- |
+| `WEFTER_KEYSTORE_PASSWORD` | Password used to unlock the `.keystore` file container. |
+| `WEFTER_KEY_PASSWORD` | Private key password (if distinct from the container password). |
+
+---
+
+## Compiling Signed Release Binaries
+
+To produce a signed production build, run `wefter build` with the `--release` flag:
+
+```bash
+# Generate signed production APK
+wefter build --platform android --release
+
+# Generate signed production Android App Bundle (AAB) for Google Play
+wefter build --platform android --release --target aab
+```
+
+During execution, Wefter's Gradle integration injects your keystore path, alias, and environment credentials into `signingConfigs.release`, outputting signed binaries to:
+- APK: `.wefter/native/android/app/build/outputs/apk/release/app-release.apk`
+- AAB: `.wefter/native/android/app/build/outputs/bundle/release/app-release.aab`
+

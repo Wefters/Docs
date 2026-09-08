@@ -1,0 +1,71 @@
+---
+title: Landscape Mode
+description: Locking application launch and runtime orientation to landscape on Android and iOS.
+---
+
+## Overview
+
+Certain mobile applications, such as games, automotive dashboards, retail point of sale (POS) tablets, and media players, must run exclusively in horizontal landscape mode.
+
+Configuring `"landscape": true` in `wefter.config.json` forces the native shell to launch and remain in landscape orientation from process initialization, completely preventing initial portrait flashing or unwanted orientation changes.
+
+---
+
+## Schema Reference
+
+| Property | Type | Required / Optional | Default | Description |
+| --- | --- | --- | --- | --- |
+| `landscape` | Boolean | Optional | `false` | When `true`, locks the app strictly to landscape orientation on both Android and iOS. |
+
+```json
+{
+  "landscape": true
+}
+```
+
+---
+
+## Native Platform Implementation
+
+When `"landscape": true` is declared, running `wefter sync` updates native shell manifests:
+
+### Android Shell Configuration
+- Updates `.wefter/native/android/app/src/main/AndroidManifest.xml`.
+- Sets `android:screenOrientation="sensorLandscape"` on `MainActivity`.
+- **Sensor Landscape**: The application launches directly in landscape mode and allows rotating between regular landscape and reverse landscape (180 degrees), but prevents rotating into portrait orientations.
+
+### iOS Shell Configuration
+- Updates `.wefter/native/ios/WefterApp/Info.plist`.
+- Configures `UISupportedInterfaceOrientations` with:
+  - `UIInterfaceOrientationLandscapeLeft`
+  - `UIInterfaceOrientationLandscapeRight`
+- Omits `UIInterfaceOrientationPortrait` and `UIInterfaceOrientationPortraitUpsideDown`, ensuring the iOS window manager never mounts the interface in vertical orientation.
+
+---
+
+## Programmatic Orientation APIs
+
+To query orientation state dynamically from your JavaScript application, import runtime helpers from `@wefterjs/core`:
+
+```typescript
+import { isLandscape, getPlatform } from "@wefterjs/core";
+
+function checkOrientation() {
+  if (isLandscape()) {
+    console.log("Running in landscape orientation");
+  }
+}
+```
+
+For dynamic runtime locking or unlocking between portrait and landscape during active user sessions, use the official [`@wefterjs/screen`](/plugin/screen) plugin:
+
+```typescript
+import { Screen } from "@wefterjs/screen";
+
+// Lock to landscape during video playback
+await Screen.lockOrientation({ orientation: "landscape" });
+
+// Unlock orientation when exiting video player
+await Screen.unlockOrientation();
+```
+

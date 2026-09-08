@@ -16,6 +16,7 @@ import { usePathname } from "fumadocs-core/framework";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
 import Link from "fumadocs-core/link";
 import { useTreePath } from "@fumadocs/base-ui/contexts/tree";
+import { SidebarGithubStar } from "../../../components/github-star";
 
 const itemVariants = cva(
   "relative flex flex-row items-center gap-2 rounded-lg p-2 text-start text-fd-muted-foreground wrap-anywhere [&_svg]:size-4 [&_svg]:shrink-0",
@@ -124,6 +125,7 @@ export function Sidebar({ footer, banner, collapsible = true, components, ...res
                   {item.icon}
                 </LinkItem>
               ))}
+              <SidebarGithubStar />
               {slots.themeSwitch && (
                 <slots.themeSwitch className="px-1 py-0 border-y-0 border-e-0 rounded-none ms-auto *:rounded-md" />
               )}
@@ -135,7 +137,7 @@ export function Sidebar({ footer, banner, collapsible = true, components, ...res
       <SidebarDrawer>
         <div className="flex flex-col gap-3 p-4 pb-2">
           <div className="flex text-fd-muted-foreground items-center gap-1.5">
-            <div className="flex flex-1">
+            <div className="flex flex-1 items-center gap-1">
               {iconLinks.map((item, i) => (
                 <LinkItem
                   key={i}
@@ -152,6 +154,7 @@ export function Sidebar({ footer, banner, collapsible = true, components, ...res
                   {item.icon}
                 </LinkItem>
               ))}
+              <SidebarGithubStar />
             </div>
             {slots.languageSelect && (
               <slots.languageSelect.root>
