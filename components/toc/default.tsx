@@ -1,3 +1,8 @@
+/**
+ * Table of contents with a vertical line that follows heading depth and a thumb marking the headings in
+ * view.
+ */
+
 "use client";
 import * as Primitive from "fumadocs-core/toc";
 import { type ComponentProps, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -6,6 +11,7 @@ import { useTOCItems } from "./index";
 import { mergeRefs } from "../../lib/merge-refs";
 import { useTranslations } from "@fuma-translate/react";
 
+/** Path and size of the outline drawn beside the headings. */
 interface ComputedSVG {
   width: number;
   height: number;
@@ -15,10 +21,12 @@ interface ComputedSVG {
   itemLineLengths: [top: number, bottom: number][];
 }
 
+/** Props of {@link TOCItems}; `thumbBox` highlights the active headings with a box. */
 export interface TOCItemsProps extends ComponentProps<"div"> {
   thumbBox?: boolean;
 }
 
+/** The list of headings and its outline. */
 export function TOCItems({ ref, className, thumbBox = true, children, ...props }: TOCItemsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const items = useTOCItems();
@@ -93,7 +101,6 @@ export function TOCItems({ ref, className, thumbBox = true, children, ...props }
         let l = i > 0 ? itemLineLengths[i - 1][1] + (top - positions[i - 1][1]) : top;
         while (l < n && path.getPointAtLength(l).y < top) l++;
 
-        // vertical line distance = bottom - top
         itemLineLengths.push([l, l + bottom - top]);
       }
     }
@@ -128,18 +135,21 @@ export function TOCItems({ ref, className, thumbBox = true, children, ...props }
   );
 }
 
+/** Shown when the page has no headings. */
 export function TOCEmpty() {
   const t = useTranslations({ note: "table of contents" });
 
   return <div className="rounded-lg border bg-fd-card p-3 text-xs text-fd-muted-foreground">{t("No Headings")}</div>;
 }
 
+/** Position and size of the active-headings box. */
 interface ThumbBoxInfo {
   startIdx: number;
   endIdx: number;
   isUp: boolean;
 }
 
+/** Draws the outline and the thumb over the active headings. */
 function ThumbTrack({ computed, thumbBox }: { computed: ComputedSVG; thumbBox: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const previousRef = useRef<ThumbBoxInfo>(null);
@@ -219,18 +229,21 @@ function ThumbTrack({ computed, thumbBox }: { computed: ComputedSVG; thumbBox: b
 
 const BASE = 8;
 
+/** Indentation of a heading at `depth`. */
 function getItemOffset(depth: number): number {
   if (depth <= 2) return 12 + BASE;
   if (depth === 3) return 24 + BASE;
   return 36 + BASE;
 }
 
+/** Horizontal position of the outline at `depth`. */
 function getLineOffset(depth: number): number {
   if (depth <= 2) return BASE;
   if (depth === 3) return 8 + BASE;
   return 16 + BASE;
 }
 
+/** One heading link. */
 export function TOCItem({ item, ...props }: Primitive.TOCItemProps & { item: Primitive.TOCItemType }) {
   const items = useTOCItems();
   const { isFirst, isLast, svg } = useMemo(() => {

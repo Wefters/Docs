@@ -7,23 +7,24 @@ import type { LinkItemType } from "../shared";
 import { Container } from "./slots/container";
 import { Header } from "./slots/header";
 
+/** Options of the landing page layout. */
 export interface HomeLayoutProps extends BaseLayoutProps, ComponentProps<"main"> {
   nav?: Nav;
   slots?: Partial<HomeSlots>;
 }
 
+/** Header options of the landing page. */
 interface Nav extends NavOptions {
-  /**
-   * Open mobile menu when hovering the trigger
-   */
   enableHoverToOpen?: boolean;
 }
 
+/** Replaceable parts of the landing page layout. */
 export interface HomeSlots extends BaseSlots {
   header: FC<ComponentProps<"header">>;
   container: FC<ComponentProps<"main">>;
 }
 
+/** Layout props and slots shared with the layout's parts. */
 const LayoutContext = createContext<{
   props: BaseSlotsProps<HomeLayoutProps>;
   navItems: LinkItemType[];
@@ -31,6 +32,11 @@ const LayoutContext = createContext<{
   slots: HomeSlots;
 } | null>(null);
 
+/**
+ * The landing page layout's props and slots.
+ *
+ * @throws {Error} When used outside the layout.
+ */
 export function useHomeLayout() {
   const context = use(LayoutContext);
   if (!context) throw new Error("Please use this component under <HomeLayout /> (`fumadocs-ui/layouts/home`).");
@@ -43,6 +49,7 @@ const { useBaseSlots } = baseSlots({
   },
 });
 
+/** Layout of the landing page: header and content. */
 export function HomeLayout(props: HomeLayoutProps) {
   const {
     nav: { enabled: navEnabled = true } = {},
@@ -79,6 +86,7 @@ export function HomeLayout(props: HomeLayoutProps) {
   );
 }
 
+/** The configured header component, or the default header. */
 function InlineHeader(props: ComponentProps<"header">) {
   const { nav } = useHomeLayout().props;
   if (nav?.component) return nav.component;

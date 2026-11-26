@@ -5,12 +5,14 @@ import type * as Base from "./base";
 import { usePathname } from "fumadocs-core/framework";
 import { isActive } from "../../lib/urls";
 
+/** Components that replace how page tree items, folders and separators are rendered. */
 export interface SidebarPageTreeComponents {
   Item: FC<{ item: PageTree.Item }>;
   Folder: FC<{ item: PageTree.Folder; children: ReactNode }>;
   Separator: FC<{ item: PageTree.Separator }>;
 }
 
+/** Custom renderers passed down the page tree. */
 const RendererContext = createContext<
   | (Partial<SidebarPageTreeComponents> & {
       pathname: string;
@@ -18,6 +20,7 @@ const RendererContext = createContext<
   | null
 >(null);
 
+/** Sidebar components a page tree renderer needs. */
 type InternalComponents = Pick<
   typeof Base,
   | "SidebarSeparator"
@@ -28,6 +31,7 @@ type InternalComponents = Pick<
   | "SidebarItem"
 >;
 
+/** Creates the component that renders the page tree (pages, folders and separators) in the sidebar. */
 export function createPageTreeRenderer({
   SidebarFolder,
   SidebarFolderContent,
@@ -88,9 +92,6 @@ export function createPageTreeRenderer({
     );
   }
 
-  /**
-   * Render sidebar items from page tree
-   */
   return function SidebarPageTree(components: Partial<SidebarPageTreeComponents>) {
     const { Folder, Item, Separator } = components;
     const { root } = useTreeContext();

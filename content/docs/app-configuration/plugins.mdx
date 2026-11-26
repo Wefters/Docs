@@ -13,19 +13,15 @@ Explicit declaration ensures deterministic builds, prevents unverified native co
 
 ## Schema Reference
 
-| Property | Type | Required / Optional | Default | Description |
-| --- | --- | --- | --- | --- |
-| `plugins` | Array of Strings | Optional | `[]` | Explicit array of plugin package names to weave into native shells. |
-| `pluginsDir` | String | Optional | `"node_modules"` | Root directory where declared plugin packages are resolved from. |
-| `pluginConfig` | `Record<string, string>` | Optional | `{}` | Key-value store resolved by plugin `android.manifestEntries` and iOS plist placeholders (`${key}`). |
+| Property       | Type                     | Required / Optional | Default          | Description                                                                                         |
+| -------------- | ------------------------ | ------------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
+| `plugins`      | Array of Strings         | Optional            | `[]`             | Explicit array of plugin package names to weave into native shells.                                 |
+| `pluginsDir`   | String                   | Optional            | `"node_modules"` | Root directory where declared plugin packages are resolved from.                                    |
+| `pluginConfig` | `Record<string, string>` | Optional            | `{}`             | Key-value store resolved by plugin `android.manifestEntries` and iOS plist placeholders (`${key}`). |
 
 ```json
 {
-  "plugins": [
-    "@wefterjs/camera",
-    "@wefterjs/biometric",
-    "@wefterjs/secure-storage"
-  ],
+  "plugins": ["@wefterjs/camera", "@wefterjs/biometric", "@wefterjs/secure-storage"],
   "pluginsDir": "node_modules",
   "pluginConfig": {
     "MAPS_API_KEY": "AIzaSyD-ExampleKey12345"
@@ -48,6 +44,7 @@ wefter remove @wefterjs/scanner
 ```
 
 Running `wefter add` performs three actions automatically:
+
 1. Installs the npm package into your web project dependencies.
 2. Appends the package name to the `plugins` array in `wefter.config.json`.
 3. Runs `wefter sync` to generate native dispatchers and merge permissions.
@@ -61,10 +58,7 @@ In monorepos, pnpm workspaces, or projects utilizing local custom plugins, nativ
 ```json
 {
   "pluginsDir": "../packages/plugins",
-  "plugins": [
-    "my-local-sensor-plugin",
-    "@company/internal-auth-plugin"
-  ]
+  "plugins": ["my-local-sensor-plugin", "@company/internal-auth-plugin"]
 }
 ```
 
@@ -99,4 +93,3 @@ You satisfy these placeholders directly through `pluginConfig`:
 ```
 
 During `wefter sync`, `@wefterjs/registry-codegen` substitutes `${MAPS_API_KEY}` with the declared value before merging manifest entries into native shells.
-

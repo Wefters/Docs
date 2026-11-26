@@ -69,19 +69,19 @@ App configuration is divided into dedicated functional domains. Select any topic
 
 The table below outlines all available top-level properties in `wefter.config.json`:
 
-| Property | Type | Required / Optional | Default | Description |
-| --- | --- | --- | --- | --- |
-| `webDir` | String | **Required** | `"dist"` | Directory containing compiled web production assets. Copied to native shells during sync. |
-| `environments` | `Record<string, Environment>` | **Required** | `{ development: {...} }` | Named dictionary of environment definitions (`appId`, `appName`, `iosBundleId`). |
-| `plugins` | Array of Strings | Optional | `[]` | Explicit list of native plugin npm package names to compile into native shells. |
-| `pluginsDir` | String | Optional | `"node_modules"` | Root directory where declared plugin packages are resolved. |
-| `pluginConfig` | `Record<string, string>` | Optional | `{}` | Key-value store used to replace `${key}` placeholders in native plugin manifests. |
-| `icon` | String | Optional | None | Relative path to source PNG image (minimum 1024x1024px) for launcher icons. |
-| `splash` | Boolean or Object | Optional | `false` | Custom HTML splash screen configuration object or `false` to disable. |
-| `launchBackground` | String | Optional | Sampled / `#FFFFFF` | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch. |
-| `landscape` | Boolean | Optional | `false` | Forces application into landscape mode immediately upon launch. |
-| `signing` | Object | Optional | None | Android release keystore signing configuration for production builds. |
-| `iosSigning` | Object | Optional | None | iOS Apple Developer signing configuration for distribution builds. |
+| Property           | Type                          | Required / Optional | Default                  | Description                                                                               |
+| ------------------ | ----------------------------- | ------------------- | ------------------------ | ----------------------------------------------------------------------------------------- |
+| `webDir`           | String                        | **Required**        | `"dist"`                 | Directory containing compiled web production assets. Copied to native shells during sync. |
+| `environments`     | `Record<string, Environment>` | **Required**        | `{ development: {...} }` | Named dictionary of environment definitions (`appId`, `appName`, `iosBundleId`).          |
+| `plugins`          | Array of Strings              | Optional            | `[]`                     | Explicit list of native plugin npm package names to compile into native shells.           |
+| `pluginsDir`       | String                        | Optional            | `"node_modules"`         | Root directory where declared plugin packages are resolved.                               |
+| `pluginConfig`     | `Record<string, string>`      | Optional            | `{}`                     | Key-value store used to replace `${key}` placeholders in native plugin manifests.         |
+| `icon`             | String                        | Optional            | None                     | Relative path to source PNG image (minimum 1024x1024px) for launcher icons.               |
+| `splash`           | Boolean or Object             | Optional            | `false`                  | Custom HTML splash screen configuration object or `false` to disable.                     |
+| `launchBackground` | String                        | Optional            | Sampled / `#FFFFFF`      | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch.                   |
+| `landscape`        | Boolean                       | Optional            | `false`                  | Forces application into landscape mode immediately upon launch.                           |
+| `signing`          | Object                        | Optional            | None                     | Android release keystore signing configuration for production builds.                     |
+| `iosSigning`       | Object                        | Optional            | None                     | iOS Apple Developer signing configuration for distribution builds.                        |
 
 ---
 
@@ -107,11 +107,7 @@ A comprehensive `wefter.config.json` manifest demonstrating all configuration op
       "iosBundleId": "com.company.myapp.ios"
     }
   },
-  "plugins": [
-    "@wefterjs/camera",
-    "@wefterjs/haptics",
-    "@wefterjs/secure-storage"
-  ],
+  "plugins": ["@wefterjs/camera", "@wefterjs/haptics", "@wefterjs/secure-storage"],
   "pluginConfig": {
     "GOOGLE_MAPS_KEY": "AIzaSyD-ExampleKey12345"
   },
@@ -146,6 +142,7 @@ wefter doctor
 ```
 
 The doctor command verifies:
+
 - `wefter.config.json` syntax and schema adherence.
 - Existence of `webDir` and entry `index.html`.
 - Resolution of declared native plugins in `pluginsDir`.
@@ -153,4 +150,3 @@ The doctor command verifies:
 - HTML splash source directory and entry `index.html`.
 - Validity of hex color values in `launchBackground`.
 - Existence of Android keystore files if `signing` is specified.
-

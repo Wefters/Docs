@@ -64,14 +64,14 @@ Xcode, Gradle and `adb` output is kept out of your terminal. Each step shows a s
 
 When the app is running with `--watch`, these keys are available:
 
-| Key | Action |
-| --- | --- |
-| `r` | Reload the app's web view. If no app is connected to the dev server, the app is restarted on the device instead. |
-| `Ctrl+R` | Rebuild the native app, then reinstall and relaunch it. Use it after changing native code or plugins. The dev server keeps running. |
-| `o` | Open the DevTools dashboard in your browser. |
-| `c` | Clear the terminal and show the summary again. |
-| `h` | List the shortcuts. |
-| `q` / `Ctrl+C` | Stop the dev server and exit. |
+| Key            | Action                                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `r`            | Reload the app's web view. If no app is connected to the dev server, the app is restarted on the device instead.                    |
+| `Ctrl+R`       | Rebuild the native app, then reinstall and relaunch it. Use it after changing native code or plugins. The dev server keeps running. |
+| `o`            | Open the DevTools dashboard in your browser.                                                                                        |
+| `c`            | Clear the terminal and show the summary again.                                                                                      |
+| `h`            | List the shortcuts.                                                                                                                 |
+| `q` / `Ctrl+C` | Stop the dev server and exit.                                                                                                       |
 
 If a rebuild fails, the session keeps running: fix the problem and press `Ctrl+R` again. If you added a plugin or changed `wefter.config.json`, run `wefter sync` first; `Ctrl+R` tells you when that's needed.
 

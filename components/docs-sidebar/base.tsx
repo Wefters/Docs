@@ -1,3 +1,8 @@
+/**
+ * Unstyled building blocks of the docs sidebar: open state, the mobile drawer, folders and items, and
+ * scrolling the active item into view. The styled sidebar in `layouts/docs/slots/sidebar.tsx` uses them.
+ */
+
 "use client";
 import { ChevronDown, ExternalLink } from "lucide-react";
 import {
@@ -29,38 +34,29 @@ import { usePathname } from "fumadocs-core/framework";
 import ReactDOM from "react-dom";
 import { useTranslations } from "@fuma-translate/react";
 
+/** Sidebar state shared with its parts. */
 interface SidebarContext {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   collapsed: boolean;
   setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
 
-  /**
-   * When set to false, don't close the sidebar when navigate to another page
-   */
   closeOnRedirect: RefObject<boolean>;
   defaultOpenLevel: number;
   prefetch?: boolean;
   mode: Mode;
 }
 
+/** How deep folders start open, and whether links prefetch. */
 export interface SidebarProviderProps {
-  /**
-   * Open folders by default if their level is lower or equal to a specific level
-   * (Starting from 1)
-   *
-   * @defaultValue 0
-   */
   defaultOpenLevel?: number;
 
-  /**
-   * Prefetch links, default behaviour depends on your React.js framework.
-   */
   prefetch?: boolean;
 
   children?: ReactNode;
 }
 
+/** `drawer` on small screens, `full` on wide ones. */
 type Mode = "drawer" | "full";
 
 const SidebarContext = createContext<SidebarContext | null>(null);
@@ -72,6 +68,7 @@ const FolderContext = createContext<{
   collapsible: boolean;
 } | null>(null);
 
+/** Holds the sidebar state and closes the mobile drawer on navigation. */
 export function SidebarProvider({ defaultOpenLevel = 0, prefetch, children }: SidebarProviderProps) {
   const closeOnRedirect = useRef(true);
   const [open, setOpen] = useState(false);
@@ -107,6 +104,11 @@ export function SidebarProvider({ defaultOpenLevel = 0, prefetch, children }: Si
   );
 }
 
+/**
+ * The sidebar state.
+ *
+ * @throws {Error} When used outside a {@link SidebarProvider}.
+ */
 export function useSidebar(): SidebarContext {
   const ctx = use(SidebarContext);
   if (!ctx)
@@ -117,14 +119,17 @@ export function useSidebar(): SidebarContext {
   return ctx;
 }
 
+/** The folder the calling component is in, if any. */
 export function useFolder() {
   return use(FolderContext);
 }
 
+/** Nesting depth of the calling component. */
 export function useFolderDepth() {
   return use(FolderContext)?.depth ?? 0;
 }
 
+/** The sidebar on wide screens, which can be collapsed. */
 export function SidebarContent({
   children,
 }: {
@@ -169,13 +174,13 @@ export function SidebarContent({
 
       timerRef.current = window.setTimeout(
         () => setHover(false),
-        // if mouse is leaving the viewport, add a close delay
         Math.min(e.clientX, document.body.clientWidth - e.clientX) > 100 ? 0 : 500,
       );
     },
   });
 }
 
+/** The dimmed backdrop behind the mobile drawer. */
 export function SidebarDrawerOverlay(props: ComponentProps<"div">) {
   const { open, setOpen, mode } = useSidebar();
   const [hidden, setHidden] = useState(!open);
@@ -194,6 +199,7 @@ export function SidebarDrawerOverlay(props: ComponentProps<"div">) {
   );
 }
 
+/** The mobile drawer. */
 export function SidebarDrawerContent({ className, children, ...props }: ComponentProps<"aside">) {
   const { open, mode } = useSidebar();
   const [hidden, setHidden] = useState(!open);
@@ -215,6 +221,7 @@ export function SidebarDrawerContent({ className, children, ...props }: Componen
   );
 }
 
+/** Scrollable area of the sidebar. */
 export function SidebarViewport({ className, ...props }: ScrollAreaProps) {
   return (
     <ScrollArea
@@ -228,6 +235,7 @@ export function SidebarViewport({ className, ...props }: ScrollAreaProps) {
   );
 }
 
+/** A section heading inside the sidebar. */
 export function SidebarSeparator(props: ComponentProps<"p">) {
   const depth = useFolderDepth();
   return (
@@ -244,6 +252,7 @@ export function SidebarSeparator(props: ComponentProps<"p">) {
   );
 }
 
+/** A page link, highlighted when it is the current page. */
 export function SidebarItem({
   icon,
   active = false,
@@ -266,6 +275,10 @@ export function SidebarItem({
   );
 }
 
+/**
+ * A collapsible folder. It starts open when it is active, not collapsible, or no deeper than the default
+ * open level.
+ */
 export function SidebarFolder({
   defaultOpen: defaultOpenProp,
   collapsible = true,
@@ -295,6 +308,7 @@ export function SidebarFolder({
   );
 }
 
+/** The button that opens and closes a folder. */
 export function SidebarFolderTrigger({ children, ...props }: CollapsibleTriggerProps) {
   const { open, collapsible } = use(FolderContext)!;
 
@@ -310,6 +324,7 @@ export function SidebarFolderTrigger({ children, ...props }: CollapsibleTriggerP
   return <div {...(props as ComponentProps<"div">)}>{children}</div>;
 }
 
+/** A folder heading that is also a link to the folder's index page. */
 export function SidebarFolderLink({
   children,
   active = false,
@@ -348,10 +363,12 @@ export function SidebarFolderLink({
   );
 }
 
+/** The items inside a folder. */
 export function SidebarFolderContent(props: CollapsibleContentProps) {
   return <CollapsibleContent {...props}>{props.children}</CollapsibleContent>;
 }
 
+/** Opens and closes the mobile drawer. */
 export function SidebarTrigger({ children, ...props }: ComponentProps<"button">) {
   const { open, setOpen } = useSidebar();
   const t = useTranslations({ note: "sidebar" });
@@ -370,6 +387,7 @@ export function SidebarTrigger({ children, ...props }: ComponentProps<"button">)
   );
 }
 
+/** Collapses and expands the sidebar on wide screens. */
 export function SidebarCollapseTrigger(props: ComponentProps<"button">) {
   const { collapsed, setCollapsed } = useSidebar();
   const t = useTranslations({ note: "sidebar" });
@@ -389,9 +407,7 @@ export function SidebarCollapseTrigger(props: ComponentProps<"button">) {
   );
 }
 
-/**
- * scroll to the element if `active` is true
- */
+/** Scrolls `ref` into view inside the sidebar when it becomes active. */
 export function useAutoScroll(active: boolean, ref: RefObject<HTMLElement | null>) {
   const { mode } = useSidebar();
 

@@ -6,6 +6,7 @@ import { cn } from "../../../lib/cn";
 import { SidebarIcon } from "lucide-react";
 import { buttonVariants } from "../../../components/ui/button";
 
+/** Mobile header with the title, search and sidebar toggle. */
 export function Header(props: ComponentProps<"header">) {
   const {
     isNavTransparent,

@@ -1,10 +1,15 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
+/** Extra classes for the wrapper and for the SVG. */
 export interface WovenBackgroundProps extends ComponentProps<"div"> {
   svgClassName?: string;
 }
 
+/**
+ * Decorative woven background at the top of the landing page, in a light and a dark variant that fade out
+ * towards the bottom.
+ */
 export function WovenBackground({ className, svgClassName, ...props }: WovenBackgroundProps) {
   return (
     <div
@@ -21,7 +26,6 @@ export function WovenBackground({ className, svgClassName, ...props }: WovenBack
         className={cn("h-full w-full object-cover", svgClassName)}
       >
         <defs>
-          {/* Vertical mask to seamlessly fade the pattern into the background at the bottom */}
           <linearGradient id="wefterBottomFade" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#fff" stopOpacity="1" />
             <stop offset="70%" stopColor="#fff" stopOpacity="0.96" />
@@ -34,13 +38,11 @@ export function WovenBackground({ className, svgClassName, ...props }: WovenBack
         </defs>
 
         <g mask="url(#wefterFadeMask)">
-          {/* Light Mode Layer - Full-on continuous pattern with NO white spots */}
           <g className="dark:hidden transition-opacity duration-300">
             <rect width="1600" height="900" fill="hsl(220, 20%, 99%)" />
             <image href="/images/woven-bg-light.webp" width="1600" height="900" preserveAspectRatio="xMidYMin slice" />
           </g>
 
-          {/* Dark Mode Layer - Full-on continuous pattern with NO black spots */}
           <g className="hidden dark:block transition-opacity duration-300">
             <rect width="1600" height="900" fill="hsl(230, 30%, 1.5%)" />
             <image href="/images/woven-bg-dark.webp" width="1600" height="900" preserveAspectRatio="xMidYMin slice" />
@@ -48,7 +50,6 @@ export function WovenBackground({ className, svgClassName, ...props }: WovenBack
         </g>
       </svg>
 
-      {/* Top Header-to-Mid Ambient Shadow Layer (darker at top under header, fading to lighter mid) */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[440px] sm:h-[500px] md:h-[560px]

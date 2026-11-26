@@ -7,12 +7,12 @@ const variants = {
   secondary: "border bg-fd-secondary text-fd-secondary-foreground hover:bg-fd-accent hover:text-fd-accent-foreground",
 } as const;
 
+/** Button classes by colour and size. */
 export const buttonVariants = cva(
   "inline-flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors duration-100 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring",
   {
     variants: {
       variant: variants,
-      // fumadocs use `color` instead of `variant`
       color: variants,
       size: {
         sm: "gap-1 px-2 py-1.5 text-xs",
@@ -24,4 +24,5 @@ export const buttonVariants = cva(
   },
 );
 
+/** Variant props of {@link buttonVariants}. */
 export type ButtonProps = VariantProps<typeof buttonVariants>;

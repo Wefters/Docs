@@ -1,25 +1,36 @@
+/**
+ * Lightweight renderer for the Markdown descriptions of registry plugins, which come from the database
+ * rather than from MDX files. Supports fenced code blocks, headings, lists, paragraphs and inline code,
+ * links, bold and italics.
+ */
+
 "use client";
 
 import React, { useState } from "react";
 import { Copy, Check, Terminal, Code2, Info } from "lucide-react";
 
+/** The Markdown to render. */
 interface MDXRendererProps {
   content: string;
 }
 
+/** A fenced code block. */
 interface CodeBlockItem {
   type: "code";
   language: string;
   code: string;
 }
 
+/** Markdown text between code blocks. */
 interface TextBlockItem {
   type: "text";
   text: string;
 }
 
+/** A block of the parsed document. */
 type BlockItem = CodeBlockItem | TextBlockItem;
 
+/** Renders Markdown text as styled blocks. */
 export function MDXRenderer({ content }: MDXRendererProps) {
   if (!content) return null;
 
@@ -29,13 +40,7 @@ export function MDXRenderer({ content }: MDXRendererProps) {
     <div className="mdx-content space-y-6 text-fd-foreground leading-relaxed">
       {blocks.map((block, idx) => {
         if (block.type === "code") {
-          return (
-            <CodeBlock
-              key={idx}
-              language={block.language || "bash"}
-              code={block.code}
-            />
-          );
+          return <CodeBlock key={idx} language={block.language || "bash"} code={block.code} />;
         }
 
         return <MarkdownTextBlock key={idx} text={block.text} />;
@@ -44,6 +49,7 @@ export function MDXRenderer({ content }: MDXRendererProps) {
   );
 }
 
+/** Splits Markdown into fenced code blocks and the text around them. */
 function parseBlocks(raw: string): BlockItem[] {
   const blocks: BlockItem[] = [];
   const lines = raw.split("\n");
@@ -98,6 +104,7 @@ function parseBlocks(raw: string): BlockItem[] {
   return blocks;
 }
 
+/** A code block with its language and a copy button. */
 function CodeBlock({ language, code }: { language: string; code: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -109,7 +116,6 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
 
   return (
     <div className="relative my-6 overflow-hidden rounded-xl border border-fd-border bg-fd-card shadow-sm">
-      {/* Code Header Bar */}
       <div className="flex items-center justify-between border-b border-fd-border/70 bg-fd-muted/50 px-4 py-2 text-xs font-mono text-fd-muted-foreground">
         <div className="flex items-center gap-1.5">
           {language === "bash" || language === "sh" || language === "shell" ? (
@@ -137,7 +143,6 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
         </button>
       </div>
 
-      {/* Code Body */}
       <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-fd-foreground bg-fd-background/50">
         <code>{code}</code>
       </pre>
@@ -145,6 +150,7 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   );
 }
 
+/** Renders headings, lists and paragraphs. */
 function MarkdownTextBlock({ text }: { text: string }) {
   const paragraphs = text.split("\n\n");
 
@@ -154,23 +160,26 @@ function MarkdownTextBlock({ text }: { text: string }) {
         const trimmed = p.trim();
         if (!trimmed) return null;
 
-        // Heading 1
         if (trimmed.startsWith("# ")) {
           return (
-            <h1 key={pIdx} className="text-3xl font-extrabold tracking-tight text-fd-foreground mt-8 mb-4 border-b border-fd-border/60 pb-3">
+            <h1
+              key={pIdx}
+              className="text-3xl font-extrabold tracking-tight text-fd-foreground mt-8 mb-4 border-b border-fd-border/60 pb-3"
+            >
               {renderInline(trimmed.slice(2))}
             </h1>
           );
         }
-        // Heading 2
         if (trimmed.startsWith("## ")) {
           return (
-            <h2 key={pIdx} className="text-2xl font-bold tracking-tight text-fd-foreground mt-8 mb-4 border-b border-fd-border/60 pb-2">
+            <h2
+              key={pIdx}
+              className="text-2xl font-bold tracking-tight text-fd-foreground mt-8 mb-4 border-b border-fd-border/60 pb-2"
+            >
               {renderInline(trimmed.slice(3))}
             </h2>
           );
         }
-        // Heading 3
         if (trimmed.startsWith("### ")) {
           return (
             <h3 key={pIdx} className="text-xl font-bold tracking-tight text-fd-foreground mt-6 mb-3">
@@ -178,7 +187,6 @@ function MarkdownTextBlock({ text }: { text: string }) {
             </h3>
           );
         }
-        // Heading 4
         if (trimmed.startsWith("#### ")) {
           return (
             <h4 key={pIdx} className="text-lg font-semibold tracking-tight text-fd-foreground mt-5 mb-2">
@@ -187,23 +195,27 @@ function MarkdownTextBlock({ text }: { text: string }) {
           );
         }
 
-        // Horizontal Rule
         if (trimmed === "---" || trimmed === "***" || trimmed === "___") {
           return <hr key={pIdx} className="my-6 border-fd-border/60" />;
         }
 
-        // Blockquote
         if (trimmed.startsWith("> ")) {
           const lines = trimmed.split("\n").map((l) => l.replace(/^>\s?/, ""));
           return (
-            <blockquote key={pIdx} className="my-4 flex gap-3 rounded-xl border-l-4 border-fd-primary bg-fd-muted/30 p-4 text-sm text-fd-muted-foreground">
+            <blockquote
+              key={pIdx}
+              className="my-4 flex gap-3 rounded-xl border-l-4 border-fd-primary bg-fd-muted/30 p-4 text-sm text-fd-muted-foreground"
+            >
               <Info className="h-5 w-5 shrink-0 text-fd-primary mt-0.5" />
-              <div className="space-y-1">{lines.map((l, i) => <p key={i}>{renderInline(l)}</p>)}</div>
+              <div className="space-y-1">
+                {lines.map((l, i) => (
+                  <p key={i}>{renderInline(l)}</p>
+                ))}
+              </div>
             </blockquote>
           );
         }
 
-        // Unordered List
         if (trimmed.split("\n").every((line) => /^\s*[-*]\s/.test(line))) {
           const items = trimmed.split("\n").map((l) => l.replace(/^\s*[-*]\s/, ""));
           return (
@@ -215,7 +227,6 @@ function MarkdownTextBlock({ text }: { text: string }) {
           );
         }
 
-        // Ordered List
         if (trimmed.split("\n").every((line) => /^\s*\d+\.\s/.test(line))) {
           const items = trimmed.split("\n").map((l) => l.replace(/^\s*\d+\.\s/, ""));
           return (
@@ -227,7 +238,6 @@ function MarkdownTextBlock({ text }: { text: string }) {
           );
         }
 
-        // Regular Paragraph
         const lines = trimmed.split("\n");
         return (
           <p key={pIdx} className="text-sm leading-relaxed text-fd-foreground/90">
@@ -244,6 +254,7 @@ function MarkdownTextBlock({ text }: { text: string }) {
   );
 }
 
+/** Renders inline code, links, bold and italic text. */
 function renderInline(text: string): React.ReactNode[] {
   const regex = /(`[^`]+`|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|_[^_]+_|\*[^*]+\*)/g;
   const parts = text.split(regex);
@@ -251,7 +262,6 @@ function renderInline(text: string): React.ReactNode[] {
   return parts.map((part, index) => {
     if (!part) return null;
 
-    // Inline Code: `code`
     if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
       const codeText = part.slice(1, -1);
       return (
@@ -264,7 +274,6 @@ function renderInline(text: string): React.ReactNode[] {
       );
     }
 
-    // Link: [text](url)
     const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (linkMatch) {
       return (
@@ -280,7 +289,6 @@ function renderInline(text: string): React.ReactNode[] {
       );
     }
 
-    // Bold: **text**
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
       return (
         <strong key={index} className="font-bold text-fd-foreground">
@@ -289,7 +297,6 @@ function renderInline(text: string): React.ReactNode[] {
       );
     }
 
-    // Italic: *text* or _text_
     if (
       (part.startsWith("*") && part.endsWith("*") && part.length > 2) ||
       (part.startsWith("_") && part.endsWith("_") && part.length > 2)

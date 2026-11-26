@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import "./global.css";
 
+/** Default page title template and description. */
 export const metadata: Metadata = {
   title: {
     template: "%s | Wefter",
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "Wefter, a webview + native bridge framework for shipping Android and iOS apps without a bundled interpreter.",
 };
 
+/** Root layout: HTML shell and the Fumadocs provider (theme, search). */
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>

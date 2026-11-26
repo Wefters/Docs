@@ -10,18 +10,18 @@ import type * as PageTree from "fumadocs-core/page-tree";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type ComponentProps, useMemo } from "react";
 
+/** A linked neighbouring page. */
 type Item = Pick<PageTree.Item, "name" | "description" | "url">;
 
+/** Explicit previous and next pages; found from the page tree when left out. */
 export interface FooterProps extends ComponentProps<"div"> {
-  /**
-   * Items including information for the next and previous page
-   */
   items?: {
     previous?: Item;
     next?: Item;
   };
 }
 
+/** Links to the previous and next pages. */
 export function Footer({ items, children, className, ...props }: FooterProps) {
   const footerList = useFooterItems();
   const pathname = usePathname();
@@ -51,6 +51,7 @@ export function Footer({ items, children, className, ...props }: FooterProps) {
   );
 }
 
+/** One previous or next link. */
 function FooterItem({ item, index }: { item: Item; index: 0 | 1 }) {
   const t = useTranslations({ note: "pagination" });
   const Icon = index === 0 ? ChevronLeft : ChevronRight;

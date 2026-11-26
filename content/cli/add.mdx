@@ -18,7 +18,7 @@ Because no install is executed, `wefter add` works identically regardless of whe
 ### Primary Use Cases
 
 - Quickly declaring a native capability plugin (camera, biometrics, secure storage, …) in your Wefter project.
-- Keeping `wefter.config.json` and `package.json` in sync without touching your lockfile or node\_modules.
+- Keeping `wefter.config.json` and `package.json` in sync without touching your lockfile or node_modules.
 
 ---
 
@@ -35,11 +35,14 @@ When invoked, `wefter add` executes the following sequence:
 7. **Install Hint**: Detects which package manager you are using from your lockfile and prints the exact command to run.
 
 <Callout type="info">
-  **No install is run.** `wefter add` never calls `npm install`, `pnpm add`, `yarn add`, or `bun add`. The actual installation is left entirely to you, so your lockfile and workspace policies are never bypassed.
+  **No install is run.** `wefter add` never calls `npm install`, `pnpm add`, `yarn add`, or `bun add`. The actual
+  installation is left entirely to you, so your lockfile and workspace policies are never bypassed.
 </Callout>
 
 <Callout type="info">
-  **No local validation yet.** Because the package has not been installed yet, native plugin validation (schema, annotations, source checks) is deferred to `wefter sync`, which runs the full validation pass once the package is actually present in `node_modules`.
+  **No local validation yet.** Because the package has not been installed yet, native plugin validation (schema,
+  annotations, source checks) is deferred to `wefter sync`, which runs the full validation pass once the package is
+  actually present in `node_modules`.
 </Callout>
 
 ---
@@ -48,12 +51,12 @@ When invoked, `wefter add` executes the following sequence:
 
 `wefter add` detects your package manager from lockfile presence in `projectDir`:
 
-| Lockfile found         | Install hint shown          |
-| ---------------------- | --------------------------- |
-| `pnpm-lock.yaml`       | `pnpm add <name>@<version>` |
-| `yarn.lock`            | `yarn add <name>@<version>` |
-| `bun.lockb` / `bun.lock` | `bun add <name>@<version>` |
-| _(none of the above)_  | `npm install <name>@<version>` |
+| Lockfile found           | Install hint shown             |
+| ------------------------ | ------------------------------ |
+| `pnpm-lock.yaml`         | `pnpm add <name>@<version>`    |
+| `yarn.lock`              | `yarn add <name>@<version>`    |
+| `bun.lockb` / `bun.lock` | `bun add <name>@<version>`     |
+| _(none of the above)_    | `npm install <name>@<version>` |
 
 The hint is informational only — nothing is executed automatically.
 
@@ -63,10 +66,10 @@ The hint is informational only — nothing is executed automatically.
 
 ### Arguments
 
-| Argument     | Type       | Required / Optional | Description                                                                                      | Default                                     |
-| ------------ | ---------- | ------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| `<plugin>`   | Positional | **Required**        | npm package specifier (`name`, `name@version`, or `name@tag`, e.g. `@wefterjs/camera@1.2.0`).   | None (must be specified)                    |
-| `projectDir` | Positional | Optional            | Path to project root directory.                                                                  | Current working directory (`process.cwd()`) |
+| Argument     | Type       | Required / Optional | Description                                                                                   | Default                                     |
+| ------------ | ---------- | ------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `<plugin>`   | Positional | **Required**        | npm package specifier (`name`, `name@version`, or `name@tag`, e.g. `@wefterjs/camera@1.2.0`). | None (must be specified)                    |
+| `projectDir` | Positional | Optional            | Path to project root directory.                                                               | Current working directory (`process.cwd()`) |
 
 ### Options (Flags)
 
@@ -138,9 +141,9 @@ wefter sync
 
 ## Failure Modes & Error Resolution
 
-| Error Message                                         | Root Cause                                               | Actionable Resolution                                                                  |
-| ----------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `"<spec>" doesn't look like a valid npm package name` | Specifier format is invalid.                             | Pass a valid npm package name or `package@version`.                                    |
-| `<plugin> is already declared in wefter.config.json`  | Plugin name is already in `plugins` array.               | No action required (or run `wefter sync` to refresh native dependencies).              |
-| `Package "<spec>" was not found on the npm registry`  | Package does not exist or is not yet published.          | Check the package name spelling or publish the package first.                          |
-| `npm registry returned HTTP <N> for "<spec>"`         | Registry returned an unexpected error (auth, rate-limit).| Check network access, npm auth tokens, or private registry configuration.              |
+| Error Message                                         | Root Cause                                                | Actionable Resolution                                                     |
+| ----------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `"<spec>" doesn't look like a valid npm package name` | Specifier format is invalid.                              | Pass a valid npm package name or `package@version`.                       |
+| `<plugin> is already declared in wefter.config.json`  | Plugin name is already in `plugins` array.                | No action required (or run `wefter sync` to refresh native dependencies). |
+| `Package "<spec>" was not found on the npm registry`  | Package does not exist or is not yet published.           | Check the package name spelling or publish the package first.             |
+| `npm registry returned HTTP <N> for "<spec>"`         | Registry returned an unexpected error (auth, rate-limit). | Check network access, npm auth tokens, or private registry configuration. |

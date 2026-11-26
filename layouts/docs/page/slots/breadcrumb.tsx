@@ -7,8 +7,10 @@ import Link from "fumadocs-core/link";
 import { ChevronRight } from "lucide-react";
 import { type ComponentProps, useMemo, Fragment } from "react";
 
+/** Which parts of the path to show, and element props. */
 export type BreadcrumbProps = BreadcrumbOptions & ComponentProps<"div">;
 
+/** Path from the section root to the current page. */
 export function Breadcrumb({ includeRoot, includeSeparator, includePage, ...props }: BreadcrumbProps) {
   const path = useTreePath();
   const { root } = useTreeContext();

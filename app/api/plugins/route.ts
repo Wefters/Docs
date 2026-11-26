@@ -1,6 +1,9 @@
+/** Plugin registry API. Reading is public; changes need an admin session. */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getPlugins, getPluginBySlug, upsertPlugin, deletePlugin } from "@/lib/db";
 
+/** One plugin by `slug`, or a page of plugins filtered by `search` and `type`. */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get("slug");
@@ -22,6 +25,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(data);
 }
 
+/** Adds or updates a plugin. */
 export async function POST(request: NextRequest) {
   const session = request.cookies.get("wefter_admin_session")?.value;
   if (session !== "authorized") {
@@ -37,6 +41,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/** Updates a plugin. */
 export async function PUT(request: NextRequest) {
   const session = request.cookies.get("wefter_admin_session")?.value;
   if (session !== "authorized") {
@@ -52,6 +57,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+/** Deletes the plugin with the `id` query parameter. */
 export async function DELETE(request: NextRequest) {
   const session = request.cookies.get("wefter_admin_session")?.value;
   if (session !== "authorized") {

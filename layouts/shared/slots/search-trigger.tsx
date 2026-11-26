@@ -7,10 +7,12 @@ import { cn } from "../../../lib/cn";
 import { type ButtonProps, buttonVariants } from "../../../components/ui/button";
 import { Dialog } from "@base-ui/react/dialog";
 
+/** Props of {@link SearchTrigger}; `hideIfDisabled` hides it when search is off. */
 export interface SearchTriggerProps extends Omit<ComponentProps<"button">, "color">, ButtonProps {
   hideIfDisabled?: boolean;
 }
 
+/** Icon button that opens the search dialog. */
 export function SearchTrigger({ hideIfDisabled, size = "icon-sm", color = "ghost", ...props }: SearchTriggerProps) {
   const { enabled, dialogHandle } = useSearchContext();
   const t = useTranslations({ note: "search trigger" });
@@ -35,10 +37,12 @@ export function SearchTrigger({ hideIfDisabled, size = "icon-sm", color = "ghost
   );
 }
 
+/** Props of {@link FullSearchTrigger}. */
 export interface FullSearchTriggerProps extends ComponentProps<"button"> {
   hideIfDisabled?: boolean;
 }
 
+/** Search field look-alike, with its keyboard shortcut, that opens the search dialog. */
 export function FullSearchTrigger({ hideIfDisabled, ...props }: FullSearchTriggerProps) {
   const { enabled, hotKey, dialogHandle } = useSearchContext();
   const t = useTranslations({ note: "search trigger" });

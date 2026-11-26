@@ -3,10 +3,12 @@ import { Popover as Primitive } from "@base-ui/react/popover";
 import * as React from "react";
 import { cn } from "../../lib/cn";
 
+/** Popover built on Base UI. */
 export const Popover = Primitive.Root;
 
 export const PopoverTrigger = Primitive.Trigger;
 
+/** Positioned, animated popover panel. */
 export function PopoverContent({
   className,
   align = "center",

@@ -1,10 +1,15 @@
+/**
+ * Admin sign-in. A successful login sets an HTTP-only session cookie for seven days. Failed logins are
+ * rate-limited per IP, and a Cloudflare Turnstile check is required when its secret key is configured.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 
+/** Verifies a Turnstile token with Cloudflare. Always passes when no secret key is configured. */
 async function verifyTurnstileToken(token: string, ip: string): Promise<boolean> {
   const secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
   if (!secretKey) {
-    // If Cloudflare Turnstile secret key is not configured, pass verification
     return true;
   }
   if (!token) return false;
@@ -27,6 +32,10 @@ async function verifyTurnstileToken(token: string, ip: string): Promise<boolean>
   }
 }
 
+/**
+ * Signs in with `username` and `password` (from `WEFTER_ADMIN_USERNAME` / `WEFTER_ADMIN_PASSWORD`), or
+ * signs out with `action: "logout"`.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -38,13 +47,9 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    // Client IP
     const clientIp =
-      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-      request.headers.get("x-real-ip") ||
-      "127.0.0.1";
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "127.0.0.1";
 
-    // Rate Limiting Protection (Max 5 attempts per 15 minutes per IP)
     const rateLimit = checkRateLimit(clientIp, 5, 15 * 60 * 1000);
 
     if (!rateLimit.success) {
@@ -59,16 +64,15 @@ export async function POST(request: NextRequest) {
           headers: {
             "Retry-After": rateLimit.resetSeconds.toString(),
           },
-        }
+        },
       );
     }
 
-    // Cloudflare Turnstile Verification
     const isTurnstileValid = await verifyTurnstileToken(turnstileToken, clientIp);
     if (!isTurnstileValid) {
       return NextResponse.json(
         { error: "Cloudflare Turnstile security check failed. Please complete the captcha." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
       });
       return response;
     }
@@ -94,13 +98,14 @@ export async function POST(request: NextRequest) {
           rateLimit.remaining === 1 ? "attempt" : "attempts"
         } remaining before lockout.`,
       },
-      { status: 401 }
+      { status: 401 },
     );
   } catch (error) {
     return NextResponse.json({ error: "Authentication error" }, { status: 500 });
   }
 }
 
+/** Whether the request carries a valid admin session. */
 export async function GET(request: NextRequest) {
   const session = request.cookies.get("wefter_admin_session")?.value;
   return NextResponse.json({ authenticated: session === "authorized" });

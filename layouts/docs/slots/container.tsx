@@ -3,13 +3,13 @@ import { cn } from "../../../lib/cn";
 import { useEffect, useState, type ComponentProps } from "react";
 import { useDocsLayout } from "./..";
 
+/** The layout's outer grid. */
 export function Container(props: ComponentProps<"div">) {
   const { slots } = useDocsLayout();
   const { collapsed } = slots.sidebar?.useSidebar?.() ?? {};
   const [previousCollapsed, setPreviousCollapsed] = useState(collapsed);
   const isCollapseChanged = previousCollapsed !== collapsed;
 
-  // will only set data attribute for an instant
   useEffect(() => {
     if (isCollapseChanged) setPreviousCollapsed(collapsed);
   }, [collapsed, isCollapseChanged]);

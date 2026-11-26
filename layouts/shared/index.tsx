@@ -1,3 +1,8 @@
+/**
+ * Options and helpers shared by the site's layouts (adapted from Fumadocs UI): header links, section tabs
+ * and their active state.
+ */
+
 import { type FC, useMemo, type ComponentProps, type ReactNode } from "react";
 import type { I18nConfig } from "fumadocs-core/i18n";
 import * as PageTree from "fumadocs-core/page-tree";
@@ -6,72 +11,51 @@ import type { BaseSlots } from "./client";
 import type { ThemeSwitchProps } from "./slots/theme-switch";
 import type { FullSearchTriggerProps, SearchTriggerProps } from "./slots/search-trigger";
 
+/** Header options: title, title link and transparency. */
 export interface NavOptions {
   enabled?: boolean;
   children?: ReactNode;
   title?: ReactNode | FC<ComponentProps<"a">>;
 
-  /**
-   * Redirect url of title
-   * @defaultValue '/'
-   */
   url?: string;
 
-  /**
-   * Use transparent background
-   *
-   * @defaultValue none
-   */
   transparentMode?: "always" | "top" | "none";
 
-  /**
-   * @deprecated use `slots.header` instead.
-   */
   component?: ReactNode;
 }
 
+/** Options every layout accepts: header, links, GitHub URL, search and theme switch. */
 export interface BaseLayoutProps {
-  /**
-   * GitHub url
-   */
   githubUrl?: string;
   links?: LinkItemType[];
-  /**
-   * navigation config
-   */
   nav?: NavOptions;
   slots?: Partial<BaseSlots>;
   children?: ReactNode;
   themeSwitch?: ThemeSwitchOptions;
   searchToggle?: SearchToggleOptions;
 
-  /**
-   * @deprecated this is now optional for i18n setups, you can still customize language switch from `slots`.
-   */
   i18n?: boolean | I18nConfig;
 }
 
+/** Whether to show the search buttons and what to render instead. */
 interface SearchToggleOptions {
   enabled?: boolean;
   sm?: SearchTriggerProps;
   full?: FullSearchTriggerProps;
-  /** @deprecated use `slots.searchTrigger` instead */
   components?: {
     sm?: ReactNode;
     lg?: ReactNode;
   };
 }
 
+/** Whether to show the theme switch and what to render instead. */
 interface ThemeSwitchOptions extends ThemeSwitchProps {
   enabled?: boolean;
-  /** @deprecated use `slots.themeSwitch` instead */
   component?: ReactNode;
 }
 
+/** A section tab in the sidebar: title, icon, description and the URL it opens. */
 export interface LayoutTab {
-  /**
-   * Redirect URL of the folder, usually the index page
-   */
   url: string;
   icon?: ReactNode;
   title: ReactNode;
@@ -79,21 +63,17 @@ export interface LayoutTab {
   unlisted?: boolean;
   props?: ComponentProps<"a">;
 
-  /**
-   * bind to a page tree node.
-   */
   $folder?: PageTree.Folder;
 
-  /**
-   * Detect from a list of urls (when not bound to page tree).
-   */
   urls?: Set<string>;
 }
 
+/** Lets callers adjust or drop the tabs generated from the page tree. */
 export interface GetLayoutTabsOptions {
   transform?: (option: LayoutTab, node: PageTree.Folder) => LayoutTab | null;
 }
 
+/** Wraps a folder's icon so it displays well as a tab icon. */
 const defaultTransform: GetLayoutTabsOptions["transform"] = (option, node) => {
   if (!node.icon) return option;
 
@@ -107,6 +87,7 @@ const defaultTransform: GetLayoutTabsOptions["transform"] = (option, node) => {
   };
 };
 
+/** Turns every root folder of the page tree into a section tab. */
 export function getLayoutTabs(
   tree: PageTree.Root,
   { transform = defaultTransform }: GetLayoutTabsOptions = {},
@@ -143,6 +124,7 @@ export function getLayoutTabs(
   return results;
 }
 
+/** Whether the current page belongs to `tab`. */
 export function isLayoutTabActive(tab: LayoutTab, path: PageTree.Node[], pathname: string) {
   if (tab.$folder) {
     const folder = tab.$folder;
@@ -156,26 +138,19 @@ export function isLayoutTabActive(tab: LayoutTab, path: PageTree.Node[], pathnam
   return isActive(tab.url, pathname, true);
 }
 
+/** Where a link is shown: the header, the menu, or both. */
 interface Filterable {
-  /**
-   * Restrict where the item is displayed
-   *
-   * @defaultValue 'all'
-   */
   on?: "menu" | "nav" | "all";
 }
 
+/** A link target and how it counts as active. */
 interface WithHref {
   url: string;
-  /**
-   * When the item is marked as active
-   *
-   * @defaultValue 'url'
-   */
   active?: "url" | "nested-url" | "none";
   external?: boolean;
 }
 
+/** A text link. */
 export interface MainItemType extends WithHref, Filterable {
   type?: "main";
   icon?: ReactNode;
@@ -183,30 +158,24 @@ export interface MainItemType extends WithHref, Filterable {
   description?: ReactNode;
 }
 
+/** An icon-only link, such as GitHub. */
 export interface IconItemType extends WithHref, Filterable {
   type: "icon";
-  /**
-   * `aria-label` of icon button
-   */
   label?: string;
   icon: ReactNode;
   text: ReactNode;
-  /**
-   * @defaultValue true
-   */
   secondary?: boolean;
 }
 
+/** A link styled as a button. */
 export interface ButtonItemType extends WithHref, Filterable {
   type: "button";
   icon?: ReactNode;
   text: ReactNode;
-  /**
-   * @defaultValue false
-   */
   secondary?: boolean;
 }
 
+/** A link that opens a menu of further links. */
 export interface MenuItemType extends Partial<WithHref>, Filterable {
   type: "menu";
   icon?: ReactNode;
@@ -214,9 +183,6 @@ export interface MenuItemType extends Partial<WithHref>, Filterable {
 
   items: (
     | (MainItemType & {
-        /**
-         * Options when displayed on navigation menu
-         */
         menu?: ComponentProps<"a"> & {
           banner?: ReactNode;
         };
@@ -224,26 +190,20 @@ export interface MenuItemType extends Partial<WithHref>, Filterable {
     | CustomItemType
   )[];
 
-  /**
-   * @defaultValue false
-   */
   secondary?: boolean;
 }
 
+/** Any custom element. */
 export interface CustomItemType extends Filterable {
   type: "custom";
-  /**
-   * @defaultValue false
-   */
   secondary?: boolean;
   children: ReactNode;
 }
 
+/** Any header or menu link. */
 export type LinkItemType = MainItemType | IconItemType | ButtonItemType | MenuItemType | CustomItemType;
 
-/**
- * Get link items with shortcuts
- */
+/** The configured links plus a GitHub icon link when `githubUrl` is set. */
 export function resolveLinkItems({
   links = [],
   githubUrl,
@@ -267,12 +227,14 @@ export function resolveLinkItems({
   return result;
 }
 
+/** Links split by where they are shown. */
 export interface GroupedLinkItems {
   all: LinkItemType[];
   navItems: LinkItemType[];
   menuItems: LinkItemType[];
 }
 
+/** The links, grouped into header and menu items. */
 export function useLinkItems({ githubUrl, links }: Pick<BaseLayoutProps, "links" | "githubUrl">): GroupedLinkItems {
   return useMemo(() => {
     const all = resolveLinkItems({ links, githubUrl });
@@ -297,6 +259,7 @@ export function useLinkItems({ githubUrl, links }: Pick<BaseLayoutProps, "links"
   }, [links, githubUrl]);
 }
 
+/** Whether a link points at the current page (or a parent of it, for `nested-url` links). */
 export function isLinkItemActive(link: LinkItemType, pathname: string) {
   if (link.type === "custom" || !link.url) return false;
   if (link.active === "none") return false;

@@ -7,6 +7,7 @@ import { flushSync } from "react-dom";
 import { cn } from "../../../lib/cn";
 import { useTranslations } from "@fuma-translate/react";
 
+/** Classes of one option, highlighted when active. */
 const itemVariants = cva("size-6.5 p-1.5 text-fd-muted-foreground", {
   variants: {
     active: {
@@ -16,12 +17,15 @@ const itemVariants = cva("size-6.5 p-1.5 text-fd-muted-foreground", {
   },
 });
 
+/** Selectable themes and their icons. */
 const themes = [["light", Sun] as const, ["dark", Moon] as const, ["system", Airplay] as const];
 
+/** `light-dark` toggles between two themes; `light-dark-system` also offers the system theme. */
 export interface ThemeSwitchProps extends ComponentProps<"div"> {
   mode?: "light-dark" | "light-dark-system";
 }
 
+/** Switches between light, dark and (optionally) system themes. */
 export function ThemeSwitch({ className, mode = "light-dark", ...props }: ThemeSwitchProps) {
   const { setTheme, theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);

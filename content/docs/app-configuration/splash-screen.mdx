@@ -13,13 +13,13 @@ The splash screen is **disabled by default** (`"splash": false`).
 
 ## Schema Reference
 
-| Property | Type | Required / Optional | Default | Description |
-| --- | --- | --- | --- | --- |
-| `source` | String | **Required** | None | Relative path to directory containing custom splash `index.html` and assets. |
-| `minDuration` | Number (ms) | Optional | `0` | Minimum display duration in milliseconds (0 to 20,000ms). Prevents UI flickering on ultra-fast devices. |
-| `maxDuration` | Number (ms) | Optional | `5000` | Safety timeout cap in milliseconds (0 to 20,000ms). Automatically dismisses the splash if the app fails to load. |
-| `dismissOn` | String | Optional | `"ready"` | Dismissal trigger: `"ready"` (waits for programmatic `hideSplash()` call) or `"timer"` (dismisses when `minDuration` expires). |
-| `transition` | String | Optional | `"fade"` | Transition animation when dismissed: `"fade"` or `"none"`. |
+| Property      | Type        | Required / Optional | Default   | Description                                                                                                                    |
+| ------------- | ----------- | ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `source`      | String      | **Required**        | None      | Relative path to directory containing custom splash `index.html` and assets.                                                   |
+| `minDuration` | Number (ms) | Optional            | `0`       | Minimum display duration in milliseconds (0 to 20,000ms). Prevents UI flickering on ultra-fast devices.                        |
+| `maxDuration` | Number (ms) | Optional            | `5000`    | Safety timeout cap in milliseconds (0 to 20,000ms). Automatically dismisses the splash if the app fails to load.               |
+| `dismissOn`   | String      | Optional            | `"ready"` | Dismissal trigger: `"ready"` (waits for programmatic `hideSplash()` call) or `"timer"` (dismisses when `minDuration` expires). |
+| `transition`  | String      | Optional            | `"fade"`  | Transition animation when dismissed: `"fade"` or `"none"`.                                                                     |
 
 ```json
 {
@@ -58,9 +58,11 @@ To deliver instant visual feedback without white flashes, Wefter uses a 2-stage 
 ```
 
 ### Stage 1: Native OS Launch Background
+
 The operating system immediately displays `launchBackground` before any WebView or JavaScript engine can initialize.
 
 ### Stage 2: Custom HTML Splash Screen
+
 A lightweight, dedicated native WebView loads your `splash.source` assets immediately upon shell creation. Because it loads in parallel with the main web application bundle, complex animations or progress bars can play while the main bundle initializes.
 
 ---
@@ -112,4 +114,3 @@ async function onAppReady() {
   await hideSplash();
 }
 ```
-

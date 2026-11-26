@@ -5,10 +5,7 @@
     "packageName": "@wefterjs/haptics",
     "slug": "haptics",
     "type": "official",
-    "platforms": [
-      "android",
-      "ios"
-    ],
+    "platforms": ["android", "ios"],
     "version": "0.0.1",
     "author": "Wefter Core Team",
     "repositoryUrl": "https://github.com/Wefters/wefter",
@@ -24,10 +21,7 @@
     "packageName": "@wefterjs/scanner",
     "slug": "scanner",
     "type": "official",
-    "platforms": [
-      "android",
-      "ios"
-    ],
+    "platforms": ["android", "ios"],
     "version": "0.0.1",
     "author": "Wefter Core Team",
     "repositoryUrl": "https://github.com/Wefters/wefter",
@@ -43,10 +37,7 @@
     "packageName": "@wefterjs/secure-storage",
     "slug": "secure-storage",
     "type": "official",
-    "platforms": [
-      "android",
-      "ios"
-    ],
+    "platforms": ["android", "ios"],
     "version": "0.0.1",
     "author": "Wefter Core Team",
     "repositoryUrl": "https://github.com/Wefters/wefter",
@@ -62,10 +53,7 @@
     "packageName": "@wefter-community/geolocation",
     "slug": "community-geolocation",
     "type": "community",
-    "platforms": [
-      "android",
-      "ios"
-    ],
+    "platforms": ["android", "ios"],
     "version": "1.2.0",
     "author": "Alex Dev",
     "repositoryUrl": "https://github.com/wefter-community/geolocation",

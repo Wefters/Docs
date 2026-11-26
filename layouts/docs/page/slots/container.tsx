@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import { useDocsPage } from "./..";
 import { cn } from "../../../../lib/cn";
 
+/** The page's article element. */
 export function Container(props: ComponentProps<"article">) {
   const { full } = useDocsPage();
 

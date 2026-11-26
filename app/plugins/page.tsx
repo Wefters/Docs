@@ -1,3 +1,8 @@
+/**
+ * Plugin registry: searchable, paginated list of official and community plugins, and a form for authors to
+ * submit their own plugin for review.
+ */
+
 "use client";
 
 import Link from "next/link";
@@ -32,6 +37,7 @@ import type { PluginItem } from "@/lib/db";
 import { MDXRenderer } from "@/components/mdx-renderer";
 import { GithubStarButton } from "@/components/github-star";
 
+/** The plugin registry page. */
 export default function PluginsDirectoryPage() {
   const [plugins, setPlugins] = useState<PluginItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +48,6 @@ export default function PluginsDirectoryPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Submit Modal State
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
   const [submitTab, setSubmitTab] = useState<"write" | "preview">("write");
   const [submitting, setSubmitting] = useState(false);
@@ -61,6 +66,7 @@ export default function PluginsDirectoryPage() {
     descriptionMdx: `## Overview\n\nProvide a comprehensive description of your plugin capabilities, API methods, and native setup steps.`,
   });
 
+  /** Loads the current page of plugins for the active search and filter. */
   const fetchPlugins = async () => {
     setLoading(true);
     try {
@@ -84,7 +90,6 @@ export default function PluginsDirectoryPage() {
     }
   };
 
-  // Live real-time search with light debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchPlugins();
@@ -93,12 +98,14 @@ export default function PluginsDirectoryPage() {
     return () => clearTimeout(timer);
   }, [search, selectedType, page]);
 
+  /** Copies a plugin's install command and marks it as copied. */
   const handleCopy = (pkgName: string, id: string) => {
     navigator.clipboard.writeText(`wefter add ${pkgName}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  /** Sends the submission form for review. */
   const handleSubmitPlugin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
@@ -122,6 +129,7 @@ export default function PluginsDirectoryPage() {
     }
   };
 
+  /** Clears the submission form. */
   const resetSubmitForm = () => {
     setSubmitSuccess(false);
     setSubmitError("");
@@ -142,20 +150,16 @@ export default function PluginsDirectoryPage() {
 
   return (
     <main className="relative flex min-h-screen flex-1 flex-col overflow-hidden bg-fd-background text-fd-foreground selection:bg-fd-primary/20">
-      {/* Dynamic Background Glow Layer */}
       <div className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[500px] w-full max-w-7xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,var(--color-fd-primary)/0.12,transparent_65%)] blur-3xl" />
 
-      {/* Hero Section */}
       <section className="mx-auto w-full max-w-6xl px-6 pt-16 pb-12 md:pt-20 md:pb-16">
         <div className="flex flex-col items-center text-center">
-          {/* Eyebrow Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/60 px-3.5 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur-md transition-colors hover:border-fd-primary/40">
             <Sparkles className="h-3.5 w-3.5 text-fd-primary" />
             <span>Wefter Ecosystem Directory</span>
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           </div>
 
-          {/* Headline */}
           <h1 className="mt-6 text-3xl font-extrabold tracking-tight sm:text-5xl md:text-6xl max-w-4xl leading-[1.1]">
             Native Mobile Capabilities for{" "}
             <span className="bg-gradient-to-r from-fd-primary via-blue-500 to-indigo-500 bg-clip-text text-transparent">
@@ -163,12 +167,11 @@ export default function PluginsDirectoryPage() {
             </span>
           </h1>
 
-          {/* Subtext */}
           <p className="mt-5 max-w-2xl text-base sm:text-lg text-fd-muted-foreground leading-relaxed">
-            Discover official core runtime capabilities and community plugins for Android and iOS with zero reflection overhead.
+            Discover official core runtime capabilities and community plugins for Android and iOS with zero reflection
+            overhead.
           </p>
 
-          {/* Action CTAs */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
               href="#plugins-grid"
@@ -199,7 +202,6 @@ export default function PluginsDirectoryPage() {
         </div>
       </section>
 
-      {/* Architectural Metrics Bar */}
       <section className="border-y border-fd-border/60 bg-fd-card/40 backdrop-blur-xs">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
@@ -207,44 +209,27 @@ export default function PluginsDirectoryPage() {
               <div className="text-lg sm:text-xl font-bold tracking-tight text-fd-foreground">
                 {totalCount} Packages
               </div>
-              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">
-                Total Plugins Available
-              </div>
+              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">Total Plugins Available</div>
             </div>
             <div className="text-center md:text-left">
-              <div className="text-lg sm:text-xl font-bold tracking-tight text-emerald-500">
-                Official Core
-              </div>
-              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">
-                Verified @wefterjs Packages
-              </div>
+              <div className="text-lg sm:text-xl font-bold tracking-tight text-emerald-500">Official Core</div>
+              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">Verified @wefterjs Packages</div>
             </div>
             <div className="text-center md:text-left">
-              <div className="text-lg sm:text-xl font-bold tracking-tight text-fd-foreground">
-                Zero Reflection
-              </div>
-              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">
-                Static Kotlin & Swift Dispatchers
-              </div>
+              <div className="text-lg sm:text-xl font-bold tracking-tight text-fd-foreground">Zero Reflection</div>
+              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">Static Kotlin & Swift Dispatchers</div>
             </div>
             <div className="text-center md:text-left">
-              <div className="text-lg sm:text-xl font-bold tracking-tight text-fd-foreground">
-                Dual Platform
-              </div>
-              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">
-                Android & iOS Parity
-              </div>
+              <div className="text-lg sm:text-xl font-bold tracking-tight text-fd-foreground">Dual Platform</div>
+              <div className="mt-1 text-xs font-medium text-fd-muted-foreground">Android & iOS Parity</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Live Search & Filter Bar Toolbar */}
       <section id="plugins-grid" className="mx-auto w-full max-w-6xl px-6 pt-12 pb-2">
         <div className="flex flex-col gap-4 rounded-2xl border border-fd-border/80 bg-fd-card/50 p-4 sm:p-5 shadow-xs backdrop-blur-md">
-          {/* Top Row: Live Search Input + Segmented Type Control */}
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            {/* Live Search Input */}
             <div className="relative flex-1 max-w-lg">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-fd-muted-foreground" />
               <input
@@ -270,7 +255,6 @@ export default function PluginsDirectoryPage() {
               )}
             </div>
 
-            {/* Segmented Filter Control */}
             <div className="flex items-center gap-1 rounded-xl border border-fd-border/80 bg-fd-background/80 p-1.5 shadow-inner self-start md:self-auto">
               {[
                 { id: "all", label: "All Packages", icon: Layers },
@@ -291,7 +275,9 @@ export default function PluginsDirectoryPage() {
                         : "text-fd-muted-foreground hover:bg-fd-accent/60 hover:text-fd-foreground active:scale-[0.98]"
                     }`}
                   >
-                    <Icon className={`h-3.5 w-3.5 ${isActive ? "text-fd-primary-foreground" : "text-fd-muted-foreground"}`} />
+                    <Icon
+                      className={`h-3.5 w-3.5 ${isActive ? "text-fd-primary-foreground" : "text-fd-muted-foreground"}`}
+                    />
                     <span>{label}</span>
                   </button>
                 );
@@ -299,7 +285,6 @@ export default function PluginsDirectoryPage() {
             </div>
           </div>
 
-          {/* Bottom Row: Status Indicator */}
           <div className="flex items-center justify-between border-t border-fd-border/60 pt-3 text-xs text-fd-muted-foreground">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -307,8 +292,8 @@ export default function PluginsDirectoryPage() {
                 {loading
                   ? "Searching registry..."
                   : search
-                  ? `Found ${totalCount} ${totalCount === 1 ? "result" : "results"} for "${search}"`
-                  : `Showing ${totalCount} verified ${selectedType === "all" ? "runtime" : selectedType} packages`}
+                    ? `Found ${totalCount} ${totalCount === 1 ? "result" : "results"} for "${search}"`
+                    : `Showing ${totalCount} verified ${selectedType === "all" ? "runtime" : selectedType} packages`}
               </span>
             </div>
 
@@ -327,15 +312,11 @@ export default function PluginsDirectoryPage() {
         </div>
       </section>
 
-      {/* Plugins Grid */}
       <section className="mx-auto w-full max-w-6xl px-6 py-8 flex-1">
         {loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div
-                key={n}
-                className="h-64 rounded-2xl border border-fd-border/50 bg-fd-card/40 animate-pulse p-6"
-              />
+              <div key={n} className="h-64 rounded-2xl border border-fd-border/50 bg-fd-card/40 animate-pulse p-6" />
             ))}
           </div>
         ) : plugins.length === 0 ? (
@@ -369,7 +350,6 @@ export default function PluginsDirectoryPage() {
                 className="group relative flex flex-col justify-between rounded-2xl border border-fd-border bg-fd-card/80 p-6 shadow-xs backdrop-blur-xs transition-all duration-300 hover:-translate-y-1 hover:border-fd-primary/50 hover:shadow-lg"
               >
                 <div>
-                  {/* Top Row: Type Badge & Versions/Platforms */}
                   <div className="flex items-center justify-between">
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider ${
@@ -397,24 +377,26 @@ export default function PluginsDirectoryPage() {
                     </div>
                   </div>
 
-                  {/* Title & Package Name */}
-                  <Link href={`/plugins/${plugin.slug}`} className="block mt-4 group-hover:text-fd-primary transition-colors">
+                  <Link
+                    href={`/plugins/${plugin.slug}`}
+                    className="block mt-4 group-hover:text-fd-primary transition-colors"
+                  >
                     <h3 className="text-lg font-bold text-fd-foreground tracking-tight flex items-center justify-between">
                       <span>{plugin.name}</span>
                       <ArrowRight className="h-4 w-4 text-fd-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-fd-primary transition-all duration-200" />
                     </h3>
-                    <code className="text-xs font-mono text-fd-primary block mt-1">
-                      {plugin.packageName}
-                    </code>
+                    <code className="text-xs font-mono text-fd-primary block mt-1">{plugin.packageName}</code>
                   </Link>
 
-                  {/* Description Snippet */}
                   <p className="mt-3 text-xs text-fd-muted-foreground leading-relaxed line-clamp-2">
-                    {plugin.descriptionMdx.replace(/^#+\s.*$/gm, "").trim().slice(0, 110)}...
+                    {plugin.descriptionMdx
+                      .replace(/^#+\s.*$/gm, "")
+                      .trim()
+                      .slice(0, 110)}
+                    ...
                   </p>
                 </div>
 
-                {/* Footer Controls */}
                 <div className="mt-6 border-t border-fd-border/60 pt-4 flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     onClick={() => handleCopy(plugin.packageName, plugin.id)}
@@ -447,7 +429,6 @@ export default function PluginsDirectoryPage() {
           </div>
         )}
 
-        {/* Pagination Bar */}
         {totalPages > 1 && (
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-fd-border/60 pt-6 sm:flex-row text-xs text-fd-muted-foreground">
             <div>
@@ -494,7 +475,6 @@ export default function PluginsDirectoryPage() {
         )}
       </section>
 
-      {/* Submit Plugin Modal Dialog */}
       {submitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="w-full max-w-2xl rounded-2xl border border-fd-border bg-fd-card p-6 shadow-2xl space-y-5 my-8">
@@ -505,7 +485,9 @@ export default function PluginsDirectoryPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-fd-foreground">Submit Your Plugin</h3>
-                  <p className="text-xs text-fd-muted-foreground">Propose a community extension for the Wefter registry</p>
+                  <p className="text-xs text-fd-muted-foreground">
+                    Propose a community extension for the Wefter registry
+                  </p>
                 </div>
               </div>
               <button
@@ -523,7 +505,8 @@ export default function PluginsDirectoryPage() {
                 </div>
                 <h4 className="text-lg font-bold text-fd-foreground">Submission Received!</h4>
                 <p className="text-xs text-fd-muted-foreground max-w-md mx-auto leading-relaxed">
-                  Thank you! Your plugin proposal has been queued for review by the Wefter core team. Once approved, it will appear in the official directory.
+                  Thank you! Your plugin proposal has been queued for review by the Wefter core team. Once approved, it
+                  will appear in the official directory.
                 </p>
                 <button
                   onClick={resetSubmitForm}
@@ -534,7 +517,6 @@ export default function PluginsDirectoryPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmitPlugin} className="space-y-4">
-                {/* Grid 1: Name, Package Name */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1">
@@ -565,7 +547,6 @@ export default function PluginsDirectoryPage() {
                   </div>
                 </div>
 
-                {/* Grid 2: npm URL, Repository URL, License */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1">
@@ -583,7 +564,8 @@ export default function PluginsDirectoryPage() {
 
                   <div>
                     <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1">
-                      GitHub Repository <span className="text-fd-muted-foreground font-normal text-[10px]">(Optional)</span>
+                      GitHub Repository{" "}
+                      <span className="text-fd-muted-foreground font-normal text-[10px]">(Optional)</span>
                     </label>
                     <input
                       type="url"
@@ -608,7 +590,6 @@ export default function PluginsDirectoryPage() {
                   </div>
                 </div>
 
-                {/* Grid 3: Author Name, Email, Version */}
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
                     <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1">
@@ -652,7 +633,6 @@ export default function PluginsDirectoryPage() {
                   </div>
                 </div>
 
-                {/* Grid 3: Platforms, Version */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1">
@@ -692,7 +672,6 @@ export default function PluginsDirectoryPage() {
                   </div>
                 </div>
 
-                {/* Tabbed MDX Documentation Editor */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground">
@@ -703,7 +682,9 @@ export default function PluginsDirectoryPage() {
                         type="button"
                         onClick={() => setSubmitTab("write")}
                         className={`flex items-center gap-1 rounded px-2 py-0.5 ${
-                          submitTab === "write" ? "bg-fd-primary text-fd-primary-foreground font-semibold" : "text-fd-muted-foreground"
+                          submitTab === "write"
+                            ? "bg-fd-primary text-fd-primary-foreground font-semibold"
+                            : "text-fd-muted-foreground"
                         }`}
                       >
                         <FileText className="h-3 w-3" />
@@ -713,7 +694,9 @@ export default function PluginsDirectoryPage() {
                         type="button"
                         onClick={() => setSubmitTab("preview")}
                         className={`flex items-center gap-1 rounded px-2 py-0.5 ${
-                          submitTab === "preview" ? "bg-fd-primary text-fd-primary-foreground font-semibold" : "text-fd-muted-foreground"
+                          submitTab === "preview"
+                            ? "bg-fd-primary text-fd-primary-foreground font-semibold"
+                            : "text-fd-muted-foreground"
                         }`}
                       >
                         <Eye className="h-3 w-3" />
@@ -765,26 +748,17 @@ export default function PluginsDirectoryPage() {
         </div>
       )}
 
-      {/* Multi-Column Footer */}
       <footer className="border-t border-fd-border bg-fd-card/70 backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-6 pt-14 pb-10">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
-            {/* Brand Column */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2.5">
-                <img
-                  src="/Logo/Dark/Logo.svg"
-                  alt="Wefter Logo"
-                  className="h-7 w-auto dark:hidden"
-                />
-                <img
-                  src="/Logo/Light/Logo.svg"
-                  alt="Wefter Logo"
-                  className="h-7 w-auto hidden dark:block"
-                />
+                <img src="/Logo/Dark/Logo.svg" alt="Wefter Logo" className="h-7 w-auto dark:hidden" />
+                <img src="/Logo/Light/Logo.svg" alt="Wefter Logo" className="h-7 w-auto hidden dark:block" />
               </div>
               <p className="text-xs sm:text-sm text-fd-muted-foreground leading-relaxed max-w-sm">
-                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with zero-reflection Kotlin & Swift dispatchers.
+                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with
+                zero-reflection Kotlin & Swift dispatchers.
               </p>
               <div className="flex items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -794,7 +768,6 @@ export default function PluginsDirectoryPage() {
               </div>
             </div>
 
-            {/* Column 1: Core Documentation */}
             <div>
               <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
                 Documentation
@@ -828,7 +801,6 @@ export default function PluginsDirectoryPage() {
               </ul>
             </div>
 
-            {/* Column 2: CLI Commands */}
             <div>
               <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
                 CLI Tooling
@@ -862,11 +834,8 @@ export default function PluginsDirectoryPage() {
               </ul>
             </div>
 
-            {/* Column 3: Plugins & Ecosystem */}
             <div>
-              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
-                Plugins
-              </h4>
+              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">Plugins</h4>
               <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
                 <li>
                   <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
@@ -895,7 +864,6 @@ export default function PluginsDirectoryPage() {
             </div>
           </div>
 
-          {/* Bottom Bar */}
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-fd-border/60 pt-6 text-xs text-fd-muted-foreground sm:flex-row">
             <div className="flex items-center gap-2">
               <img src="/Logo/Dark/Icon.svg" alt="Wefter Icon" className="h-4 w-4 dark:hidden" />

@@ -27,6 +27,7 @@ import { TreeContextProvider, useTreePath } from "@fumadocs/base-ui/contexts/tre
 import { Header } from "./slots/header";
 import { Container } from "./slots/container";
 
+/** Replaceable parts of the documentation layout. */
 export interface DocsSlots extends BaseSlots {
   container: FC<ComponentProps<"div">>;
   header: FC<ComponentProps<"header">>;
@@ -44,11 +45,13 @@ const { useBaseSlots } = baseSlots({
   },
 });
 
+/** Layout props the slots read. */
 interface SlotsProps extends BaseSlotsProps<DocsLayoutProps> {
   tabs: LayoutTab[];
   tabMode: NonNullable<DocsLayoutProps["tabMode"]>;
 }
 
+/** Layout props and slots shared with the layout's parts. */
 const LayoutContext = createContext<{
   props: SlotsProps;
   isNavTransparent: boolean;
@@ -57,10 +60,16 @@ const LayoutContext = createContext<{
   slots: DocsSlots;
 } | null>(null);
 
+/** Whether the caller is inside the documentation layout. */
 export function useIsDocsLayout() {
   return use(LayoutContext) !== null;
 }
 
+/**
+ * The documentation layout's props and slots.
+ *
+ * @throws {Error} When used outside the layout.
+ */
 export function useDocsLayout() {
   const context = use(LayoutContext);
   if (!context)
@@ -70,6 +79,7 @@ export function useDocsLayout() {
   return context;
 }
 
+/** The client part of the layout: sidebar, header and content, wired to the sidebar state. */
 export function LayoutBody(
   props: Omit<DocsLayoutProps, "tabs"> & {
     tabs: LayoutTab[];
@@ -130,6 +140,7 @@ export function LayoutBody(
   );
 }
 
+/** The section tabs, with the current section highlighted. */
 function LayoutTabs({
   tabs,
   ...props

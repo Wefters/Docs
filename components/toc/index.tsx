@@ -1,3 +1,5 @@
+/** Table of contents state shared by the TOC styles: the page's headings and which are in view. */
+
 "use client";
 import * as Primitive from "fumadocs-core/toc";
 import { type ComponentProps, createContext, use, useRef } from "react";
@@ -6,6 +8,7 @@ import { mergeRefs } from "../../lib/merge-refs";
 
 const TOCContext = createContext<Primitive.TOCItemType[]>([]);
 
+/** The headings of the current page. */
 export function useTOCItems(): Primitive.TOCItemType[] {
   return use(TOCContext);
 }
@@ -14,6 +17,7 @@ export type TOCProviderProps = Primitive.AnchorProviderProps;
 
 export const { useActiveAnchor, useActiveAnchors, useItems } = Primitive;
 
+/** Provides the page's headings and tracks the active one. */
 export function TOCProvider({ toc, children, ...props }: TOCProviderProps) {
   return (
     <TOCContext value={toc}>
@@ -24,6 +28,7 @@ export function TOCProvider({ toc, children, ...props }: TOCProviderProps) {
   );
 }
 
+/** Scroll container for a long table of contents, which follows the active heading and fades at its edges. */
 export function TOCScrollArea({ ref, className, ...props }: ComponentProps<"div">) {
   const viewRef = useRef<HTMLDivElement>(null);
 

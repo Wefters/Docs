@@ -28,11 +28,11 @@ The source code for the official Wefter documentation website published at [weft
 
 The site is organized into three primary documentation sections:
 
-| Section | Route | Content source directory |
-| --- | --- | --- |
-| Guides and architecture | `/docs` | [`content/docs`](content/docs) |
-| CLI command reference | `/cli` | [`content/cli`](content/cli) |
-| Plugin authoring | `/plugin` | [`content/plugin`](content/plugin) |
+| Section                 | Route     | Content source directory           |
+| ----------------------- | --------- | ---------------------------------- |
+| Guides and architecture | `/docs`   | [`content/docs`](content/docs)     |
+| CLI command reference   | `/cli`    | [`content/cli`](content/cli)       |
+| Plugin authoring        | `/plugin` | [`content/plugin`](content/plugin) |
 
 Application page layouts are defined under [`app/`](app) (`app/docs`, `app/cli`, `app/plugin`, and `app/(home)` for the landing page). Shared layout components and chrome reside in [`layouts/`](layouts) and [`components/`](components).
 
@@ -49,11 +49,11 @@ The development server starts at `http://localhost:3000`.
 
 ## Command scripts
 
-| Command | Description |
-| --- | --- |
-| `pnpm dev` | Starts the Next.js development server with fast refresh. |
-| `pnpm build` | Compiles the production build. |
-| `pnpm start` | Serves the production build locally. |
+| Command      | Description                                              |
+| ------------ | -------------------------------------------------------- |
+| `pnpm dev`   | Starts the Next.js development server with fast refresh. |
+| `pnpm build` | Compiles the production build.                           |
+| `pnpm start` | Serves the production build locally.                     |
 
 ## Contributing
 

@@ -1,3 +1,5 @@
+/** Detail page of one plugin in the registry: install command, platforms, links and its description. */
+
 "use client";
 
 import Link from "next/link";
@@ -21,6 +23,7 @@ import {
 import type { PluginItem } from "@/lib/db";
 import { MDXRenderer } from "@/components/mdx-renderer";
 
+/** GitHub logo. */
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -40,6 +43,7 @@ function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+/** The plugin detail page. Loads the plugin by the slug in the URL. */
 export default function PluginDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -70,6 +74,7 @@ export default function PluginDetailPage() {
     fetchPlugin();
   }, [slug]);
 
+  /** Copies the install command. */
   const handleCopy = () => {
     if (!plugin) return;
     navigator.clipboard.writeText(`wefter add ${plugin.packageName}`);
@@ -122,12 +127,9 @@ export default function PluginDetailPage() {
 
   return (
     <main className="relative flex min-h-screen flex-1 flex-col overflow-hidden bg-fd-background text-fd-foreground selection:bg-fd-primary/20">
-      {/* Background Radial Glow */}
       <div className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[500px] w-full max-w-7xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,var(--color-fd-primary)/0.12,transparent_65%)] blur-3xl" />
 
-      {/* Main Page Layout Container */}
       <div className="mx-auto w-full max-w-6xl px-6 pt-10 pb-16 flex-1">
-        {/* Top Navigation Bar: Back Action & Breadcrumb */}
         <div className="flex items-center justify-between gap-4 mb-8">
           <button
             onClick={() => {
@@ -150,7 +152,6 @@ export default function PluginDetailPage() {
           </nav>
         </div>
 
-        {/* Header Title Section */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between border-b border-fd-border/70 pb-8 mb-10">
           <div className="space-y-3 max-w-3xl">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -170,15 +171,10 @@ export default function PluginDetailPage() {
               </span>
             </div>
 
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-fd-foreground">
-              {plugin.name}
-            </h1>
-            <code className="text-sm font-mono text-fd-primary block font-semibold">
-              {plugin.packageName}
-            </code>
+            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-fd-foreground">{plugin.name}</h1>
+            <code className="text-sm font-mono text-fd-primary block font-semibold">{plugin.packageName}</code>
           </div>
 
-          {/* Action Header Links */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             {plugin.npmUrl && (
               <a
@@ -208,24 +204,20 @@ export default function PluginDetailPage() {
           </div>
         </div>
 
-        {/* Two-Column Grid: MDX Content (Left) & Metadata Sticky Sidebar (Right) */}
         <div className="grid gap-10 lg:grid-cols-3">
-          {/* Main Content Area (MDX Document) */}
           <div className="lg:col-span-2 space-y-8">
             <article className="rounded-2xl border border-fd-border/80 bg-fd-card/60 p-6 sm:p-10 shadow-xs backdrop-blur-md">
               <MDXRenderer content={plugin.descriptionMdx} />
             </article>
           </div>
 
-          {/* Sticky Sidebar: Installation & Package Metadata */}
           <div className="space-y-6">
-            {/* Quick Terminal Installation Box */}
             <div className="rounded-2xl border border-fd-border bg-fd-card p-6 shadow-xs backdrop-blur-md">
               <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-fd-primary" />
                 <span>Installation</span>
               </h3>
-              
+
               <div className="mt-4 rounded-xl border border-fd-border/80 bg-fd-background p-3 shadow-inner">
                 <div className="flex items-center justify-between gap-2">
                   <code className="font-mono text-xs font-semibold text-fd-foreground truncate">
@@ -242,7 +234,6 @@ export default function PluginDetailPage() {
               </div>
             </div>
 
-            {/* Package Details Sidebar Box */}
             <div className="rounded-2xl border border-fd-border bg-fd-card p-6 shadow-xs backdrop-blur-md space-y-5">
               <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground border-b border-fd-border/60 pb-3">
                 Package Info
@@ -261,11 +252,15 @@ export default function PluginDetailPage() {
 
                 <div>
                   <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">License</span>
-                  <span className="font-mono font-semibold text-fd-foreground mt-0.5 uppercase block">{plugin.license || "MIT"}</span>
+                  <span className="font-mono font-semibold text-fd-foreground mt-0.5 uppercase block">
+                    {plugin.license || "MIT"}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">Supported Platforms</span>
+                  <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">
+                    Supported Platforms
+                  </span>
                   <div className="mt-1 flex flex-wrap gap-1.5 font-mono text-[10px]">
                     {plugin.platforms.map((plat) => (
                       <span
@@ -318,26 +313,17 @@ export default function PluginDetailPage() {
         </div>
       </div>
 
-      {/* Multi-Column Footer (Matching Home Page) */}
       <footer className="border-t border-fd-border bg-fd-card/70 backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-6 pt-14 pb-10">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
-            {/* Brand Column */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2.5">
-                <img
-                  src="/Logo/Dark/Logo.svg"
-                  alt="Wefter Logo"
-                  className="h-7 w-auto dark:hidden"
-                />
-                <img
-                  src="/Logo/Light/Logo.svg"
-                  alt="Wefter Logo"
-                  className="h-7 w-auto hidden dark:block"
-                />
+                <img src="/Logo/Dark/Logo.svg" alt="Wefter Logo" className="h-7 w-auto dark:hidden" />
+                <img src="/Logo/Light/Logo.svg" alt="Wefter Logo" className="h-7 w-auto hidden dark:block" />
               </div>
               <p className="text-xs sm:text-sm text-fd-muted-foreground leading-relaxed max-w-sm">
-                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with zero-reflection Kotlin & Swift dispatchers.
+                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with
+                zero-reflection Kotlin & Swift dispatchers.
               </p>
               <div className="flex items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -347,7 +333,6 @@ export default function PluginDetailPage() {
               </div>
             </div>
 
-            {/* Column 1: Core Documentation */}
             <div>
               <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
                 Documentation
@@ -381,7 +366,6 @@ export default function PluginDetailPage() {
               </ul>
             </div>
 
-            {/* Column 2: CLI Commands */}
             <div>
               <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
                 CLI Tooling
@@ -415,11 +399,8 @@ export default function PluginDetailPage() {
               </ul>
             </div>
 
-            {/* Column 3: Plugins & Ecosystem */}
             <div>
-              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
-                Plugins
-              </h4>
+              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">Plugins</h4>
               <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
                 <li>
                   <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
@@ -445,7 +426,6 @@ export default function PluginDetailPage() {
             </div>
           </div>
 
-          {/* Bottom Bar */}
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-fd-border/60 pt-6 text-xs text-fd-muted-foreground sm:flex-row">
             <div className="flex items-center gap-2">
               <img src="/Logo/Dark/Icon.svg" alt="Wefter Icon" className="h-4 w-4 dark:hidden" />

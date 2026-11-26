@@ -13,10 +13,10 @@ Wefter simplifies iOS code signing through the `iosSigning` configuration object
 
 ## Schema Reference
 
-| Property | Type | Required / Optional | Default | Description |
-| --- | --- | --- | --- | --- |
-| `teamId` | String | **Required** | None | 10-character Apple Developer Team ID from your Apple Developer account. |
-| `provisioningProfile` | String | Optional | Automatic | Name or UUID of a manual provisioning profile. Omit for automatic signing. |
+| Property              | Type   | Required / Optional | Default   | Description                                                                |
+| --------------------- | ------ | ------------------- | --------- | -------------------------------------------------------------------------- |
+| `teamId`              | String | **Required**        | None      | 10-character Apple Developer Team ID from your Apple Developer account.    |
+| `provisioningProfile` | String | Optional            | Automatic | Name or UUID of a manual provisioning profile. Omit for automatic signing. |
 
 ```json
 {
@@ -80,10 +80,10 @@ wefter build --platform ios --release --export-method app-store
 ```
 
 Supported export methods include:
+
 - `app-store`: Upload to App Store Connect and TestFlight.
 - `ad-hoc`: Direct distribution to registered UDID devices.
 - `development`: Local debugging on development devices.
 - `enterprise`: In-house distribution under an Apple Developer Enterprise program.
 
 Outputs are generated inside `.wefter/native/ios/build/`.
-

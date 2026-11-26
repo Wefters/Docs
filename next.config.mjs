@@ -5,7 +5,6 @@ const withMDX = createMDX();
 const rawAdminPath = process.env.NEXT_PUBLIC_ADMIN_PATH || "/weft-admin-sg";
 const adminPath = rawAdminPath.startsWith("/") ? rawAdminPath : `/${rawAdminPath}`;
 
-/** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
   async rewrites() {

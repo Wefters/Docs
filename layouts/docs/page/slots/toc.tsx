@@ -20,22 +20,19 @@ import { useTreePath } from "@fumadocs/base-ui/contexts/tree";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../../../components/ui/collapsible";
 import { useDocsLayout } from "../..";
 
+/** Props of {@link TOCProvider}. */
 export type TOCProviderProps = Base.TOCProviderProps;
 
+/** Provides the page's headings to the table of contents. */
 export function TOCProvider(props: TOCProviderProps) {
   return <Base.TOCProvider {...props} />;
 }
 
+/** Options of {@link TOC}: header, footer and the `normal` or `clerk` style. */
 export type TOCProps = {
   container?: ComponentProps<"div">;
-  /**
-   * Custom content in TOC container, before the main TOC
-   */
   header?: ReactNode;
 
-  /**
-   * Custom content in TOC container, after the main TOC
-   */
   footer?: ReactNode;
 } & (
   | {
@@ -48,6 +45,7 @@ export type TOCProps = {
     }
 );
 
+/** Table of contents beside the page on wide screens. */
 export function TOC({ container, header, footer, style = "normal", list }: TOCProps) {
   const t = useTranslations({ note: "table of contents" });
   const items = Base.useTOCItems();
@@ -84,24 +82,20 @@ export function TOC({ container, header, footer, style = "normal", list }: TOCPr
   );
 }
 
+/** Open state of the table of contents popover. */
 const TocPopoverContext = createContext<{
   open: boolean;
   setOpen: (open: boolean) => void;
 } | null>(null);
 
+/** Options of {@link TOCPopover}. */
 export type TOCPopoverProps = {
   container?: ComponentProps<"div">;
   trigger?: ComponentProps<"button">;
   content?: ComponentProps<"div">;
 
-  /**
-   * Custom content in TOC container, before the main TOC
-   */
   header?: ReactNode;
 
-  /**
-   * Custom content in TOC container, after the main TOC
-   */
   footer?: ReactNode;
 } & (
   | {
@@ -114,6 +108,7 @@ export type TOCPopoverProps = {
     }
 );
 
+/** Table of contents in a popover at the top of the page on small screens. */
 export function TOCPopover({ container, trigger, content, header, footer, style = "normal", list }: TOCPopoverProps) {
   const items = Base.useTOCItems();
   const ref = useRef<HTMLElement>(null);
@@ -186,6 +181,7 @@ export function TOCPopover({ container, trigger, content, header, footer, style 
   );
 }
 
+/** Shows the current heading and reading progress; opens the popover. */
 function PageTOCPopoverTrigger({ className, ...props }: ComponentProps<"button">) {
   const t = useTranslations({ note: "table of contents" });
   const { open } = use(TocPopoverContext)!;
@@ -232,6 +228,7 @@ function PageTOCPopoverTrigger({ className, ...props }: ComponentProps<"button">
   );
 }
 
+/** Progress value and range of {@link ProgressCircle}. */
 interface ProgressCircleProps extends Omit<React.ComponentProps<"svg">, "strokeWidth"> {
   value: number;
   strokeWidth?: number;
@@ -240,12 +237,14 @@ interface ProgressCircleProps extends Omit<React.ComponentProps<"svg">, "strokeW
   max?: number;
 }
 
+/** Limits `input` to the range from `min` to `max`. */
 function clamp(input: number, min: number, max: number): number {
   if (input < min) return min;
   if (input > max) return max;
   return input;
 }
 
+/** Circular reading progress indicator. */
 function ProgressCircle({
   value,
   strokeWidth = 1.5,
@@ -291,6 +290,7 @@ function ProgressCircle({
   );
 }
 
+/** The popover's list of headings. */
 function PageTOCPopoverContent(props: ComponentProps<"div">) {
   return (
     <CollapsibleContent data-toc-popover-content="" {...props}>

@@ -1,6 +1,9 @@
+/** Storage for the plugin registry and plugin submissions, kept as JSON files in `data/`. */
+
 import fs from "fs";
 import path from "path";
 
+/** A plugin listed in the registry. `descriptionMdx` is shown on its detail page. */
 export interface PluginItem {
   id: string;
   name: string;
@@ -18,6 +21,7 @@ export interface PluginItem {
   updatedAt: string;
 }
 
+/** A plugin submitted by a community author, waiting for review or already reviewed. */
 export interface SubmissionItem {
   id: string;
   name: string;
@@ -37,9 +41,11 @@ export interface SubmissionItem {
   rejectionReason?: string;
 }
 
+/** Files the registry and submissions are stored in. */
 const DATA_FILE = path.join(process.cwd(), "data", "plugins.json");
 const SUBMISSIONS_FILE = path.join(process.cwd(), "data", "submissions.json");
 
+/** Every registered plugin; empty when the file is missing or invalid. */
 function readLocalPlugins(): PluginItem[] {
   try {
     if (!fs.existsSync(DATA_FILE)) return [];
@@ -51,6 +57,7 @@ function readLocalPlugins(): PluginItem[] {
   }
 }
 
+/** Saves the registry. */
 function writeLocalPlugins(plugins: PluginItem[]) {
   try {
     const dir = path.dirname(DATA_FILE);
@@ -61,6 +68,7 @@ function writeLocalPlugins(plugins: PluginItem[]) {
   }
 }
 
+/** Every submission; empty when the file is missing or invalid. */
 function readLocalSubmissions(): SubmissionItem[] {
   try {
     if (!fs.existsSync(SUBMISSIONS_FILE)) return [];
@@ -72,6 +80,7 @@ function readLocalSubmissions(): SubmissionItem[] {
   }
 }
 
+/** Saves the submissions. */
 function writeLocalSubmissions(submissions: SubmissionItem[]) {
   try {
     const dir = path.dirname(SUBMISSIONS_FILE);
@@ -82,12 +91,18 @@ function writeLocalSubmissions(submissions: SubmissionItem[]) {
   }
 }
 
-export async function getPlugins(options: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  type?: string;
-} = {}) {
+/**
+ * One page of plugins, filtered by type (`official`, `community` or `all`) and a search over name, package
+ * and description.
+ */
+export async function getPlugins(
+  options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+  } = {},
+) {
   const page = Math.max(1, options.page || 1);
   const limit = Math.max(1, Math.min(50, options.limit || 9));
   const search = (options.search || "").toLowerCase().trim();
@@ -104,7 +119,7 @@ export async function getPlugins(options: {
       (p) =>
         p.name.toLowerCase().includes(search) ||
         p.packageName.toLowerCase().includes(search) ||
-        p.descriptionMdx.toLowerCase().includes(search)
+        p.descriptionMdx.toLowerCase().includes(search),
     );
   }
 
@@ -122,16 +137,18 @@ export async function getPlugins(options: {
   };
 }
 
+/** The plugin with this slug or id, or `null`. */
 export async function getPluginBySlug(slug: string): Promise<PluginItem | null> {
   const items = readLocalPlugins();
   return items.find((p) => p.slug === slug || p.id === slug) || null;
 }
 
+/** Updates the plugin with the same id or slug, or adds a new one (deriving the slug from the name). */
 export async function upsertPlugin(input: Partial<PluginItem>): Promise<PluginItem> {
   const items = readLocalPlugins();
   const now = new Date().toISOString();
   const existingIndex = items.findIndex(
-    (p) => (input.id && p.id === input.id) || (input.slug && p.slug === input.slug)
+    (p) => (input.id && p.id === input.id) || (input.slug && p.slug === input.slug),
   );
 
   let updatedPlugin: PluginItem;
@@ -145,8 +162,7 @@ export async function upsertPlugin(input: Partial<PluginItem>): Promise<PluginIt
     items[existingIndex] = updatedPlugin;
   } else {
     const slug =
-      input.slug ||
-      (input.name ? input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : `plugin-${Date.now()}`);
+      input.slug || (input.name ? input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : `plugin-${Date.now()}`);
     updatedPlugin = {
       id: input.id || slug,
       name: input.name || "Untitled Plugin",
@@ -170,6 +186,7 @@ export async function upsertPlugin(input: Partial<PluginItem>): Promise<PluginIt
   return updatedPlugin;
 }
 
+/** Removes a plugin by id or slug. Returns `false` when it does not exist. */
 export async function deletePlugin(id: string): Promise<boolean> {
   const items = readLocalPlugins();
   const filtered = items.filter((p) => p.id !== id && p.slug !== id);
@@ -178,17 +195,16 @@ export async function deletePlugin(id: string): Promise<boolean> {
   return true;
 }
 
-// Submissions API Helpers
+/** Every submission. */
 export async function getSubmissions(): Promise<SubmissionItem[]> {
   return readLocalSubmissions();
 }
 
+/** Stores a new submission as `pending`. */
 export async function createSubmission(input: Partial<SubmissionItem>): Promise<SubmissionItem> {
   const items = readLocalSubmissions();
   const now = new Date().toISOString();
-  const slug =
-    input.slug ||
-    (input.name ? input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : `sub-${Date.now()}`);
+  const slug = input.slug || (input.name ? input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") : `sub-${Date.now()}`);
 
   const newSubmission: SubmissionItem = {
     id: `sub-${Date.now()}`,
@@ -212,6 +228,11 @@ export async function createSubmission(input: Partial<SubmissionItem>): Promise<
   return newSubmission;
 }
 
+/**
+ * Marks a submission approved and publishes it to the registry as a community plugin.
+ *
+ * @returns The published plugin, or `null` when the submission does not exist.
+ */
 export async function approveSubmission(id: string): Promise<PluginItem | null> {
   const submissions = readLocalSubmissions();
   const index = submissions.findIndex((s) => s.id === id);
@@ -220,7 +241,6 @@ export async function approveSubmission(id: string): Promise<PluginItem | null> 
   const sub = submissions[index];
   const now = new Date().toISOString();
 
-  // Mark submission as approved
   submissions[index] = {
     ...sub,
     status: "approved",
@@ -228,7 +248,6 @@ export async function approveSubmission(id: string): Promise<PluginItem | null> 
   };
   writeLocalSubmissions(submissions);
 
-  // Publish directly to plugins.json
   const publishedPlugin = await upsertPlugin({
     name: sub.name,
     packageName: sub.packageName,
@@ -246,6 +265,7 @@ export async function approveSubmission(id: string): Promise<PluginItem | null> 
   return publishedPlugin;
 }
 
+/** Marks a submission rejected, with an optional reason. */
 export async function rejectSubmission(id: string, reason?: string): Promise<boolean> {
   const submissions = readLocalSubmissions();
   const index = submissions.findIndex((s) => s.id === id);
@@ -261,6 +281,7 @@ export async function rejectSubmission(id: string, reason?: string): Promise<boo
   return true;
 }
 
+/** Removes a submission. Returns `false` when it does not exist. */
 export async function deleteSubmission(id: string): Promise<boolean> {
   const submissions = readLocalSubmissions();
   const filtered = submissions.filter((s) => s.id !== id);

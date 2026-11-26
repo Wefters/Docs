@@ -1,3 +1,5 @@
+/** The styled docs sidebar, built from the parts in `components/docs-sidebar/base.tsx`. */
+
 "use client";
 import * as Base from "../../../components/docs-sidebar/base";
 import { cn } from "../../../lib/cn";
@@ -18,6 +20,7 @@ import Link from "fumadocs-core/link";
 import { useTreePath } from "@fumadocs/base-ui/contexts/tree";
 import { SidebarGithubStar } from "../../../components/github-star";
 
+/** Classes of sidebar links and folder triggers, highlighted when active. */
 const itemVariants = cva(
   "relative flex flex-row items-center gap-2 rounded-lg p-2 text-start text-fd-muted-foreground wrap-anywhere [&_svg]:size-4 [&_svg]:shrink-0",
   {
@@ -33,16 +36,12 @@ const itemVariants = cva(
   },
 );
 
+/** Content around the page tree (banner and footer), whether the sidebar collapses, and custom renderers. */
 export interface SidebarProps extends ComponentProps<"aside"> {
   components?: Partial<SidebarPageTreeComponents>;
   banner?: ReactNode;
   footer?: ReactNode;
 
-  /**
-   * Support collapsing the sidebar on desktop mode
-   *
-   * @defaultValue true
-   */
   collapsible?: boolean;
 }
 
@@ -50,10 +49,12 @@ export type SidebarProviderProps = Base.SidebarProviderProps;
 
 export const { useSidebar } = Base;
 
+/** Holds the sidebar's open state. */
 export function SidebarProvider(props: SidebarProviderProps) {
   return <Base.SidebarProvider {...props} />;
 }
 
+/** The sidebar: banner, section tabs, page tree and footer. A drawer on small screens. */
 export function Sidebar({ footer, banner, collapsible = true, components, ...rest }: SidebarProps) {
   const {
     menuItems,
@@ -185,18 +186,22 @@ export function Sidebar({ footer, banner, collapsible = true, components, ...res
   );
 }
 
+/** A collapsible folder. */
 function SidebarFolder(props: ComponentProps<typeof Base.SidebarFolder>) {
   return <Base.SidebarFolder {...props} />;
 }
 
+/** Collapses the sidebar on wide screens. */
 function SidebarCollapseTrigger(props: ComponentProps<typeof Base.SidebarCollapseTrigger>) {
   return <Base.SidebarCollapseTrigger {...props} />;
 }
 
+/** Opens the drawer on small screens. */
 export function SidebarTrigger(props: ComponentProps<"button">) {
   return <Base.SidebarTrigger {...props} />;
 }
 
+/** The sidebar on wide screens. When collapsed, it slides in while hovered. */
 function SidebarContent({ ref: refProp, className, children, ...props }: ComponentProps<"aside">) {
   const ref = useRef<HTMLElement>(null);
 
@@ -259,6 +264,7 @@ function SidebarContent({ ref: refProp, className, children, ...props }: Compone
   );
 }
 
+/** The sidebar drawer on small screens. */
 function SidebarDrawer({ children, className, ...props }: ComponentProps<typeof Base.SidebarDrawerContent>) {
   return (
     <>
@@ -276,6 +282,7 @@ function SidebarDrawer({ children, className, ...props }: ComponentProps<typeof 
   );
 }
 
+/** A section heading in the page tree. */
 function SidebarSeparator({ className, style, children, ...props }: ComponentProps<"p">) {
   const depth = Base.useFolderDepth();
 
@@ -296,6 +303,7 @@ function SidebarSeparator({ className, style, children, ...props }: ComponentPro
   );
 }
 
+/** A page link. */
 function SidebarItem({ className, style, children, ...props }: ComponentProps<typeof Base.SidebarItem>) {
   const depth = Base.useFolderDepth();
 
@@ -313,6 +321,7 @@ function SidebarItem({ className, style, children, ...props }: ComponentProps<ty
   );
 }
 
+/** A folder heading that opens and closes the folder. */
 function SidebarFolderTrigger({ className, style, ...props }: ComponentProps<typeof Base.SidebarFolderTrigger>) {
   const { depth, collapsible } = Base.useFolder()!;
 
@@ -336,6 +345,7 @@ function SidebarFolderTrigger({ className, style, ...props }: ComponentProps<typ
   );
 }
 
+/** A folder heading that also links to the folder's index page. */
 function SidebarFolderLink({ className, style, ...props }: ComponentProps<typeof Base.SidebarFolderLink>) {
   const depth = Base.useFolderDepth();
 
@@ -353,6 +363,7 @@ function SidebarFolderLink({ className, style, ...props }: ComponentProps<typeof
   );
 }
 
+/** The items inside a folder, with a guide line. */
 function SidebarFolderContent({ className, children, ...props }: ComponentProps<typeof Base.SidebarFolderContent>) {
   const depth = Base.useFolderDepth();
 
@@ -373,6 +384,7 @@ function SidebarFolderContent({ className, children, ...props }: ComponentProps<
   );
 }
 
+/** Dropdown for switching between section tabs. */
 function SidebarTabsDropdown({
   tabs,
   placeholder,
@@ -452,10 +464,12 @@ function SidebarTabsDropdown({
   );
 }
 
+/** Indentation of an item at `depth`. */
 function getItemOffset(depth: number) {
   return `calc(${2 + 3 * depth} * var(--spacing))`;
 }
 
+/** Renders the page tree with the styled components. */
 const SidebarPageTree = createPageTreeRenderer({
   SidebarFolder,
   SidebarFolderContent,
@@ -465,6 +479,7 @@ const SidebarPageTree = createPageTreeRenderer({
   SidebarSeparator,
 });
 
+/** Renders custom links with the styled components. */
 const SidebarLinkItem = createLinkItemRenderer({
   SidebarFolder,
   SidebarFolderContent,

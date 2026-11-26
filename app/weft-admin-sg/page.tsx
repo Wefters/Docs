@@ -1,3 +1,8 @@
+/**
+ * Admin page for the plugin registry: sign in, add, edit and delete plugins, and approve or reject
+ * community submissions. Access is controlled by the session cookie from `/api/admin/auth`.
+ */
+
 "use client";
 
 import Link from "next/link";
@@ -32,6 +37,7 @@ import type { PluginItem, SubmissionItem } from "@/lib/db";
 import { MDXRenderer } from "@/components/mdx-renderer";
 import { TurnstileWidget } from "@/components/turnstile";
 
+/** The admin page. */
 export default function WefterAdminPage() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [username, setUsername] = useState("");
@@ -42,16 +48,13 @@ export default function WefterAdminPage() {
 
   const turnstileSiteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
 
-  // Navigation Tab State
   const [activeTab, setActiveTab] = useState<"plugins" | "submissions">("plugins");
 
-  // Plugins State
   const [plugins, setPlugins] = useState<PluginItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"all" | "official" | "community">("all");
 
-  // Submissions State
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [reviewSubmission, setReviewSubmission] = useState<SubmissionItem | null>(null);
@@ -59,12 +62,10 @@ export default function WefterAdminPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [subActionLoading, setSubActionLoading] = useState(false);
 
-  // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPlugin, setEditingPlugin] = useState<PluginItem | null>(null);
   const [editorTab, setEditorTab] = useState<"write" | "preview">("write");
 
-  // Form State
   const [formData, setFormData] = useState<Partial<PluginItem>>({
     name: "",
     packageName: "",
@@ -81,15 +82,14 @@ export default function WefterAdminPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
-  // Delete Dialog State
   const [deletingPlugin, setDeletingPlugin] = useState<PluginItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Check auth session on load
   useEffect(() => {
     checkAuth();
   }, []);
 
+  /** Checks whether the session is signed in. */
   const checkAuth = async () => {
     try {
       const res = await fetch("/api/admin/auth");
@@ -106,6 +106,7 @@ export default function WefterAdminPage() {
     }
   };
 
+  /** Signs in with the form's credentials and the Turnstile token. */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
@@ -131,6 +132,7 @@ export default function WefterAdminPage() {
     }
   };
 
+  /** Signs out. */
   const handleLogout = async () => {
     try {
       await fetch("/api/admin/auth", {
@@ -147,6 +149,7 @@ export default function WefterAdminPage() {
     }
   };
 
+  /** Loads the registry. */
   const fetchPlugins = async () => {
     setLoading(true);
     try {
@@ -162,6 +165,7 @@ export default function WefterAdminPage() {
     }
   };
 
+  /** Loads the submissions. */
   const fetchSubmissions = async () => {
     setSubmissionsLoading(true);
     try {
@@ -177,7 +181,7 @@ export default function WefterAdminPage() {
     }
   };
 
-  // Open Add Modal
+  /** Opens an empty plugin form. */
   const handleOpenAddModal = () => {
     setEditingPlugin(null);
     setFormData({
@@ -198,7 +202,7 @@ export default function WefterAdminPage() {
     setModalOpen(true);
   };
 
-  // Open Edit Modal
+  /** Opens the plugin form filled with `plugin`. */
   const handleOpenEditModal = (plugin: PluginItem) => {
     setEditingPlugin(plugin);
     setFormData({ ...plugin });
@@ -207,7 +211,7 @@ export default function WefterAdminPage() {
     setModalOpen(true);
   };
 
-  // Save Plugin (Create or Update)
+  /** Saves the plugin form. */
   const handleSavePlugin = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
@@ -240,7 +244,7 @@ export default function WefterAdminPage() {
     }
   };
 
-  // Delete Plugin
+  /** Deletes the selected plugin. */
   const handleDeletePlugin = async () => {
     if (!deletingPlugin) return;
     setDeleting(true);
@@ -259,7 +263,7 @@ export default function WefterAdminPage() {
     }
   };
 
-  // Submission Approval Handler
+  /** Approves a submission and publishes it. */
   const handleApproveSubmission = async (sub: SubmissionItem) => {
     setSubActionLoading(true);
     try {
@@ -280,7 +284,7 @@ export default function WefterAdminPage() {
     }
   };
 
-  // Submission Rejection Handler
+  /** Rejects the selected submission with the entered reason. */
   const handleRejectSubmission = async () => {
     if (!rejectingSubmission) return;
     setSubActionLoading(true);
@@ -306,7 +310,7 @@ export default function WefterAdminPage() {
     }
   };
 
-  // Submission Delete Handler
+  /** Deletes a submission. */
   const handleDeleteSubmission = async (id: string) => {
     try {
       const res = await fetch(`/api/submissions?id=${id}`, { method: "DELETE" });
@@ -318,11 +322,9 @@ export default function WefterAdminPage() {
     }
   };
 
-  // Filtered Plugins List
   const filteredPlugins = plugins.filter((p) => {
     const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.packageName.toLowerCase().includes(search.toLowerCase());
+      p.name.toLowerCase().includes(search.toLowerCase()) || p.packageName.toLowerCase().includes(search.toLowerCase());
 
     const matchesType = filterType === "all" || p.type === filterType;
 
@@ -331,7 +333,6 @@ export default function WefterAdminPage() {
 
   const pendingSubmissionsCount = submissions.filter((s) => s.status === "pending").length;
 
-  // Loading State
   if (authenticated === null) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-fd-background text-fd-foreground">
@@ -340,7 +341,6 @@ export default function WefterAdminPage() {
     );
   }
 
-  // Auth Gate Screen
   if (!authenticated) {
     return (
       <main className="relative flex min-h-screen flex-col items-center justify-center bg-fd-background text-fd-foreground px-6 py-12 selection:bg-fd-primary/20">
@@ -349,16 +349,8 @@ export default function WefterAdminPage() {
         <div className="w-full max-w-md space-y-8 rounded-2xl border border-fd-border bg-fd-card p-8 shadow-2xl backdrop-blur-md">
           <div className="text-center space-y-3">
             <div className="flex justify-center items-center gap-2">
-              <img
-                src="/Logo/Dark/Logo.svg"
-                alt="Wefter Logo"
-                className="h-8 w-auto dark:hidden"
-              />
-              <img
-                src="/Logo/Light/Logo.svg"
-                alt="Wefter Logo"
-                className="h-8 w-auto hidden dark:block"
-              />
+              <img src="/Logo/Dark/Logo.svg" alt="Wefter Logo" className="h-8 w-auto dark:hidden" />
+              <img src="/Logo/Light/Logo.svg" alt="Wefter Logo" className="h-8 w-auto hidden dark:block" />
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">Registry Admin</h1>
             <p className="text-xs text-fd-muted-foreground leading-relaxed">
@@ -395,7 +387,6 @@ export default function WefterAdminPage() {
               />
             </div>
 
-            {/* Cloudflare Turnstile Widget Container */}
             {turnstileSiteKey && (
               <TurnstileWidget
                 siteKey={turnstileSiteKey}
@@ -434,27 +425,16 @@ export default function WefterAdminPage() {
     );
   }
 
-  // Authenticated Admin Portal UI
   return (
     <main className="relative flex min-h-screen flex-col bg-fd-background text-fd-foreground selection:bg-fd-primary/20">
-      {/* Background Glow */}
       <div className="pointer-events-none absolute top-0 left-1/2 -z-10 h-[500px] w-full max-w-7xl -translate-x-1/2 bg-[radial-gradient(ellipse_at_top,var(--color-fd-primary)/0.12,transparent_65%)] blur-3xl" />
 
-      {/* Admin Control Bar */}
       <div className="border-b border-fd-border bg-fd-card/50 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <img
-                src="/Logo/Dark/Logo.svg"
-                alt="Wefter Logo"
-                className="h-7 w-auto dark:hidden"
-              />
-              <img
-                src="/Logo/Light/Logo.svg"
-                alt="Wefter Logo"
-                className="h-7 w-auto hidden dark:block"
-              />
+              <img src="/Logo/Dark/Logo.svg" alt="Wefter Logo" className="h-7 w-auto dark:hidden" />
+              <img src="/Logo/Light/Logo.svg" alt="Wefter Logo" className="h-7 w-auto hidden dark:block" />
             </div>
             <div className="h-5 w-px bg-fd-border/70" />
             <div>
@@ -490,9 +470,7 @@ export default function WefterAdminPage() {
         </div>
       </div>
 
-      {/* Main Admin Dashboard */}
       <div className="mx-auto w-full max-w-7xl px-6 py-10 flex-1 space-y-8">
-        {/* Dashboard Hero Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-fd-border bg-fd-card p-6 shadow-sm">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-fd-primary mb-1">
@@ -516,7 +494,6 @@ export default function WefterAdminPage() {
           </div>
         </div>
 
-        {/* Stats Matrix */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div className="rounded-2xl border border-fd-border bg-fd-card p-5">
             <div className="text-xs font-mono uppercase tracking-wider text-fd-muted-foreground">Total Published</div>
@@ -540,9 +517,7 @@ export default function WefterAdminPage() {
           <div className="rounded-2xl border border-fd-border bg-fd-card p-5">
             <div className="text-xs font-mono uppercase tracking-wider text-amber-500 flex items-center justify-between">
               <span>Submissions Queue</span>
-              {pendingSubmissionsCount > 0 && (
-                <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-              )}
+              {pendingSubmissionsCount > 0 && <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />}
             </div>
             <div className="mt-2 text-2xl font-extrabold text-amber-500">
               {pendingSubmissionsCount} <span className="text-xs font-normal text-fd-muted-foreground">pending</span>
@@ -550,7 +525,6 @@ export default function WefterAdminPage() {
           </div>
         </div>
 
-        {/* Main Tab Navigation Bar */}
         <div className="flex items-center gap-2 border-b border-fd-border pb-3">
           <button
             onClick={() => setActiveTab("plugins")}
@@ -582,10 +556,8 @@ export default function WefterAdminPage() {
           </button>
         </div>
 
-        {/* TAB 1: PUBLISHED REGISTRY */}
         {activeTab === "plugins" && (
           <div className="space-y-6">
-            {/* Toolbar */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-fd-muted-foreground" />
@@ -615,7 +587,6 @@ export default function WefterAdminPage() {
               </div>
             </div>
 
-            {/* Plugins Table */}
             <div className="overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-sm">
               {loading ? (
                 <div className="p-12 text-center text-xs text-fd-muted-foreground">
@@ -642,11 +613,7 @@ export default function WefterAdminPage() {
                       {filteredPlugins.map((plugin) => (
                         <tr key={plugin.id} className="transition-colors hover:bg-fd-accent/30">
                           <td className="px-6 py-4">
-                            <Link
-                              href={`/plugins/${plugin.slug}`}
-                              target="_blank"
-                              className="group inline-block"
-                            >
+                            <Link href={`/plugins/${plugin.slug}`} target="_blank" className="group inline-block">
                               <div className="font-bold text-fd-foreground group-hover:text-fd-primary transition-colors flex items-center gap-1.5">
                                 <span>{plugin.name}</span>
                                 <ExternalLink className="h-3 w-3 text-fd-muted-foreground group-hover:text-fd-primary" />
@@ -702,7 +669,6 @@ export default function WefterAdminPage() {
           </div>
         )}
 
-        {/* TAB 2: COMMUNITY SUBMISSIONS */}
         {activeTab === "submissions" && (
           <div className="space-y-6">
             <div className="overflow-hidden rounded-2xl border border-fd-border bg-fd-card shadow-sm">
@@ -765,8 +731,8 @@ export default function WefterAdminPage() {
                                 sub.status === "approved"
                                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
                                   : sub.status === "rejected"
-                                  ? "border-red-500/30 bg-red-500/10 text-red-500"
-                                  : "border-amber-500/30 bg-amber-500/10 text-amber-500"
+                                    ? "border-red-500/30 bg-red-500/10 text-red-500"
+                                    : "border-amber-500/30 bg-amber-500/10 text-amber-500"
                               }`}
                             >
                               {sub.status === "approved" && <CheckCircle2 className="h-3 w-3" />}
@@ -827,7 +793,6 @@ export default function WefterAdminPage() {
         )}
       </div>
 
-      {/* CREATE / EDIT PLUGIN MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="w-full max-w-3xl rounded-2xl border border-fd-border bg-fd-card p-6 shadow-2xl space-y-6 my-8">
@@ -849,7 +814,6 @@ export default function WefterAdminPage() {
             </div>
 
             <form onSubmit={handleSavePlugin} className="space-y-4">
-              {/* Grid 1: Name, Package Name, Slug */}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1.5">
@@ -893,7 +857,6 @@ export default function WefterAdminPage() {
                 </div>
               </div>
 
-              {/* Grid 2: Type & Version */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1.5">
@@ -901,9 +864,7 @@ export default function WefterAdminPage() {
                   </label>
                   <select
                     value={formData.type || "official"}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value as "official" | "community" })
-                    }
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as "official" | "community" })}
                     className="w-full rounded-xl border border-fd-border bg-fd-background px-3 py-2 text-xs text-fd-foreground focus:border-fd-primary focus:outline-hidden"
                   >
                     <option value="official">Official</option>
@@ -925,7 +886,6 @@ export default function WefterAdminPage() {
                 </div>
               </div>
 
-              {/* Grid 3: Author, License */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1.5">
@@ -954,7 +914,6 @@ export default function WefterAdminPage() {
                 </div>
               </div>
 
-              {/* Grid 4: npm URL & Repository URL */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1.5">
@@ -972,7 +931,8 @@ export default function WefterAdminPage() {
 
                 <div>
                   <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1.5">
-                    GitHub Repository <span className="text-fd-muted-foreground font-normal text-[10px]">(Optional)</span>
+                    GitHub Repository{" "}
+                    <span className="text-fd-muted-foreground font-normal text-[10px]">(Optional)</span>
                   </label>
                   <input
                     type="url"
@@ -984,7 +944,6 @@ export default function WefterAdminPage() {
                 </div>
               </div>
 
-              {/* MDX Content Editor with Write/Preview Tabs */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground">
@@ -995,7 +954,9 @@ export default function WefterAdminPage() {
                       type="button"
                       onClick={() => setEditorTab("write")}
                       className={`flex items-center gap-1 rounded px-2 py-0.5 ${
-                        editorTab === "write" ? "bg-fd-primary text-fd-primary-foreground font-semibold" : "text-fd-muted-foreground"
+                        editorTab === "write"
+                          ? "bg-fd-primary text-fd-primary-foreground font-semibold"
+                          : "text-fd-muted-foreground"
                       }`}
                     >
                       <FileText className="h-3 w-3" />
@@ -1005,7 +966,9 @@ export default function WefterAdminPage() {
                       type="button"
                       onClick={() => setEditorTab("preview")}
                       className={`flex items-center gap-1 rounded px-2 py-0.5 ${
-                        editorTab === "preview" ? "bg-fd-primary text-fd-primary-foreground font-semibold" : "text-fd-muted-foreground"
+                        editorTab === "preview"
+                          ? "bg-fd-primary text-fd-primary-foreground font-semibold"
+                          : "text-fd-muted-foreground"
                       }`}
                     >
                       <Eye className="h-3 w-3" />
@@ -1058,7 +1021,6 @@ export default function WefterAdminPage() {
         </div>
       )}
 
-      {/* REVIEW SUBMISSION MODAL */}
       {reviewSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="w-full max-w-3xl rounded-2xl border border-fd-border bg-fd-card p-6 shadow-2xl space-y-6 my-8">
@@ -1083,18 +1045,29 @@ export default function WefterAdminPage() {
             <div className="space-y-4 text-xs">
               <div className="grid gap-4 sm:grid-cols-2 bg-fd-background p-4 rounded-xl border border-fd-border/70">
                 <div>
-                  <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">Title & License</span>
+                  <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">
+                    Title & License
+                  </span>
                   <span className="font-bold text-fd-foreground text-sm">{reviewSubmission.name}</span>
-                  <span className="text-[11px] font-mono text-fd-muted-foreground block">License: {reviewSubmission.license || "MIT"}</span>
+                  <span className="text-[11px] font-mono text-fd-muted-foreground block">
+                    License: {reviewSubmission.license || "MIT"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">Author</span>
-                  <span className="font-semibold text-fd-foreground">{reviewSubmission.author} ({reviewSubmission.authorEmail})</span>
+                  <span className="font-semibold text-fd-foreground">
+                    {reviewSubmission.author} ({reviewSubmission.authorEmail})
+                  </span>
                 </div>
                 <div>
                   <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">npm Package</span>
                   {reviewSubmission.npmUrl ? (
-                    <a href={reviewSubmission.npmUrl} target="_blank" rel="noreferrer" className="text-red-500 hover:underline flex items-center gap-1 font-mono">
+                    <a
+                      href={reviewSubmission.npmUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-red-500 hover:underline flex items-center gap-1 font-mono"
+                    >
                       <span>{reviewSubmission.npmUrl}</span>
                       <ExternalLink className="h-3 w-3" />
                     </a>
@@ -1105,7 +1078,12 @@ export default function WefterAdminPage() {
                 <div>
                   <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">Repository</span>
                   {reviewSubmission.repositoryUrl ? (
-                    <a href={reviewSubmission.repositoryUrl} target="_blank" rel="noreferrer" className="text-fd-primary hover:underline flex items-center gap-1 font-mono">
+                    <a
+                      href={reviewSubmission.repositoryUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-fd-primary hover:underline flex items-center gap-1 font-mono"
+                    >
                       <span>{reviewSubmission.repositoryUrl}</span>
                       <ExternalLink className="h-3 w-3" />
                     </a>
@@ -1114,13 +1092,19 @@ export default function WefterAdminPage() {
                   )}
                 </div>
                 <div>
-                  <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">Version & Platforms</span>
-                  <span className="font-mono text-fd-foreground uppercase">v{reviewSubmission.version} · {reviewSubmission.platforms.join(", ")}</span>
+                  <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block">
+                    Version & Platforms
+                  </span>
+                  <span className="font-mono text-fd-foreground uppercase">
+                    v{reviewSubmission.version} · {reviewSubmission.platforms.join(", ")}
+                  </span>
                 </div>
               </div>
 
               <div>
-                <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block mb-2">Submitted MDX Documentation</span>
+                <span className="text-fd-muted-foreground font-mono uppercase text-[10px] block mb-2">
+                  Submitted MDX Documentation
+                </span>
                 <div className="max-h-72 overflow-y-auto rounded-xl border border-fd-border bg-fd-background p-4">
                   <MDXRenderer content={reviewSubmission.descriptionMdx} />
                 </div>
@@ -1157,7 +1141,6 @@ export default function WefterAdminPage() {
         </div>
       )}
 
-      {/* REJECT SUBMISSION MODAL */}
       {rejectingSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="w-full max-w-md rounded-2xl border border-fd-border bg-fd-card p-6 shadow-2xl space-y-4">
@@ -1166,7 +1149,9 @@ export default function WefterAdminPage() {
               <h3 className="font-bold text-base">Reject Submission</h3>
             </div>
             <p className="text-xs text-fd-muted-foreground leading-relaxed">
-              You are rejecting the submission for <strong className="text-fd-foreground">{rejectingSubmission.name}</strong> ({rejectingSubmission.packageName}).
+              You are rejecting the submission for{" "}
+              <strong className="text-fd-foreground">{rejectingSubmission.name}</strong> (
+              {rejectingSubmission.packageName}).
             </p>
             <div>
               <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-fd-muted-foreground mb-1">
@@ -1199,7 +1184,6 @@ export default function WefterAdminPage() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
       {deletingPlugin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="w-full max-w-md rounded-2xl border border-fd-border bg-fd-card p-6 shadow-2xl space-y-4">
@@ -1208,7 +1192,9 @@ export default function WefterAdminPage() {
               <h3 className="font-bold text-base">Delete Plugin Definition</h3>
             </div>
             <p className="text-xs text-fd-muted-foreground leading-relaxed">
-              Are you sure you want to delete <strong className="text-fd-foreground">{deletingPlugin.name}</strong> (<code className="font-mono text-xs">{deletingPlugin.packageName}</code>)? This action will remove it from the public directory.
+              Are you sure you want to delete <strong className="text-fd-foreground">{deletingPlugin.name}</strong> (
+              <code className="font-mono text-xs">{deletingPlugin.packageName}</code>)? This action will remove it from
+              the public directory.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button

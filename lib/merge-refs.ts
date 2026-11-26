@@ -1,5 +1,6 @@
 import type * as React from "react";
 
+/** Combines several refs into one callback ref. */
 export function mergeRefs<T>(...refs: (React.Ref<T> | undefined)[]): React.RefCallback<T> {
   return (value) => {
     refs.forEach((ref) => {

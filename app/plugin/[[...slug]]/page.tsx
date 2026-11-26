@@ -5,6 +5,7 @@ import { getMDXComponents } from "@/components/mdx";
 import type { Metadata } from "next";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 
+/** Renders a page of the `/plugin` section from its MDX source. */
 export default async function Page(props: PageProps<"/plugin/[[...slug]]">) {
   const params = await props.params;
   const page = pluginSource.getPage(params.slug);
@@ -27,10 +28,12 @@ export default async function Page(props: PageProps<"/plugin/[[...slug]]">) {
   );
 }
 
+/** Every page of the section, for static generation. */
 export async function generateStaticParams() {
   return pluginSource.generateParams();
 }
 
+/** Title and description of a page. */
 export async function generateMetadata(props: PageProps<"/plugin/[[...slug]]">): Promise<Metadata> {
   const params = await props.params;
   const page = pluginSource.getPage(params.slug);

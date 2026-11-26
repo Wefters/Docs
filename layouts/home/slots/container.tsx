@@ -3,6 +3,7 @@
 import type { ComponentProps } from "react";
 import { cn } from "../../../lib/cn";
 
+/** The landing page's main element. */
 export function Container(props: ComponentProps<"main">) {
   return (
     <main

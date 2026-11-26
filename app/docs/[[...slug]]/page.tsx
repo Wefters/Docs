@@ -5,6 +5,7 @@ import { getMDXComponents } from "@/components/mdx";
 import type { Metadata } from "next";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 
+/** Renders a page of the `/docs` section from its MDX source. */
 export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   const params = await props.params;
   const page = docsSource.getPage(params.slug);
@@ -27,10 +28,12 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
   );
 }
 
+/** Every page of the section, for static generation. */
 export async function generateStaticParams() {
   return docsSource.generateParams();
 }
 
+/** Title and description of a page. */
 export async function generateMetadata(props: PageProps<"/docs/[[...slug]]">): Promise<Metadata> {
   const params = await props.params;
   const page = docsSource.getPage(params.slug);

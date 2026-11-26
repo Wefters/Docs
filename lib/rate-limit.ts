@@ -1,3 +1,9 @@
+/** Attempts from one IP in the current window. */
+/**
+ * In-memory rate limiting by IP address, used by the admin login and plugin submissions. Counts reset when
+ * the server restarts.
+ */
+
 interface RateLimitRecord {
   count: number;
   resetAt: number;
@@ -5,35 +11,30 @@ interface RateLimitRecord {
 
 const attemptsMap = new Map<string, RateLimitRecord>();
 
-// Clean up expired entries every 5 minutes
+/** Drops expired records every five minutes. */
 if (typeof setInterval !== "undefined") {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [ip, record] of attemptsMap.entries()) {
-      if (now > record.resetAt) {
-        attemptsMap.delete(ip);
+  setInterval(
+    () => {
+      const now = Date.now();
+      for (const [ip, record] of attemptsMap.entries()) {
+        if (now > record.resetAt) {
+          attemptsMap.delete(ip);
+        }
       }
-    }
-  }, 5 * 60 * 1000);
+    },
+    5 * 60 * 1000,
+  );
 }
 
+/** Whether the attempt is allowed, how many remain and when the window resets. */
 export interface RateLimitResult {
   success: boolean;
   remaining: number;
   resetSeconds: number;
 }
 
-/**
- * In-memory rate limiter for login brute-force prevention
- * @param ip Client IP address
- * @param limit Maximum attempts allowed within the window
- * @param windowMs Time window in milliseconds (default: 15 minutes)
- */
-export function checkRateLimit(
-  ip: string,
-  limit: number = 5,
-  windowMs: number = 15 * 60 * 1000
-): RateLimitResult {
+/** Records an attempt from `ip` and says whether it is within `limit` attempts per `windowMs`. */
+export function checkRateLimit(ip: string, limit: number = 5, windowMs: number = 15 * 60 * 1000): RateLimitResult {
   const now = Date.now();
   const record = attemptsMap.get(ip);
 
@@ -66,6 +67,7 @@ export function checkRateLimit(
   };
 }
 
+/** Forgets the attempts from `ip`, for example after a successful login. */
 export function resetRateLimit(ip: string): void {
   attemptsMap.delete(ip);
 }

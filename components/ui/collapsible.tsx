@@ -3,10 +3,12 @@ import { Collapsible as Primitive } from "@base-ui/react/collapsible";
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/cn";
 
+/** Collapsible section built on Base UI. */
 export const Collapsible = Primitive.Root;
 
 export const CollapsibleTrigger = Primitive.Trigger;
 
+/** Animated collapsible panel. */
 export function CollapsibleContent({ children, className, ...props }: ComponentProps<typeof Primitive.Panel>) {
   return (
     <Primitive.Panel

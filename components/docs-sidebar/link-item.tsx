@@ -4,11 +4,16 @@ import type * as Base from "./base";
 import { usePathname } from "fumadocs-core/framework";
 import { isLinkItemActive, type LinkItemType } from "../../layouts/shared";
 
+/** Sidebar components a link renderer needs. */
 type InternalComponents = Pick<
   typeof Base,
   "SidebarFolder" | "SidebarFolderLink" | "SidebarFolderContent" | "SidebarFolderTrigger" | "SidebarItem"
 >;
 
+/**
+ * Creates the component that renders the custom links shown in the sidebar: plain links and menus with
+ * sub-links.
+ */
 export function createLinkItemRenderer({
   SidebarFolder,
   SidebarFolderContent,
@@ -16,9 +21,6 @@ export function createLinkItemRenderer({
   SidebarFolderTrigger,
   SidebarItem,
 }: InternalComponents) {
-  /**
-   * Render sidebar items from page tree
-   */
   return function SidebarLinkItem({
     item,
     ...props

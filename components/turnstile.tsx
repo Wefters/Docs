@@ -1,8 +1,11 @@
+/** Cloudflare Turnstile bot check, used on the admin login. */
+
 "use client";
 
 import { useEffect, useRef } from "react";
 
 declare global {
+  /** The Turnstile script's global API. */
   interface Window {
     turnstile?: {
       render: (
@@ -13,7 +16,7 @@ declare global {
           "error-callback"?: () => void;
           "expired-callback"?: () => void;
           theme?: "light" | "dark" | "auto";
-        }
+        },
       ) => string;
       reset: (widgetId?: string) => void;
       remove: (widgetId?: string) => void;
@@ -22,12 +25,14 @@ declare global {
   }
 }
 
+/** The site key, and callbacks for a solved and an expired check. */
 interface TurnstileWidgetProps {
   siteKey: string;
   onVerify: (token: string) => void;
   onExpire?: () => void;
 }
 
+/** Renders the Turnstile widget, loading Cloudflare's script on first use, and removes it on unmount. */
 export function TurnstileWidget({ siteKey, onVerify, onExpire }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
@@ -76,9 +81,7 @@ export function TurnstileWidget({ siteKey, onVerify, onExpire }: TurnstileWidget
       if (widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
-        } catch (e) {
-          // ignore cleanup error
-        }
+        } catch (e) {}
         widgetIdRef.current = null;
       }
     };

@@ -1,3 +1,5 @@
+/** Landing page: what Wefter is, how it works, features, supported frameworks and install instructions. */
+
 "use client";
 
 import Link from "next/link";
@@ -25,6 +27,7 @@ import {
 import { GithubStarButton } from "@/components/github-star";
 import { WovenBackground } from "@/components/home/woven-background";
 
+/** The "how it works" steps. */
 const steps = [
   {
     number: "01",
@@ -56,6 +59,7 @@ const steps = [
   },
 ];
 
+/** Feature cards. */
 const features = [
   {
     icon: Zap,
@@ -99,6 +103,7 @@ const features = [
   },
 ];
 
+/** Web frameworks Wefter works with. */
 const frameworks = [
   { name: "Vue.js", color: "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5" },
   { name: "React", color: "border-sky-500/30 text-sky-600 dark:text-sky-400 bg-sky-500/5" },
@@ -107,6 +112,7 @@ const frameworks = [
   { name: "Vanilla JS", color: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5" },
 ];
 
+/** Headline numbers. */
 const stats = [
   { value: "Zero Reflection", label: "Static Kotlin & Swift Dispatchers" },
   { value: "Direct IPC", label: "Native OS WebView Bridge" },
@@ -114,6 +120,7 @@ const stats = [
   { value: "No Node Server", label: "Pure Compiled Native Shell" },
 ];
 
+/** Code shown in the example panel. */
 const codeExamples = {
   js: {
     filename: "app.ts",
@@ -158,6 +165,7 @@ public class CameraPlugin: WefterPlugin {
   },
 };
 
+/** Install commands for each package manager. */
 const installOptions = {
   npx: {
     label: "npx",
@@ -181,6 +189,7 @@ const installOptions = {
   },
 };
 
+/** The landing page. */
 export default function HomePage() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"js" | "kotlin" | "swift">("js");
@@ -188,6 +197,7 @@ export default function HomePage() {
 
   const currentCmd = installOptions[pmTab].cmd;
 
+  /** Copies the selected install command. */
   const handleCopy = () => {
     navigator.clipboard.writeText(currentCmd);
     setCopied(true);
@@ -196,15 +206,11 @@ export default function HomePage() {
 
   return (
     <div className="relative isolate flex min-h-screen flex-1 flex-col overflow-hidden bg-fd-background text-fd-foreground selection:bg-fd-primary/20 transition-colors duration-300 -mt-14">
-      {/* Woven Background Pattern (SVG with mobile to PC scaling & light/dark theme support) */}
       <WovenBackground />
 
-      {/* Hero Section */}
       <section className="relative z-10 mx-auto w-full max-w-(--fd-layout-width) px-6 pt-28 pb-16 md:pt-36 md:pb-24">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8 lg:gap-12 w-full">
-          {/* Left Column: Hero Content (60% Width) */}
           <div className="relative flex w-full flex-col items-start text-left md:w-[60%] shrink-0">
-            {/* Soft ambient center shadow/glow to blend and elevate typography over the weave */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -left-28 sm:-left-40 md:-left-56 -right-8 sm:-right-16 top-1/2 -translate-y-1/2 h-[155%] -z-10 select-none
@@ -213,14 +219,12 @@ export default function HomePage() {
                          blur-3xl"
             />
 
-            {/* Eyebrow Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/60 px-3.5 py-1 text-xs font-medium text-fd-muted-foreground backdrop-blur-md transition-colors hover:border-fd-primary/40">
               <Sparkles className="h-3.5 w-3.5 text-fd-primary" />
               <span>Wefter Architecture v0.0.3</span>
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </div>
 
-            {/* Headline (Max 2 lines) */}
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-[3.2rem] lg:text-[3.5rem] leading-[1.08] text-balance text-fd-foreground">
               Build Native Mobile Apps with the{" "}
               <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-300 bg-clip-text text-transparent">
@@ -228,13 +232,11 @@ export default function HomePage() {
               </span>
             </h1>
 
-            {/* Subtext (Max 20 words) */}
             <p className="mt-5 max-w-xl text-base sm:text-lg text-fd-muted-foreground dark:text-slate-200 leading-relaxed text-pretty">
               Compile Vue, React, Svelte, and Vanilla JS into lightweight native shells with zero-reflection Kotlin &
               Swift dispatchers.
             </p>
 
-            {/* Action CTAs */}
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/docs/installing"
@@ -255,7 +257,6 @@ export default function HomePage() {
               <GithubStarButton className="px-5 py-3 text-sm" />
             </div>
 
-            {/* Terminal Command Bar */}
             <div className="mt-10 w-full max-w-xl overflow-hidden rounded-xl border border-fd-border bg-fd-card/90 shadow-xl text-left backdrop-blur-md">
               <div className="flex items-center justify-between border-b border-fd-border/70 bg-fd-muted/30 px-4 py-2.5">
                 <div className="flex items-center gap-3">
@@ -306,7 +307,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Framework Badges */}
             <div className="mt-8 flex flex-wrap items-center gap-2">
               <span className="text-xs font-mono uppercase tracking-wider text-fd-muted-foreground mr-1">
                 Supports:
@@ -319,7 +319,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right Column: Mobile Layer Visual (40% Width, Matches Content Height) */}
           <div className="hidden md:flex w-full md:w-[40%] items-center justify-center relative self-stretch">
             <div className="relative w-full h-full flex items-center justify-center py-2">
               <Image
@@ -335,7 +334,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats & Architectural Metrics */}
       <section className="relative z-10 border-y border-fd-border/60 bg-fd-card/40 backdrop-blur-xs">
         <div className="mx-auto max-w-(--fd-layout-width) px-6 py-8">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
@@ -349,7 +347,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Code Interactive Playground */}
       <section className="mx-auto w-full max-w-5xl px-6 py-16 md:py-24">
         <div className="flex flex-col items-center text-center">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl text-fd-foreground">
@@ -362,7 +359,6 @@ export default function HomePage() {
         </div>
 
         <div className="mt-10 overflow-hidden rounded-2xl border border-fd-border bg-fd-card/80 backdrop-blur-md shadow-2xl">
-          {/* Tab Bar Header */}
           <div className="flex items-center justify-between border-b border-fd-border/70 bg-fd-muted/20 px-4 pt-2">
             <div className="flex gap-1 overflow-x-auto">
               {(["js", "kotlin", "swift"] as const).map((tab) => (
@@ -385,7 +381,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Code Viewer */}
           <div className="p-5 font-mono text-xs sm:text-sm leading-relaxed overflow-x-auto bg-fd-card/60 backdrop-blur-sm text-fd-foreground">
             <pre>
               <code>{codeExamples[activeTab].code}</code>
@@ -394,7 +389,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4-Step Process Pipeline */}
       <section className="border-t border-fd-border bg-fd-card/20 py-16 md:py-24">
         <div className="mx-auto max-w-(--fd-layout-width) px-6">
           <div className="flex flex-col items-center text-center">
@@ -430,7 +424,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Bento Feature Grid */}
       <section className="mx-auto w-full max-w-(--fd-layout-width) px-6 py-16 md:py-24">
         <div className="flex flex-col items-center text-center">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl text-fd-foreground">
@@ -465,7 +458,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Navigation & Documentation Cards */}
       <section className="border-t border-fd-border bg-fd-card/30 py-16 md:py-20">
         <div className="mx-auto max-w-(--fd-layout-width) px-6">
           <div className="flex flex-col items-center text-center">
@@ -518,11 +510,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-fd-border/70 bg-fd-card/60 backdrop-blur-lg">
         <div className="mx-auto max-w-(--fd-layout-width) px-6 pt-14 pb-10">
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
-            {/* Brand Column (Col Span 2 on large screens) */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-2.5">
                 <img src="/Logo/Dark/Logo.svg" alt="Wefter Logo" className="h-7 w-auto dark:hidden" />
@@ -540,7 +530,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Column 1: Core Documentation */}
             <div>
               <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
                 Documentation
@@ -574,7 +563,6 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Column 2: CLI Commands */}
             <div>
               <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
                 CLI Tooling
@@ -608,7 +596,6 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Column 3: Plugins & Ecosystem */}
             <div>
               <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">Plugins</h4>
               <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
@@ -636,7 +623,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Bottom Bar */}
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-fd-border/60 pt-6 text-xs text-fd-muted-foreground sm:flex-row">
             <div className="flex items-center gap-2">
               <img src="/Logo/Dark/Icon.svg" alt="Wefter Icon" className="h-4 w-4 dark:hidden" />

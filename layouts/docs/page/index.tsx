@@ -10,14 +10,13 @@ import type { TOCItemType } from "fumadocs-core/toc";
 import { buttonVariants } from "../../../components/ui/button";
 import { Edit } from "lucide-react";
 
+/**
+ * Options of a documentation page: its headings, full-width mode, slots, footer, breadcrumb and table of
+ * contents.
+ */
 export interface DocsPageProps extends ComponentProps<"article"> {
   toc?: TOCItemType[];
 
-  /**
-   * Extend the page to fill all available space
-   *
-   * @defaultValue false
-   */
   full?: boolean | undefined;
   slots?: Partial<DocsPageSlots>;
 
@@ -27,39 +26,32 @@ export interface DocsPageProps extends ComponentProps<"article"> {
   tableOfContentPopover?: TableOfContentPopoverOptions;
 }
 
+/** Breadcrumb options and whether to show it. */
 interface BreadcrumbOptions extends BreadcrumbProps {
   enabled?: boolean;
-  /**
-   * @deprecated use `slots.breadcrumb` instead.
-   */
   component?: ReactNode;
 }
 
+/** Previous and next page links and whether to show them. */
 interface FooterOptions extends FooterProps {
   enabled?: boolean;
-  /**
-   * @deprecated use `slots.footer` instead.
-   */
   component?: ReactNode;
 }
 
+/** Table of contents options. */
 type TableOfContentOptions = Pick<TOCProviderProps, "single"> &
   TOCProps & {
     enabled?: boolean;
-    /**
-     * @deprecated use `slots.toc` instead.
-     */
     component?: ReactNode;
   };
 
+/** Table of contents options on small screens, where it is a popover. */
 type TableOfContentPopoverOptions = TOCPopoverProps & {
   enabled?: boolean;
-  /**
-   * @deprecated use `slots.tocPopover` instead.
-   */
   component?: ReactNode;
 };
 
+/** Replaceable parts of a documentation page. */
 interface DocsPageSlots {
   toc: {
     provider: FC<TOCProviderProps>;
@@ -71,17 +63,24 @@ interface DocsPageSlots {
   breadcrumb: FC<BreadcrumbProps>;
 }
 
+/** Page props and slots shared with the page's parts. */
 const PageContext = createContext<{
   full: NonNullable<DocsPageProps["full"]>;
   slots: DocsPageSlots;
 } | null>(null);
 
+/**
+ * The documentation page's props and slots.
+ *
+ * @throws {Error} When used outside a {@link DocsPage}.
+ */
 export function useDocsPage() {
   const context = use(PageContext);
   if (!context) throw new Error("Please use page components under <DocsPage /> (`fumadocs-ui/layouts/docs/page`).");
   return context;
 }
 
+/** A documentation page: breadcrumb, content, table of contents and previous and next links. */
 export function DocsPage({
   full = false,
   tableOfContent: { enabled: tocEnabled = !full, single, ...tocProps } = {},
@@ -126,6 +125,7 @@ export function DocsPage({
   );
 }
 
+/** Link to edit the page on GitHub. */
 export function EditOnGitHub(props: ComponentProps<"a">) {
   const t = useTranslations({ note: "edit page" });
 
@@ -153,9 +153,7 @@ export function EditOnGitHub(props: ComponentProps<"a">) {
   );
 }
 
-/**
- * Add typography styles
- */
+/** The page's prose content. */
 export function DocsBody({ children, className, ...props }: ComponentProps<"div">) {
   return (
     <div {...props} className={cn("prose flex-1", className)}>
@@ -164,8 +162,8 @@ export function DocsBody({ children, className, ...props }: ComponentProps<"div"
   );
 }
 
+/** The page description under its title. */
 export function DocsDescription({ children, className, ...props }: ComponentProps<"p">) {
-  // Don't render if no description provided
   if (children === undefined) return null;
 
   return (
@@ -175,6 +173,7 @@ export function DocsDescription({ children, className, ...props }: ComponentProp
   );
 }
 
+/** The page title. */
 export function DocsTitle({ children, className, ...props }: ComponentProps<"h1">) {
   return (
     <h1 {...props} className={cn("text-[1.75em] font-semibold", className)}>
@@ -183,12 +182,12 @@ export function DocsTitle({ children, className, ...props }: ComponentProps<"h1"
   );
 }
 
+/** When the page was last updated. */
 export function PageLastUpdate({ date: value, ...props }: Omit<ComponentProps<"p">, "children"> & { date: Date }) {
   const t = useTranslations({ note: "page footer" });
   const [date, setDate] = useState("");
 
   useEffect(() => {
-    // to the timezone of client
     setDate(value.toLocaleDateString());
   }, [value]);
 

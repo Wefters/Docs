@@ -4,6 +4,7 @@ import type { SidebarProps, SidebarProviderProps } from "./slots/sidebar";
 import { getLayoutTabs, type BaseLayoutProps, type GetLayoutTabsOptions, type LayoutTab } from "../shared";
 import { type DocsSlots, LayoutBody } from "./client";
 
+/** Options of the documentation layout: the page tree, sidebar, section tabs and slots. */
 export interface DocsLayoutProps extends BaseLayoutProps {
   tree: PageTree.Root;
   sidebar?: SidebarOptions;
@@ -13,22 +14,15 @@ export interface DocsLayoutProps extends BaseLayoutProps {
   slots?: Partial<DocsSlots>;
 }
 
+/** Sidebar options, including how deep folders start open. */
 interface SidebarOptions extends SidebarProps, SidebarProviderProps {
   enabled?: boolean;
-  /**
-   * @deprecated use `slots.sidebar` instead.
-   */
   component?: ReactNode;
-  /**
-   * @deprecated use layout-level `tabMode` option instead.
-   */
   tabMode?: "auto" | "top";
-  /**
-   * @deprecated use layout-level `tabs` option instead.
-   */
   tabs?: LayoutTab[] | GetLayoutTabsOptions | false;
 }
 
+/** Layout of the documentation sections: header, sidebar with the page tree and section tabs, and content. */
 export function DocsLayout({
   tree,
   sidebar: { tabs: _tabs, tabMode: _tabMode, ...sidebarProps } = {},

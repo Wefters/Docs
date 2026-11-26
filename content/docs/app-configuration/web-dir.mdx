@@ -13,9 +13,9 @@ The `webDir` property declares this directory path relative to the project root.
 
 ## Schema Reference
 
-| Property | Type | Required / Optional | Default | Description |
-| --- | --- | --- | --- | --- |
-| `webDir` | String | **Required** | `"dist"` | Relative folder path containing compiled web production assets (`index.html`, JavaScript, CSS, and media). |
+| Property | Type   | Required / Optional | Default  | Description                                                                                                |
+| -------- | ------ | ------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `webDir` | String | **Required**        | `"dist"` | Relative folder path containing compiled web production assets (`index.html`, JavaScript, CSS, and media). |
 
 ```json
 {
@@ -29,14 +29,14 @@ The `webDir` property declares this directory path relative to the project root.
 
 Set `webDir` according to your UI build tooling:
 
-| Framework / Bundler | Typical Output Directory | `wefter.config.json` Value |
-| --- | --- | --- |
-| Vite (Vue, React, Svelte) | `dist` | `"webDir": "dist"` |
-| Next.js (`output: 'export'`) | `out` | `"webDir": "out"` |
-| Astro (`output: 'static'`) | `dist` | `"webDir": "dist"` |
-| Nuxt (`nuxi generate`) | `.output/public` | `"webDir": ".output/public"` |
-| Angular CLI | `dist/<project-name>/browser` | `"webDir": "dist/my-app/browser"` |
-| Vanilla HTML / CSS / JS | `src` or `public` | `"webDir": "public"` |
+| Framework / Bundler          | Typical Output Directory      | `wefter.config.json` Value        |
+| ---------------------------- | ----------------------------- | --------------------------------- |
+| Vite (Vue, React, Svelte)    | `dist`                        | `"webDir": "dist"`                |
+| Next.js (`output: 'export'`) | `out`                         | `"webDir": "out"`                 |
+| Astro (`output: 'static'`)   | `dist`                        | `"webDir": "dist"`                |
+| Nuxt (`nuxi generate`)       | `.output/public`              | `"webDir": ".output/public"`      |
+| Angular CLI                  | `dist/<project-name>/browser` | `"webDir": "dist/my-app/browser"` |
+| Vanilla HTML / CSS / JS      | `src` or `public`             | `"webDir": "public"`              |
 
 ---
 
@@ -73,8 +73,8 @@ export default defineConfig({
   base: "./",
   build: {
     outDir: "dist",
-    emptyOutDir: true
-  }
+    emptyOutDir: true,
+  },
 });
 ```
 
@@ -88,10 +88,9 @@ const nextConfig = {
   output: "export",
   distDir: "out",
   images: {
-    unoptimized: true
-  }
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;
 ```
-

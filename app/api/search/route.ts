@@ -1,6 +1,9 @@
+/** Search endpoint for the site's search dialog, indexing every page of the three sections. */
+
 import { createSearchAPI } from "fumadocs-core/search/server";
 import { docsSource, pluginSource, cliSource } from "@/lib/source";
 
+/** Search index entries for every page of a source. */
 function toIndexes(source: typeof docsSource | typeof pluginSource | typeof cliSource) {
   return source.getPages().map((page) => ({
     title: page.data.title,

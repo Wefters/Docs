@@ -13,9 +13,9 @@ Configuring `"landscape": true` in `wefter.config.json` forces the native shell 
 
 ## Schema Reference
 
-| Property | Type | Required / Optional | Default | Description |
-| --- | --- | --- | --- | --- |
-| `landscape` | Boolean | Optional | `false` | When `true`, locks the app strictly to landscape orientation on both Android and iOS. |
+| Property    | Type    | Required / Optional | Default | Description                                                                           |
+| ----------- | ------- | ------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `landscape` | Boolean | Optional            | `false` | When `true`, locks the app strictly to landscape orientation on both Android and iOS. |
 
 ```json
 {
@@ -30,11 +30,13 @@ Configuring `"landscape": true` in `wefter.config.json` forces the native shell 
 When `"landscape": true` is declared, running `wefter sync` updates native shell manifests:
 
 ### Android Shell Configuration
+
 - Updates `.wefter/native/android/app/src/main/AndroidManifest.xml`.
 - Sets `android:screenOrientation="sensorLandscape"` on `MainActivity`.
 - **Sensor Landscape**: The application launches directly in landscape mode and allows rotating between regular landscape and reverse landscape (180 degrees), but prevents rotating into portrait orientations.
 
 ### iOS Shell Configuration
+
 - Updates `.wefter/native/ios/WefterApp/Info.plist`.
 - Configures `UISupportedInterfaceOrientations` with:
   - `UIInterfaceOrientationLandscapeLeft`
@@ -68,4 +70,3 @@ await Screen.lockOrientation({ orientation: "landscape" });
 // Unlock orientation when exiting video player
 await Screen.unlockOrientation();
 ```
-

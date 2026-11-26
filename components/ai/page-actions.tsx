@@ -1,3 +1,5 @@
+/** Page actions above each doc page: copy the page as Markdown, or open it in another tool. */
+
 "use client";
 import { type ComponentProps, useMemo, useState } from "react";
 import { Check, ChevronDown, Copy, ExternalLinkIcon, TextIcon } from "lucide-react";
@@ -8,18 +10,17 @@ import { buttonVariants } from "../ui/button";
 import { usePathname } from "fumadocs-core/framework";
 import { useTranslations } from "@fuma-translate/react";
 
+/** Markdown already fetched, by URL, so repeated copies do not refetch. */
 const cache = new Map<string, Promise<string>>();
 
 /**
- * see https://fumadocs.dev/docs/integrations/llms#page-actions to customize.
+ * Copies the page's Markdown source to the clipboard. The clipboard write starts right away (with a
+ * pending item) so browsers keep the user gesture while the text loads.
  */
 export function MarkdownCopyButton({
   markdownUrl,
   ...props
 }: ComponentProps<"button"> & {
-  /**
-   * A URL to fetch the raw Markdown/MDX content of page
-   */
   markdownUrl: string;
 }) {
   const t = useTranslations({ note: "page actions" });
@@ -62,22 +63,14 @@ export function MarkdownCopyButton({
     </button>
   );
 }
-/**
- * see https://fumadocs.dev/docs/integrations/llms#page-actions to customize.
- */
+/** Menu of other ways to read the page: as Markdown, on GitHub, or in AI assistants. */
 export function ViewOptionsPopover({
   markdownUrl,
   githubUrl,
   ...props
 }: ComponentProps<typeof PopoverTrigger> & {
-  /**
-   * A URL to the raw Markdown/MDX content of page
-   */
   markdownUrl?: string;
 
-  /**
-   * Source file URL on GitHub
-   */
   githubUrl?: string;
 }) {
   const pathname = usePathname();
@@ -239,14 +232,12 @@ export function ViewOptionsPopover({
   );
 }
 
+/** Prefixes a site-relative URL with the deployment's base path. */
 function withBasePath(href: string) {
-  // ignore external
   if (href.match(/^\w+:/) || href.startsWith("//")) return href;
 
   const env = (import.meta as unknown as { env?: { BASE_URL?: string } }).env;
   const basePath =
-    typeof env !== "undefined" && typeof env.BASE_URL === "string"
-      ? env.BASE_URL.replace(/\/$/, "")
-      : "";
+    typeof env !== "undefined" && typeof env.BASE_URL === "string" ? env.BASE_URL.replace(/\/$/, "") : "";
   return basePath + href;
 }

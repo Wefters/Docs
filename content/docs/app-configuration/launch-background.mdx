@@ -13,9 +13,9 @@ Configuring `launchBackground` prevents jarring white flashes during cold app st
 
 ## Schema Reference
 
-| Property | Type | Required / Optional | Default | Description |
-| --- | --- | --- | --- | --- |
-| `launchBackground` | String (6-digit hex `#RRGGBB`) | Optional | Sampled from `splash.source` or `#FFFFFF` | OS-level background color displayed before WebViews initialize. |
+| Property           | Type                           | Required / Optional | Default                                   | Description                                                     |
+| ------------------ | ------------------------------ | ------------------- | ----------------------------------------- | --------------------------------------------------------------- |
+| `launchBackground` | String (6-digit hex `#RRGGBB`) | Optional            | Sampled from `splash.source` or `#FFFFFF` | OS-level background color displayed before WebViews initialize. |
 
 ```json
 {
@@ -41,6 +41,7 @@ If `launchBackground` is omitted from `wefter.config.json` but a custom `splash`
 During `wefter sync`, Wefter applies the launch background color directly into native platform manifests and resources:
 
 ### Android Implementation
+
 - Writes color definition into `.wefter/native/android/app/src/main/res/values/colors.xml`:
   ```xml
   <color name="splashBackground">#050814</color>
@@ -49,10 +50,10 @@ During `wefter sync`, Wefter applies the launch background color directly into n
 - Legacy Android (API 21-30): Sets `android:windowBackground` on `MainActivity` theme, ensuring a solid native canvas appears instantly before WebView construction.
 
 ### iOS Implementation
+
 - Normalizes the 6-digit hex code into RGB floating-point values (between 0.0 and 1.0).
 - Updates `.wefter/native/ios/WefterApp/LaunchScreen.storyboard`, injecting the color into the view controller's root view `<color>` XML element:
   ```xml
   <color key="backgroundColor" red="0.0196" green="0.0314" blue="0.0784" alpha="1" colorSpace="custom" />
   ```
 - Guarantees iOS devices render the native launch screen without delay before the main `WKWebView` mounts.
-

@@ -24,6 +24,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../../co
 import { mergeRefs } from "../../../lib/merge-refs";
 import { useTranslations } from "@fuma-translate/react";
 
+/** Classes of header links. */
 export const navItemVariants = cva("[&_svg]:size-4", {
   variants: {
     variant: {
@@ -43,10 +44,12 @@ export const navItemVariants = cva("[&_svg]:size-4", {
   },
 });
 
+/** Open state of the mobile menu. */
 const MobileNavigationMenuContext = createContext<{
   setOpen: (v: boolean) => void;
 } | null>(null);
 
+/** Landing page header: logo, links, search and theme switch, collapsing into a menu on small screens. */
 export function Header(props: ComponentProps<"header">) {
   const {
     navItems,
@@ -214,12 +217,14 @@ export function Header(props: ComponentProps<"header">) {
   );
 }
 
+/** Whether a link belongs on the right side of the header (icon links by default). */
 function isSecondary(item: LinkItemType): boolean {
   if ("secondary" in item && item.secondary != null) return item.secondary;
 
   return item.type === "icon";
 }
 
+/** A header link, or a menu of links. */
 function NavigationMenuLinkItem({ item, className, ...props }: { item: LinkItemType; className?: string }) {
   if (item.type === "custom") return item.children;
 
@@ -308,6 +313,7 @@ function NavigationMenuLinkItem({ item, className, ...props }: { item: LinkItemT
   );
 }
 
+/** A link in the mobile menu. */
 function MobileNavigationMenuLinkItem({ item, ...props }: { item: LinkItemType; className?: string }) {
   const { setOpen } = use(MobileNavigationMenuContext)!;
 

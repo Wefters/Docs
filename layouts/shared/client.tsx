@@ -18,6 +18,7 @@ import {
 } from "./slots/search-trigger";
 import { type ThemeSwitchProps, ThemeSwitch } from "./slots/theme-switch";
 
+/** A header link that marks itself active on its page. */
 export function LinkItem({
   ref,
   item,
@@ -33,6 +34,7 @@ export function LinkItem({
   );
 }
 
+/** Replaceable parts of every layout: the title, theme switch, search buttons and language picker. */
 export interface BaseSlots {
   navTitle: FC<ComponentProps<"a">>;
   themeSwitch: FC<ThemeSwitchProps> | false;
@@ -50,11 +52,13 @@ export interface BaseSlots {
     | false;
 }
 
+/** Layout props the default slots read. */
 export interface BaseSlotsProps<P extends BaseLayoutProps = BaseLayoutProps> extends Pick<P, "nav"> {
   themeSwitch: Omit<NonNullable<P["themeSwitch"]>, "enabled">;
   searchToggle: Omit<NonNullable<P["searchToggle"]>, "enabled">;
 }
 
+/** The default slot components, reading their options through `useProps`. */
 export function baseSlots({ useProps }: { useProps: () => BaseSlotsProps }) {
   function InlineThemeSwitch(props: ThemeSwitchProps) {
     const { themeSwitch } = useProps();

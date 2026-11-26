@@ -7,10 +7,12 @@ import { cn } from "../../../lib/cn";
 import { buttonVariants } from "../../../components/ui/button";
 import type { VariantProps } from "class-variance-authority";
 
+/** Props of {@link LanguageSelect}. */
 export interface LanguageSelectProps extends ComponentProps<"button"> {
   variant?: VariantProps<typeof buttonVariants>["variant"];
 }
 
+/** Button that opens a menu of the site's languages. */
 export function LanguageSelect({
   className,
   variant = "ghost",
@@ -58,6 +60,7 @@ export function LanguageSelect({
 
 export type LanguageSelectTextProps = ComponentProps<"span">;
 
+/** The current language's name. */
 export function LanguageSelectText(props: LanguageSelectTextProps) {
   const { locales, locale } = useI18n();
   const text = locales?.find((item) => item.locale === locale)?.name;

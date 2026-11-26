@@ -2,6 +2,7 @@ import { ScrollArea as Primitive } from "@base-ui/react/scroll-area";
 import * as React from "react";
 import { cn } from "../../lib/cn";
 
+/** Scroll container with custom scrollbars, built on Base UI. */
 export function ScrollArea({ children, ...props }: React.ComponentProps<typeof Primitive.Root>) {
   return (
     <Primitive.Root {...props}>
@@ -12,6 +13,7 @@ export function ScrollArea({ children, ...props }: React.ComponentProps<typeof P
   );
 }
 
+/** The scrolling viewport of a {@link ScrollArea}. */
 export function ScrollViewport({ className, children, ...props }: React.ComponentProps<typeof Primitive.Viewport>) {
   return (
     <Primitive.Viewport
@@ -23,6 +25,7 @@ export function ScrollViewport({ className, children, ...props }: React.Componen
   );
 }
 
+/** A custom scrollbar. */
 export function ScrollBar({
   className,
   orientation = "vertical",

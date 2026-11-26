@@ -1,43 +1,47 @@
+/** Plugin submission API. Anyone can submit (rate-limited per IP); reviewing needs an admin session. */
+
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getSubmissions,
-  createSubmission,
-  approveSubmission,
-  rejectSubmission,
-  deleteSubmission,
-} from "@/lib/db";
+import { getSubmissions, createSubmission, approveSubmission, rejectSubmission, deleteSubmission } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+/** Whether the request carries a valid admin session. */
 function isAdmin(request: NextRequest): boolean {
   const session = request.cookies.get("wefter_admin_session")?.value;
   return session === "authorized";
 }
 
-// Public Submission Endpoint (POST)
+/** Submits a plugin for review. */
 export async function POST(request: NextRequest) {
   try {
     const clientIp =
-      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-      request.headers.get("x-real-ip") ||
-      "127.0.0.1";
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "127.0.0.1";
 
-    // Rate Limit: 5 submissions per 10 minutes
     const rateLimit = checkRateLimit(clientIp, 5, 10 * 60 * 1000);
     if (!rateLimit.success) {
-      return NextResponse.json(
-        { error: "Too many submission attempts. Please try again later." },
-        { status: 429 }
-      );
+      return NextResponse.json({ error: "Too many submission attempts. Please try again later." }, { status: 429 });
     }
 
     const body = await request.json();
-    const { name, packageName, repositoryUrl, npmUrl, license, author, authorEmail, platforms, version, descriptionMdx } = body;
+    const {
+      name,
+      packageName,
+      repositoryUrl,
+      npmUrl,
+      license,
+      author,
+      authorEmail,
+      platforms,
+      version,
+      descriptionMdx,
+    } = body;
 
-    // Basic Validation
     if (!name || !packageName || !npmUrl || !author || !authorEmail) {
       return NextResponse.json(
-        { error: "Missing required fields: Plugin Title, Package Name, npm Package Link, Author Name, and Email are required." },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: Plugin Title, Package Name, npm Package Link, Author Name, and Email are required.",
+        },
+        { status: 400 },
       );
     }
 
@@ -56,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, message: "Plugin submitted successfully for admin review.", submission },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Submission POST error:", error);
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Admin-Only: Get Submissions Queue (GET)
+/** Every submission (admin only). */
 export async function GET(request: NextRequest) {
   if (!isAdmin(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -78,7 +82,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Admin-Only: Approve or Reject Submission (PUT)
+/** Approves or rejects a submission (admin only). */
 export async function PUT(request: NextRequest) {
   if (!isAdmin(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -118,7 +122,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// Admin-Only: Delete Submission (DELETE)
+/** Deletes a submission (admin only). */
 export async function DELETE(request: NextRequest) {
   if (!isAdmin(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
