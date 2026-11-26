@@ -29,11 +29,12 @@ The `environments` property is a required dictionary where each key represents a
 
 ### Environment Fields
 
-| Field         | Type   | Required / Optional | Default          | Description                                                                                                                    |
-| ------------- | ------ | ------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `appId`       | String | **Required**        | None             | Reverse-DNS Android application ID (e.g. `com.company.myapp`). Also used as default iOS bundle ID unless `iosBundleId` is set. |
-| `appName`     | String | **Required**        | None             | Human-readable application name displayed on the home screen, app launcher, and system task switcher.                          |
-| `iosBundleId` | String | Optional            | Value of `appId` | Explicit iOS bundle identifier override when Apple App Store requirements differ from Android package naming.                  |
+| Field         | Type   | Required / Optional | Default               | Description                                                                                                                                                 |
+| ------------- | ------ | ------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appId`       | String | **Required**        | None                  | Reverse-DNS Android application ID (e.g. `com.company.myapp`). Also used as default iOS bundle ID unless `iosBundleId` is set.                              |
+| `appName`     | String | **Required**        | None                  | Human-readable application name displayed on the home screen, app launcher, and system task switcher.                                                       |
+| `iosBundleId` | String | Optional            | Value of `appId`      | Explicit iOS bundle identifier override when Apple App Store requirements differ from Android package naming.                                               |
+| `deepLinks`   | Object | Optional            | Top-level `deepLinks` | Deep links of this environment; each field given replaces the top-level one. See [Deep Links](/docs/app-configuration/deep-links#per-environment-settings). |
 
 ---
 

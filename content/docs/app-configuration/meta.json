@@ -9,6 +9,8 @@
     "splash-screen",
     "launch-background",
     "landscape",
+    "keyboard",
+    "deep-links",
     "android-signing",
     "ios-signing"
   ],

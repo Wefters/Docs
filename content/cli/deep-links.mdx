@@ -1,0 +1,54 @@
+---
+title: wefter deep-links
+description: Generate and check the website files that let the app open verified https links (Android App Links and iOS Universal Links).
+---
+
+## Synopsis
+
+```bash
+wefter deep-links files [projectDir] [--out <dir>] [--fingerprint <sha256>]... [--debug]
+wefter deep-links check [projectDir] [--fingerprint <sha256>]...
+```
+
+## Overview
+
+An app may only open `https://shop.example.com/...` links if the website says so. Android reads `https://<domain>/.well-known/assetlinks.json`, and iOS reads `https://<domain>/.well-known/apple-app-site-association`. `wefter deep-links files` writes both files for every domain in [`deepLinks.domains`](/docs/app-configuration/deep-links), and `wefter deep-links check` downloads them from each domain and checks that they list the app.
+
+---
+
+## `wefter deep-links files`
+
+Writes `<out>/<domain>/.well-known/assetlinks.json` and `apple-app-site-association` for each domain. Every environment that opens a domain's links is listed, so development and production builds can share a domain.
+
+| Flag                     | Default              | Description                                                                                                |
+| ------------------------ | -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `--out <dir>`            | `.wefter/deep-links` | Where to write the files.                                                                                  |
+| `--fingerprint <sha256>` | None                 | Adds a signing certificate to `assetlinks.json`. Repeat it for several.                                    |
+| `--debug`                | `false`              | Also allows debug builds signed with this machine's `~/.android/debug.keystore`. Not for production sites. |
+
+`assetlinks.json` lists these signing certificates:
+
+- The release keystore from `signing` in `wefter.config.json`, when `WEFTER_KEYSTORE_PASSWORD` is set.
+- Each `--fingerprint`. With Play App Signing, Google re-signs the app, so add the **app signing key** fingerprint from the Play Console (Setup → App signing).
+- The debug keystore, with `--debug`.
+
+`apple-app-site-association` needs the Apple team id from `iosSigning.teamId`, and lists each environment's bundle id with its `deepLinks.paths`.
+
+<Callout type="warn">
+  Serve both files over HTTPS as `application/json`, directly at `/.well-known/` without redirects.
+  `apple-app-site-association` has no file extension. Apple fetches it through its own CDN, so changes can take a while
+  to reach devices.
+</Callout>
+
+---
+
+## `wefter deep-links check`
+
+Downloads both files from every domain the way the platforms do, without following redirects, and fails when a file:
+
+- cannot be fetched, redirects, or returns an HTTP error;
+- is not valid JSON, or `assetlinks.json` is not served as `application/json`;
+- does not list an environment's app id (`<team id>.<bundle id>` on iOS, the app id on Android);
+- lists no certificate for a package, or misses a certificate given with `--fingerprint`.
+
+It exits with code `1` when any check fails, so it suits CI. `wefter doctor --release-readiness` runs the same checks when the app has verified domains.

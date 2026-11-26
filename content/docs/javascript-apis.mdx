@@ -11,16 +11,18 @@ The `@wefterjs/core` npm package provides client-side JavaScript APIs for commun
 
 ## Core Runtime Functions Reference
 
-| Function Signature                                    | Return Type                                        | Description                                                                                  |
-| ----------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `invokeNative<T>(plugin, method, payload?, options?)` | `Promise<T>`                                       | Low-level bridge function invoking a native plugin method.                                   |
-| `definePlugin<T>(pluginName, methodMap)`              | `T`                                                | Generates a typed Promise object wrapper for request/response methods.                       |
-| `registerHook(hookName, callback)`                    | `{ remove(): void }`                               | Subscribes a JS callback to native event streams (`emit`).                                   |
-| `hideSplash()`                                        | `Promise<void>`                                    | Signals completion of web UI mounting to dismiss Stage 2 HTML splash screen.                 |
-| `getDeviceInfo()`                                     | `Promise<{ platform: string; osVersion: string }>` | Asynchronously fetches OS platform and system version directly from native shell.            |
-| `onBridgeReady()`                                     | `Promise<void>`                                    | Resolves once native WebView bridge initialization has completed.                            |
-| `isNativeBridgeAvailable()`                           | `Boolean`                                          | Synchronously checks if JS is executing inside a Wefter native WebView.                      |
-| `getPlatformInfo()`                                   | `{ platform, coreVersion, environment }`           | Synchronously returns platform identifier, `@wefterjs/core` version, and active environment. |
+| Function Signature                                    | Return Type                                        | Description                                                                                                 |
+| ----------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `invokeNative<T>(plugin, method, payload?, options?)` | `Promise<T>`                                       | Low-level bridge function invoking a native plugin method.                                                  |
+| `definePlugin<T>(pluginName, methodMap)`              | `T`                                                | Generates a typed Promise object wrapper for request/response methods.                                      |
+| `registerHook(hookName, callback)`                    | `{ remove(): void }`                               | Subscribes a JS callback to native event streams (`emit`).                                                  |
+| `hideSplash()`                                        | `Promise<void>`                                    | Signals completion of web UI mounting to dismiss Stage 2 HTML splash screen.                                |
+| `getDeviceInfo()`                                     | `Promise<{ platform: string; osVersion: string }>` | Asynchronously fetches OS platform and system version directly from native shell.                           |
+| `onBridgeReady()`                                     | `Promise<void>`                                    | Resolves once native WebView bridge initialization has completed.                                           |
+| `isNativeBridgeAvailable()`                           | `Boolean`                                          | Synchronously checks if JS is executing inside a Wefter native WebView.                                     |
+| `getPlatformInfo()`                                   | `{ platform, coreVersion, environment }`           | Synchronously returns platform identifier, `@wefterjs/core` version, and active environment.                |
+| `onDeepLink(callback)`                                | `{ remove(): void }`                               | Calls `callback` for every URL the app is opened with: the launch link and links that arrive while it runs. |
+| `getLaunchUrl()`                                      | `Promise<string \| null>`                          | Returns the URL that started the app, or `null` when it was opened normally.                                |
 
 ---
 
@@ -86,6 +88,31 @@ if (isNativeBridgeAvailable()) {
   console.log("Running inside standard web browser tab");
 }
 ```
+
+---
+
+### 4. Deep links: `onDeepLink` and `getLaunchUrl`
+
+Deep links are handled by the native shell, so they work without any plugin. Register the app's URL schemes with [`deepLinks`](/docs/app-configuration/deep-links) in `wefter.config.json`. The shell keeps each incoming link until the web app takes it, so a link that opens the app before the page has loaded is not lost, and reloading the page does not deliver it twice.
+
+```ts
+import { onDeepLink } from "@wefterjs/core";
+
+// myshop://product/42?ref=mail and https://shop.example.com/product/42 both give path "/product/42"
+const subscription = onDeepLink(({ url, path, query, isLaunch }) => {
+  router.push({ path, query });
+});
+```
+
+| Field      | Description                                                                                  |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| `url`      | The full URL.                                                                                |
+| `scheme`   | The scheme without the colon, such as `myshop` or `https`.                                   |
+| `path`     | The in-app path: the URL's path for web links, and the host plus path for custom schemes.    |
+| `query`    | The query parameters. When a key repeats, the last value wins.                               |
+| `isLaunch` | `true` for the link that started the app, `false` for one that arrived while it was running. |
+
+Subscribe once, early (for example where the router is created), so the launch link reaches your handler. Treat every link as untrusted input: use it to choose a screen, never to perform an action such as a payment or a deletion on its own.
 
 ---
 

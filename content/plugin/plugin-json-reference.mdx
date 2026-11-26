@@ -78,6 +78,7 @@ Declares native Android Activities and Intent Filters woven into `AndroidManifes
         "type": "activity",
         "name": ".AuthRedirectActivity",
         "exported": true,
+        "launchMode": "singleTask",
         "intentFilters": [
           {
             "action": "android.intent.action.VIEW",
@@ -95,8 +96,12 @@ Declares native Android Activities and Intent Filters woven into `AndroidManifes
 
 <Callout type="info">
   **Manifest Placeholders**: `data.scheme` values containing `${placeholder}` variables resolve dynamically against
-  `pluginConfig` in the host app's `wefter.config.json` during `wefter sync`.
+  `pluginConfig` in the host app's `wefter.config.json` during `wefter sync`. `${applicationId}` is left for Gradle,
+  which fills in each environment's app id, so `${applicationId}.auth` differs between development and production
+  builds.
 </Callout>
+
+`launchMode` is optional (`standard`, `singleTop`, `singleTask` or `singleInstance`). An activity that waits for a redirect in `onNewIntent` needs `singleTask`: with the default `standard` mode, Android starts a second copy of the activity for the redirect instead.
 
 ### 4. `methods` & `hooks`
 

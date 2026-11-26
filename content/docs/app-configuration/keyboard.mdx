@@ -1,0 +1,58 @@
+---
+title: Keyboard
+description: The bar above the iOS keyboard in web forms, hidden by default so inputs behave as in native apps.
+---
+
+## Overview
+
+When a form field has focus in a web view on iOS, the system adds a bar above the keyboard with previous and next arrows and a **Done** button. Safari has it, but native apps do not, so it makes a web app look like a web page.
+
+Wefter hides this bar by default. Set `keyboard.accessoryBar` to `true` to keep it.
+
+Android has no such bar, so this setting only changes iOS.
+
+---
+
+## Schema Reference
+
+| Property                | Type    | Required / Optional | Default | Description                                                          |
+| ----------------------- | ------- | ------------------- | ------- | -------------------------------------------------------------------- |
+| `keyboard.accessoryBar` | Boolean | Optional            | `false` | When `true`, iOS shows the previous, next and Done bar in web forms. |
+
+```json
+{
+  "keyboard": {
+    "accessoryBar": true
+  }
+}
+```
+
+Run `wefter sync` (or `wefter run`) after changing it, so the iOS project is rebuilt with the new value.
+
+---
+
+## Closing the Keyboard Without the Bar
+
+Without the bar there is no **Done** button, and some keyboards have no key that closes them, such as the number pad of `<input type="number">` or `inputmode="numeric"`. Give users another way out, as native apps do:
+
+- Set `enterkeyhint` on text fields (`"done"`, `"next"`, `"search"`) and blur the field when Enter is pressed.
+- Blur the focused field when the user taps outside it:
+
+```typescript
+document.addEventListener("pointerdown", (event) => {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || active === document.body) return;
+  const target = event.target as HTMLElement;
+  if (!target.closest("input, textarea, select, [contenteditable]")) active.blur();
+});
+```
+
+Keep the bar on instead if the app has long forms that rely on moving between fields with the arrows.
+
+---
+
+## Native Platform Implementation
+
+- `wefter sync` writes `static let formAccessoryBar` into `.wefter/native/ios/WefterBridge/BuildConfig.swift`.
+- When it is `false`, the shell gives the main web view's content view a subclass whose `inputAccessoryView` is `nil` (`FormAccessoryBar.swift`). WebKit offers no public setting for this bar; Cordova and Capacitor remove it the same way. Only the app's own web view changes, and nothing is swizzled globally.
+- On iPad, the shortcuts shown in the keyboard's own top row (undo, redo, paste) are part of the keyboard and stay.

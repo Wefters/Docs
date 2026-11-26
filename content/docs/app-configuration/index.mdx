@@ -52,6 +52,16 @@ App configuration is divided into dedicated functional domains. Select any topic
     description="Lock application orientation to landscape on Android sensorLandscape and iOS interface orientations."
   />
   <Card
+    title="Keyboard"
+    href="/docs/app-configuration/keyboard"
+    description="Hide or keep the previous, next and Done bar iOS shows above the keyboard in web forms."
+  />
+  <Card
+    title="Deep Links"
+    href="/docs/app-configuration/deep-links"
+    description="Open the app from custom URL schemes and receive the links in JavaScript with onDeepLink."
+  />
+  <Card
     title="Android Release Signing"
     href="/docs/app-configuration/android-signing"
     description="Configure release keystores, key aliases, and environment variable credentials for production APKs and AABs."
@@ -69,19 +79,21 @@ App configuration is divided into dedicated functional domains. Select any topic
 
 The table below outlines all available top-level properties in `wefter.config.json`:
 
-| Property           | Type                          | Required / Optional | Default                  | Description                                                                               |
-| ------------------ | ----------------------------- | ------------------- | ------------------------ | ----------------------------------------------------------------------------------------- |
-| `webDir`           | String                        | **Required**        | `"dist"`                 | Directory containing compiled web production assets. Copied to native shells during sync. |
-| `environments`     | `Record<string, Environment>` | **Required**        | `{ development: {...} }` | Named dictionary of environment definitions (`appId`, `appName`, `iosBundleId`).          |
-| `plugins`          | Array of Strings              | Optional            | `[]`                     | Explicit list of native plugin npm package names to compile into native shells.           |
-| `pluginsDir`       | String                        | Optional            | `"node_modules"`         | Root directory where declared plugin packages are resolved.                               |
-| `pluginConfig`     | `Record<string, string>`      | Optional            | `{}`                     | Key-value store used to replace `${key}` placeholders in native plugin manifests.         |
-| `icon`             | String                        | Optional            | None                     | Relative path to source PNG image (minimum 1024x1024px) for launcher icons.               |
-| `splash`           | Boolean or Object             | Optional            | `false`                  | Custom HTML splash screen configuration object or `false` to disable.                     |
-| `launchBackground` | String                        | Optional            | Sampled / `#FFFFFF`      | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch.                   |
-| `landscape`        | Boolean                       | Optional            | `false`                  | Forces application into landscape mode immediately upon launch.                           |
-| `signing`          | Object                        | Optional            | None                     | Android release keystore signing configuration for production builds.                     |
-| `iosSigning`       | Object                        | Optional            | None                     | iOS Apple Developer signing configuration for distribution builds.                        |
+| Property           | Type                          | Required / Optional | Default                  | Description                                                                                    |
+| ------------------ | ----------------------------- | ------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `webDir`           | String                        | **Required**        | `"dist"`                 | Directory containing compiled web production assets. Copied to native shells during sync.      |
+| `environments`     | `Record<string, Environment>` | **Required**        | `{ development: {...} }` | Named dictionary of environment definitions (`appId`, `appName`, `iosBundleId`).               |
+| `plugins`          | Array of Strings              | Optional            | `[]`                     | Explicit list of native plugin npm package names to compile into native shells.                |
+| `pluginsDir`       | String                        | Optional            | `"node_modules"`         | Root directory where declared plugin packages are resolved.                                    |
+| `pluginConfig`     | `Record<string, string>`      | Optional            | `{}`                     | Key-value store used to replace `${key}` placeholders in native plugin manifests.              |
+| `icon`             | String                        | Optional            | None                     | Relative path to source PNG image (minimum 1024x1024px) for launcher icons.                    |
+| `splash`           | Boolean or Object             | Optional            | `false`                  | Custom HTML splash screen configuration object or `false` to disable.                          |
+| `launchBackground` | String                        | Optional            | Sampled / `#FFFFFF`      | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch.                        |
+| `landscape`        | Boolean                       | Optional            | `false`                  | Forces application into landscape mode immediately upon launch.                                |
+| `deepLinks`        | Object                        | Optional            | None                     | Custom URL schemes and verified domains the app opens for (`schemes`, `domains`, `paths`).     |
+| `keyboard`         | Object                        | Optional            | None                     | Keyboard behaviour. `accessoryBar` keeps the iOS form bar above the keyboard (off by default). |
+| `signing`          | Object                        | Optional            | None                     | Android release keystore signing configuration for production builds.                          |
+| `iosSigning`       | Object                        | Optional            | None                     | iOS Apple Developer signing configuration for distribution builds.                             |
 
 ---
 
@@ -121,6 +133,12 @@ A comprehensive `wefter.config.json` manifest demonstrating all configuration op
   },
   "launchBackground": "#050814",
   "landscape": false,
+  "deepLinks": {
+    "schemes": ["myapp"]
+  },
+  "keyboard": {
+    "accessoryBar": false
+  },
   "signing": {
     "keystorePath": "./release.keystore",
     "keyAlias": "my-key-alias"

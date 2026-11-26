@@ -1,0 +1,130 @@
+---
+title: Deep Links
+description: Opening the app from custom URL schemes and verified https links on Android and iOS, per environment.
+---
+
+## Overview
+
+A deep link opens the app on a particular screen. Wefter handles deep links in the native shell, so they work without a plugin. There are two kinds:
+
+- **Custom schemes**, such as `myshop://product/42`. Simple, but any app can register the same scheme.
+- **Verified links**, such as `https://shop.example.com/product/42` (Android App Links, iOS Universal Links). The website states which apps may open its links, so no other app can take them over, and the link still opens in the browser when the app is not installed.
+
+List them in `wefter.config.json`, run `wefter sync`, and receive the links in JavaScript with `onDeepLink` from `@wefterjs/core`.
+
+---
+
+## Schema Reference
+
+| Property            | Type             | Required / Optional | Default    | Description                                                               |
+| ------------------- | ---------------- | ------------------- | ---------- | ------------------------------------------------------------------------- |
+| `deepLinks.schemes` | Array of Strings | Optional            | `[]`       | Custom URL schemes the app opens for, without `://`.                      |
+| `deepLinks.domains` | Array of Strings | Optional            | `[]`       | Web domains whose `https` links open the app once verified.               |
+| `deepLinks.paths`   | Array of Strings | Optional            | Every path | Which paths of those domains open the app: `/about`, `/product/*` or `*`. |
+
+```json
+{
+  "deepLinks": {
+    "schemes": ["myshop"],
+    "domains": ["shop.example.com"],
+    "paths": ["/product/*", "/invite/*"]
+  }
+}
+```
+
+- A **scheme** must be lower case, start with a letter and use only `a-z`, `0-9`, `+`, `.` and `-`. Web and system schemes (`http`, `https`, `file`, `intent`, …), `app` (used by the iOS shell for its own files), `wefter` and schemes ending in `.auth` (kept for the [Browser plugin's](/plugin/browser) sign-in redirects) are rejected.
+- A **domain** is a lower-case host name such as `shop.example.com`, without `https://`, a path or a port.
+- A **path** is an exact path (`/about`) or a prefix ending in `*` (`/product/*`). These are the forms both platforms support.
+
+---
+
+## Per-Environment Settings
+
+Each environment is installed as a separate app, so it can have its own deep links. Set `deepLinks` inside an environment: each field it gives replaces the top-level one for that environment, and the others are kept.
+
+```json
+{
+  "deepLinks": { "schemes": ["myshop"], "domains": ["shop.example.com"] },
+  "environments": {
+    "development": {
+      "appId": "com.example.shop.dev",
+      "appName": "Shop (Dev)",
+      "deepLinks": { "schemes": ["myshop-dev"], "domains": ["dev.shop.example.com"] }
+    },
+    "production": { "appId": "com.example.shop", "appName": "Shop" }
+  }
+}
+```
+
+Here development builds open `myshop-dev://` and `https://dev.shop.example.com`, and production builds open `myshop://` and `https://shop.example.com`. With both installed, each link goes to the right app instead of Android asking which one to use.
+
+---
+
+## Verifying Domains
+
+Verified links only work once each domain serves two files that name the app:
+
+```bash
+wefter deep-links files    # writes .wefter/deep-links/<domain>/.well-known/
+# upload each .well-known folder to its domain
+wefter deep-links check    # checks what the domains serve
+```
+
+The files need the Android signing certificate and the Apple team id (`iosSigning.teamId`). See [`wefter deep-links`](/cli/deep-links) for the details, including Play App Signing.
+
+<Callout type="warn">
+  On iOS, verified domains need the Associated Domains capability. Xcode adds it with automatic signing; with a manual
+  provisioning profile, enable it on the App ID in the Apple Developer portal first.
+</Callout>
+
+---
+
+## Receiving Links in JavaScript
+
+```typescript
+import { onDeepLink } from "@wefterjs/core";
+
+onDeepLink(({ path, query, isLaunch }) => {
+  // myshop://product/42?ref=mail and https://shop.example.com/product/42?ref=mail
+  // both give path "/product/42" and query { ref: "mail" }
+  router.push({ path, query });
+});
+```
+
+Subscribe once, early, such as where the router is created. A link that opens the app before the page has loaded is kept by the shell and delivered as soon as the first listener subscribes, with `isLaunch: true`. See [JavaScript APIs](/docs/javascript-apis) for every field.
+
+Treat each link as untrusted input: use it to choose a screen, never to perform an action such as a payment or a deletion on its own.
+
+---
+
+## Native Platform Implementation
+
+Running `wefter sync` registers each environment's links in both native projects.
+
+### Android Shell Configuration
+
+- Writes `.wefter/native/android/app/src/<env>/AndroidManifest.xml` for each environment with deep links. Gradle merges it into `MainActivity` for that build flavor only.
+- Adds a `VIEW` intent filter per scheme, and an `android:autoVerify="true"` filter per domain limited to `paths`, both with the `DEFAULT` and `BROWSABLE` categories.
+- `MainActivity` uses `launchMode="singleTask"`, so a link that arrives while the app runs reaches the open app instead of starting a second copy.
+
+### iOS Shell Configuration
+
+- Adds `CFBundleURLTypes` to `.wefter/native/ios/WefterBridge/Info.plist`. `Info.plist` is shared by every environment, so it lists the schemes as build settings (`$(WEFTER_URL_SCHEME_1)`, …) that `Config/Environment-<env>.xcconfig` fills in.
+- Writes `WefterBridge/Entitlements-<env>.entitlements` with `applinks:<domain>` for each environment with domains, and sets `CODE_SIGN_ENTITLEMENTS` in that environment's xcconfig.
+
+---
+
+## Testing Links
+
+With the app installed on a device or emulator:
+
+```bash
+# Android
+adb shell am start -a android.intent.action.VIEW -d "myshop://product/42?ref=test"
+adb shell pm get-app-links com.example.shop      # verification state of each domain
+
+# iOS Simulator
+xcrun simctl openurl booted "myshop://product/42?ref=test"
+```
+
+Verified links are not opened by typing them into the browser's address bar. Test them from another app, such as Notes or Messages.

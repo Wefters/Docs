@@ -68,8 +68,6 @@ export function HeaderGithubStar({ repo = "Wefters/wefter" }: { repo?: string })
   );
 }
 
-import { cn } from "@/lib/cn";
-
 /** Large star button for the landing page. */
 export function GithubStarButton({ repo = "Wefters/wefter", className = "" }: { repo?: string; className?: string }) {
   const [stars, setStars] = useState<number>(2);
