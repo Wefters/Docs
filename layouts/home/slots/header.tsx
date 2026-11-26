@@ -158,9 +158,9 @@ export function Header(props: ComponentProps<"header">) {
                 "transition-[box-shadow,background-color,border-color,border-radius] duration-200",
                 open && "max-lg:shadow-lg max-lg:rounded-b-2xl max-lg:bg-fd-background/90 max-lg:backdrop-blur-lg",
                 isNavTransparent && !open && !s.open
-                  ? "bg-gradient-to-b from-white/80 via-white/40 to-transparent dark:from-black/80 dark:via-black/40 dark:to-transparent backdrop-blur-[2px] border-b border-black/[0.04] dark:border-white/[0.04]"
-                  : "bg-fd-background/80 dark:bg-black/70 backdrop-blur-md border-b border-fd-border/40 shadow-xs",
-                s.open && "bg-fd-background/90 dark:bg-black/85",
+                  ? "bg-gradient-to-b from-fd-background/80 via-fd-background/40 to-transparent backdrop-blur-[2px] border-b border-black/[0.04] dark:border-white/[0.04]"
+                  : "bg-fd-background/80 backdrop-blur-md border-b border-fd-border/40 shadow-xs",
+                s.open && "bg-fd-background/90",
               )
             }
           >

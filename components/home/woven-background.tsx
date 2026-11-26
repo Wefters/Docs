@@ -35,17 +35,41 @@ export function WovenBackground({ className, svgClassName, ...props }: WovenBack
           <mask id="wefterFadeMask">
             <rect width="1600" height="900" fill="url(#wefterBottomFade)" />
           </mask>
+          {/* Light: nearly grey, so the brand blue stands out. Dark: a little brighter, to sit on the blue slate. */}
+          <filter id="wefterWovenLight" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="saturate" values="0.3" />
+          </filter>
+          <filter id="wefterWovenDark" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="saturate" values="0.7" />
+            <feComponentTransfer>
+              <feFuncR type="linear" slope="1.15" />
+              <feFuncG type="linear" slope="1.15" />
+              <feFuncB type="linear" slope="1.15" />
+            </feComponentTransfer>
+          </filter>
         </defs>
 
         <g mask="url(#wefterFadeMask)">
           <g className="dark:hidden transition-opacity duration-300">
-            <rect width="1600" height="900" fill="hsl(220, 20%, 99%)" />
-            <image href="/images/woven-bg-light.webp" width="1600" height="900" preserveAspectRatio="xMidYMin slice" />
+            <rect width="1600" height="900" className="fill-fd-background" />
+            <image
+              href="/images/woven-bg-light.webp"
+              width="1600"
+              height="900"
+              preserveAspectRatio="xMidYMin slice"
+              filter="url(#wefterWovenLight)"
+            />
           </g>
 
           <g className="hidden dark:block transition-opacity duration-300">
-            <rect width="1600" height="900" fill="hsl(230, 30%, 1.5%)" />
-            <image href="/images/woven-bg-dark.webp" width="1600" height="900" preserveAspectRatio="xMidYMin slice" />
+            <rect width="1600" height="900" className="fill-fd-background" />
+            <image
+              href="/images/woven-bg-dark.webp"
+              width="1600"
+              height="900"
+              preserveAspectRatio="xMidYMin slice"
+              filter="url(#wefterWovenDark)"
+            />
           </g>
         </g>
       </svg>
@@ -53,8 +77,7 @@ export function WovenBackground({ className, svgClassName, ...props }: WovenBack
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[440px] sm:h-[500px] md:h-[560px]
-                   bg-gradient-to-b from-white/92 via-white/50 via-60% to-transparent
-                   dark:bg-gradient-to-b dark:from-[#030712]/92 dark:via-[#030712]/50 dark:via-60% dark:to-transparent"
+                   bg-gradient-to-b from-fd-background/92 via-fd-background/50 via-60% to-transparent"
       />
     </div>
   );

@@ -16,6 +16,17 @@ Documentation content lives in the `content/` directory:
 
 Each folder contains a `meta.json` file that defines page titles and navigation ordering in the sidebar.
 
+Each page sets these fields in its frontmatter:
+
+```yaml
+---
+title: Releasing & Production Distribution
+sidebarTitle: "Releasing" # optional: a shorter name for the sidebar when the title is long
+icon: Rocket # a Lucide icon name (https://lucide.dev/icons), shown in the sidebar and by the title
+description: One sentence on what the page covers.
+---
+```
+
 ## Local development
 
 Prerequisites: Node.js 18 or later and pnpm 9.
@@ -34,6 +45,7 @@ Open `http://localhost:3000` in your browser to inspect documentation changes in
 - Do not use em dashes or en dashes in prose.
 - Keep code examples complete and verified against actual package APIs.
 - Update `meta.json` when adding or moving pages to maintain correct sidebar ordering.
+- Give every new page an `icon`, and a `sidebarTitle` when its title would wrap in the sidebar.
 
 ## Pull requests
 

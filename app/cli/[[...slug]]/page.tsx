@@ -1,5 +1,6 @@
 import { cliSource } from "@/lib/source";
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "@/layouts/docs/page";
+import { DocsBody, DocsDescription, DocsPage } from "@/layouts/docs/page";
+import { PageTitle } from "@/components/docs/page-title";
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import type { Metadata } from "next";
@@ -15,7 +16,7 @@ export default async function Page(props: PageProps<"/cli/[[...slug]]">) {
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
-      <DocsTitle>{page.data.title}</DocsTitle>
+      <PageTitle title={page.data.title} icon={page.data.icon} />
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
         <MDX

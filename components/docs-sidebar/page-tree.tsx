@@ -4,6 +4,7 @@ import type * as PageTree from "fumadocs-core/page-tree";
 import type * as Base from "./base";
 import { usePathname } from "fumadocs-core/framework";
 import { isActive } from "../../lib/urls";
+import { FileText } from "lucide-react";
 
 /** Components that replace how page tree items, folders and separators are rendered. */
 export interface SidebarPageTreeComponents {
@@ -86,7 +87,12 @@ export function createPageTreeRenderer({
 
     if (Item) return <Item item={node} />;
     return (
-      <SidebarItem href={node.url} external={node.external} active={isActive(node.url, pathname)} icon={node.icon}>
+      <SidebarItem
+        href={node.url}
+        external={node.external}
+        active={isActive(node.url, pathname)}
+        icon={node.icon ?? <FileText className="size-4 shrink-0" />}
+      >
         {node.name}
       </SidebarItem>
     );

@@ -508,8 +508,8 @@ export default function WefterAdminPage() {
           </div>
 
           <div className="rounded-2xl border border-fd-border bg-fd-card p-5">
-            <div className="text-xs font-mono uppercase tracking-wider text-purple-500">Community Plugins</div>
-            <div className="mt-2 text-2xl font-extrabold text-purple-500">
+            <div className="text-xs font-mono uppercase tracking-wider text-fd-muted-foreground">Community Plugins</div>
+            <div className="mt-2 text-2xl font-extrabold text-fd-foreground">
               {plugins.filter((p) => p.type === "community").length}
             </div>
           </div>
@@ -629,7 +629,7 @@ export default function WefterAdminPage() {
                               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-semibold uppercase ${
                                 plugin.type === "official"
                                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                  : "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                                  : "border-fd-border bg-fd-muted text-fd-muted-foreground"
                               }`}
                             >
                               {plugin.type === "official" && <ShieldCheck className="h-3 w-3" />}

@@ -11,13 +11,13 @@ const DiscordIcon = () => (
   </svg>
 );
 
-/** The Wefter logo, in the variant that suits the theme. */
+/** The full Wefter logo, mark and wordmark, in the variant that suits the theme. */
 function NavTitle() {
   return (
-    <>
-      <img src="/Logo/Dark/Logo.svg" alt="Wefter" className="h-6 w-auto dark:hidden" />
-      <img src="/Logo/Light/Logo.svg" alt="Wefter" className="h-6 w-auto hidden dark:block" />
-    </>
+    <span className="flex items-center select-none">
+      <img src="/Logo/Dark/Logo.svg" alt="Wefter" className="h-5.5 w-auto shrink-0 dark:hidden" />
+      <img src="/Logo/Light/Logo.svg" alt="Wefter" className="hidden h-5.5 w-auto shrink-0 dark:block" />
+    </span>
   );
 }
 
@@ -31,7 +31,7 @@ export const rootTabs: LayoutTab[] = [
   },
   {
     icon: <Puzzle className="size-4.5" />,
-    title: "Plugin",
+    title: "Plugin Guide",
     description: "Plugin anatomy, the native API surface, and a full worked tutorial",
     url: "/plugin",
   },
@@ -60,7 +60,7 @@ export function baseOptions(): BaseLayoutProps {
       },
       {
         icon: <Puzzle className="size-4" />,
-        text: "Plugin",
+        text: "Plugin Guide",
         url: "/plugin",
         active: "nested-url",
         on: "nav",

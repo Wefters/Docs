@@ -22,10 +22,10 @@ import {
   ChevronRight,
   FileCode2,
   Boxes,
-  ExternalLink,
 } from "lucide-react";
 import { GithubStarButton } from "@/components/github-star";
 import { WovenBackground } from "@/components/home/woven-background";
+import { SiteFooter } from "@/components/site-footer";
 
 /** The "how it works" steps. */
 const steps = [
@@ -104,13 +104,7 @@ const features = [
 ];
 
 /** Web frameworks Wefter works with. */
-const frameworks = [
-  { name: "Vue.js", color: "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5" },
-  { name: "React", color: "border-sky-500/30 text-sky-600 dark:text-sky-400 bg-sky-500/5" },
-  { name: "Svelte", color: "border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-500/5" },
-  { name: "Angular", color: "border-red-500/30 text-red-600 dark:text-red-400 bg-red-500/5" },
-  { name: "Vanilla JS", color: "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5" },
-];
+const frameworks = ["Vue.js", "React", "Svelte", "Angular", "Vanilla JS"];
 
 /** Headline numbers. */
 const stats = [
@@ -215,7 +209,7 @@ export default function HomePage() {
               aria-hidden="true"
               className="pointer-events-none absolute -left-28 sm:-left-40 md:-left-56 -right-8 sm:-right-16 top-1/2 -translate-y-1/2 h-[155%] -z-10 select-none
                          bg-[radial-gradient(ellipse_85%_75%_at_32%_48%,rgba(255,255,255,0.94)_0%,rgba(255,255,255,0.8)_42%,rgba(255,255,255,0.3)_68%,transparent_88%)]
-                         dark:bg-[radial-gradient(ellipse_85%_75%_at_32%_48%,rgba(3,7,18,0.96)_0%,rgba(3,7,18,0.85)_44%,rgba(3,7,18,0.35)_70%,transparent_90%)]
+                         dark:bg-[radial-gradient(ellipse_85%_75%_at_32%_48%,color-mix(in_srgb,var(--color-fd-background)_96%,transparent)_0%,color-mix(in_srgb,var(--color-fd-background)_85%,transparent)_44%,color-mix(in_srgb,var(--color-fd-background)_35%,transparent)_70%,transparent_90%)]
                          blur-3xl"
             />
 
@@ -226,13 +220,10 @@ export default function HomePage() {
             </div>
 
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-[3.2rem] lg:text-[3.5rem] leading-[1.08] text-balance text-fd-foreground">
-              Build Native Mobile Apps with the{" "}
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-300 bg-clip-text text-transparent">
-                Web Code You Already Know
-              </span>
+              Build Native Mobile Apps with the <span className="text-fd-primary">Web Code You Already Know</span>
             </h1>
 
-            <p className="mt-5 max-w-xl text-base sm:text-lg text-fd-muted-foreground dark:text-slate-200 leading-relaxed text-pretty">
+            <p className="mt-5 max-w-xl text-base sm:text-lg text-fd-muted-foreground leading-relaxed text-pretty">
               Compile Vue, React, Svelte, and Vanilla JS into lightweight native shells with zero-reflection Kotlin &
               Swift dispatchers.
             </p>
@@ -311,9 +302,12 @@ export default function HomePage() {
               <span className="text-xs font-mono uppercase tracking-wider text-fd-muted-foreground mr-1">
                 Supports:
               </span>
-              {frameworks.map((fw) => (
-                <span key={fw.name} className={`rounded-full border px-3 py-0.5 text-xs font-medium ${fw.color}`}>
-                  {fw.name}
+              {frameworks.map((name) => (
+                <span
+                  key={name}
+                  className="rounded-full border border-fd-border bg-fd-card px-3 py-0.5 text-xs font-medium text-fd-foreground"
+                >
+                  {name}
                 </span>
               ))}
             </div>
@@ -510,148 +504,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-fd-border/70 bg-fd-card/60 backdrop-blur-lg">
-        <div className="mx-auto max-w-(--fd-layout-width) px-6 pt-14 pb-10">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-2.5">
-                <img src="/Logo/Dark/Logo.svg" alt="Wefter Logo" className="h-7 w-auto dark:hidden" />
-                <img src="/Logo/Light/Logo.svg" alt="Wefter Logo" className="h-7 w-auto hidden dark:block" />
-              </div>
-              <p className="text-xs sm:text-sm text-fd-muted-foreground leading-relaxed max-w-sm">
-                Compile Vue, React, Svelte, and Vanilla JS into lightweight native Android & iOS shells with
-                zero-reflection Kotlin & Swift dispatchers.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>v0.0.3 Core Architecture</span>
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
-                Documentation
-              </h4>
-              <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
-                <li>
-                  <Link href="/docs/installing" className="hover:text-fd-foreground transition-colors">
-                    Installation & Setup
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs/introduction" className="hover:text-fd-foreground transition-colors">
-                    Architecture Overview
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs/app-configuration" className="hover:text-fd-foreground transition-colors">
-                    wefter.config.json
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs/javascript-apis" className="hover:text-fd-foreground transition-colors">
-                    JS Bridge API
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs/native-bridge-security" className="hover:text-fd-foreground transition-colors">
-                    Bridge Security
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">
-                CLI Tooling
-              </h4>
-              <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
-                <li>
-                  <Link href="/cli/init" className="hover:text-fd-foreground transition-colors font-mono">
-                    wefter init
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/cli/sync" className="hover:text-fd-foreground transition-colors font-mono">
-                    wefter sync
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/cli/run" className="hover:text-fd-foreground transition-colors font-mono">
-                    wefter run
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/cli/build" className="hover:text-fd-foreground transition-colors font-mono">
-                    wefter build
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/cli/doctor" className="hover:text-fd-foreground transition-colors font-mono">
-                    wefter doctor
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-fd-foreground">Plugins</h4>
-              <ul className="mt-4 space-y-2.5 text-xs text-fd-muted-foreground">
-                <li>
-                  <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
-                    Plugin Authoring
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/plugin/wefter-method" className="hover:text-fd-foreground transition-colors">
-                    @WefterMethod API
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/plugin/plugin-anatomy" className="hover:text-fd-foreground transition-colors">
-                    Plugin Anatomy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/docs/plugin-registry" className="hover:text-fd-foreground transition-colors">
-                    Official Registry
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-fd-border/60 pt-6 text-xs text-fd-muted-foreground sm:flex-row">
-            <div className="flex items-center gap-2">
-              <img src="/Logo/Dark/Icon.svg" alt="Wefter Icon" className="h-4 w-4 dark:hidden" />
-              <img src="/Logo/Light/Icon.svg" alt="Wefter Icon" className="h-4 w-4 hidden dark:block" />
-              <span>&copy; {new Date().getFullYear()} Wefter Native Runtime. Open Source under MIT License.</span>
-            </div>
-            <div className="flex items-center gap-5 font-medium">
-              <Link href="/docs" className="hover:text-fd-foreground transition-colors">
-                Docs
-              </Link>
-              <Link href="/plugin" className="hover:text-fd-foreground transition-colors">
-                Plugins
-              </Link>
-              <Link href="/cli" className="hover:text-fd-foreground transition-colors">
-                CLI
-              </Link>
-              <a
-                href="https://github.com/Wefters/wefter"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 hover:text-fd-foreground transition-colors"
-              >
-                <span>GitHub</span>
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
