@@ -15,13 +15,13 @@ The splash screen is **disabled by default** (`"splash": false`).
 
 ## Schema Reference
 
-| Property      | Type        | Required / Optional | Default   | Description                                                                                                                    |
-| ------------- | ----------- | ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `source`      | String      | **Required**        | None      | Relative path to directory containing custom splash `index.html` and assets.                                                   |
-| `minDuration` | Number (ms) | Optional            | `0`       | Minimum display duration in milliseconds (0 to 20,000ms). Prevents UI flickering on ultra-fast devices.                        |
-| `maxDuration` | Number (ms) | Optional            | `5000`    | Safety timeout cap in milliseconds (0 to 20,000ms). Automatically dismisses the splash if the app fails to load.               |
-| `dismissOn`   | String      | Optional            | `"ready"` | Dismissal trigger: `"ready"` (waits for programmatic `hideSplash()` call) or `"timer"` (dismisses when `minDuration` expires). |
-| `transition`  | String      | Optional            | `"fade"`  | Transition animation when dismissed: `"fade"` or `"none"`.                                                                     |
+| Property      | Type        | Required / Optional | Default   | Description                                                                                                                                                                                       |
+| ------------- | ----------- | ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`      | String      | **Required**        | None      | Relative path to directory containing custom splash `index.html` and assets.                                                                                                                      |
+| `minDuration` | Number (ms) | Optional            | `0`       | How long the splash stays once it is on screen, in milliseconds (0 to 20,000), so it does not flicker on fast devices. If the app is ready before the splash has appeared, the splash is skipped. |
+| `maxDuration` | Number (ms) | Optional            | `5000`    | The longest the splash can stay, in milliseconds from launch (0 to 20,000). It then closes in either `dismissOn` mode, even if the app never calls `hideSplash()`.                                |
+| `dismissOn`   | String      | Optional            | `"ready"` | Dismissal trigger: `"ready"` (waits for programmatic `hideSplash()` call) or `"timer"` (dismisses when `minDuration` expires).                                                                    |
+| `transition`  | String      | Optional            | `"fade"`  | Transition animation when dismissed: `"fade"` or `"none"`.                                                                                                                                        |
 
 ```json
 {
@@ -62,6 +62,8 @@ To deliver instant visual feedback without white flashes, Wefter uses a 2-stage 
 ### Stage 1: Native OS Launch Background
 
 The operating system immediately displays `launchBackground` before any WebView or JavaScript engine can initialize.
+
+Until the splash page and the app have painted, their web views show this color too, so there is no white flash between the stages.
 
 ### Stage 2: Custom HTML Splash Screen
 
