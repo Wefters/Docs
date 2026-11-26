@@ -58,6 +58,38 @@ wefter run ios --watch
 3. Installs and launches the application on your connected physical ADB device, Android emulator, or iOS Simulator.
 4. Any changes saved to your web UI (HTML, CSS, JS, Vue, React, Svelte) reflect **instantaneously** inside the mobile app without requiring native re-installation.
 
+### Terminal output and shortcuts
+
+Xcode, Gradle and `adb` output is kept out of your terminal. Each step shows a spinner with what the tool is doing right now (for example `Compiling Kotlin` or `Compiling ViewController.swift`), then a single `✔` line with how long it took. Messages from your dev server (Vite) are always shown.
+
+When the app is running with `--watch`, these keys are available:
+
+| Key | Action |
+| --- | --- |
+| `r` | Reload the app's web view. If no app is connected to the dev server, the app is restarted on the device instead. |
+| `Ctrl+R` | Rebuild the native app, then reinstall and relaunch it. Use it after changing native code or plugins. The dev server keeps running. |
+| `o` | Open the DevTools dashboard in your browser. |
+| `c` | Clear the terminal and show the summary again. |
+| `h` | List the shortcuts. |
+| `q` / `Ctrl+C` | Stop the dev server and exit. |
+
+If a rebuild fails, the session keeps running: fix the problem and press `Ctrl+R` again. If you added a plugin or changed `wefter.config.json`, run `wefter sync` first; `Ctrl+R` tells you when that's needed.
+
+### When a build fails
+
+A failed `run` or `build` shows the actual errors (compiler errors, Gradle's own explanation, `adb install` failures), a fix for problems Wefter recognises (missing Android SDK, wrong JDK, unaccepted licences, a device that went offline, a simulator that isn't installed, and more), and where the full log is:
+
+```
+✖ Android build failed — Gradle build failed with exit code 1
+
+  ScannerPlugin.kt:41:17 Unresolved reference 'barcodeOptions'.
+
+  Full log  .wefter/logs/build-android-2026-11-25T12-20-18.log
+  More      wefter build android --debug
+```
+
+Every `run` and `build` writes a full log to `.wefter/logs/` (the last 10 are kept). Add `--debug` to stream all of the tools' output live, with the exact commands Wefter runs. In CI, or when output is piped, steps are printed as plain lines without a spinner.
+
 <Callout type="warn">
   **Dev Server Disconnection**: If the web dev server is closed, the app displays a clear `"Dev server unreachable"` diagnostic overlay rather than failing silently with stale assets. Restart `wefter run <platform> --watch` to reconnect.
 </Callout>
