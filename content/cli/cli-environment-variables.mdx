@@ -15,16 +15,23 @@ Environment variables can be defined in a gitignored `.env` file at the root of 
 
 ## Environment Variables Reference Table
 
-| Variable Name                 | Required / Optional              | Target Command(s)                                       | Description                                                                                              |
-| ----------------------------- | -------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `WEFTER_APP_ID`               | Optional                         | `init`, `sync`, `build`, `run`                          | Overrides default reverse-DNS application identifier (`appId`).                                          |
-| `WEFTER_APP_NAME`             | Optional                         | `init`, `sync`, `build`, `run`                          | Overrides display application title (`appName`).                                                         |
-| `WEFTER_WEB_DIR`              | Optional                         | `init`, `sync`, `build`, `run`                          | Overrides relative web build output directory path (`webDir`).                                           |
-| `WEFTER_KEYSTORE_PASSWORD`    | **Required for Android Release** | `build android --release`, `doctor --release-readiness` | Password for Android release `.keystore` / `.jks` files.                                                 |
-| `WEFTER_IOS_SIGNING_IDENTITY` | **Required for iOS Release**     | `build ios --release`, `doctor --release-readiness`     | Apple Developer distribution signing identity name.                                                      |
-| `CI`                          | Optional                         | All commands                                            | Set to `1` or `true` to suppress ASCII banners and non-essential interactive prompts in CI environments. |
-| `NO_COLOR`                    | Optional                         | All commands                                            | Disables ANSI terminal color output.                                                                     |
-| `VERBOSE`                     | Optional                         | All commands                                            | Set to `1` or `true` to print raw Gradle/xcodebuild stdout and debug logs.                               |
+| Variable Name                                                        | Required / Optional | Target Command(s)                                       | Description                                                                                              |
+| -------------------------------------------------------------------- | ------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `WEFTER_APP_ID`                                                      | Optional            | `init`, `sync`, `build`, `run`                          | Overrides default reverse-DNS application identifier (`appId`).                                          |
+| `WEFTER_APP_NAME`                                                    | Optional            | `init`, `sync`, `build`, `run`                          | Overrides display application title (`appName`).                                                         |
+| `WEFTER_WEB_DIR`                                                     | Optional            | `init`, `sync`, `build`, `run`                          | Overrides relative web build output directory path (`webDir`).                                           |
+| `WEFTER_APP_VERSION`                                                 | Optional            | `build`, `sync`                                         | App version (`1.4.0`), overriding `version` in `wefter.config.json`.                                     |
+| `WEFTER_BUILD_NUMBER`                                                | Optional            | `build`, `sync`                                         | Build number, overriding `buildNumber` — typically the CI run number.                                    |
+| `WEFTER_KEYSTORE_PASSWORD`                                           | Optional            | `build android --release`, `doctor --release-readiness` | Android keystore password; overrides `signing.android.storePassword`.                                    |
+| `WEFTER_KEY_PASSWORD`                                                | Optional            | `build android --release`                               | Android key password, when it differs from the keystore's; overrides `signing.android.keyPassword`.      |
+| `WEFTER_KEYSTORE_PATH` / `WEFTER_KEY_ALIAS`                          | Optional            | `build android --release`                               | Keystore file and key alias; override `signing.android.keystorePath` / `keyAlias`.                       |
+| `WEFTER_IOS_TEAM_ID`                                                 | Optional            | `build ios --release`                                   | Apple team; overrides `signing.ios.teamId`.                                                              |
+| `WEFTER_IOS_SIGNING_IDENTITY`                                        | Optional            | `build ios --release`                                   | Signing certificate; overrides `signing.ios.signingIdentity`.                                            |
+| `WEFTER_IOS_PROVISIONING_PROFILE`                                    | Optional            | `build ios --release`                                   | Provisioning profile; overrides `signing.ios.provisioningProfile`.                                       |
+| `WEFTER_ASC_KEY_PATH` / `WEFTER_ASC_KEY_ID` / `WEFTER_ASC_ISSUER_ID` | Optional            | `build ios --release`                                   | App Store Connect API key; override `signing.ios.appStoreConnect`.                                       |
+| `CI`                                                                 | Optional            | All commands                                            | Set to `1` or `true` to suppress ASCII banners and non-essential interactive prompts in CI environments. |
+| `NO_COLOR`                                                           | Optional            | All commands                                            | Disables ANSI terminal color output.                                                                     |
+| `VERBOSE`                                                            | Optional            | All commands                                            | Set to `1` or `true` to print raw Gradle/xcodebuild stdout and debug logs.                               |
 
 ---
 
@@ -36,11 +43,12 @@ WEFTER_APP_ID=com.company.myapp
 WEFTER_APP_NAME="My Production App"
 WEFTER_WEB_DIR=dist
 
-# Android Keystore Password
+# Android keystore password, read by "storePassword": "${WEFTER_KEYSTORE_PASSWORD}"
 WEFTER_KEYSTORE_PASSWORD=super_secret_keystore_password
 
-# iOS Code Signing Identity
-WEFTER_IOS_SIGNING_IDENTITY="iPhone Distribution: Company Name (ABCDE12345)"
+# App Store Connect API key, read by signing.ios.appStoreConnect
+WEFTER_ASC_KEY_ID=ABC123XYZ
+WEFTER_ASC_ISSUER_ID=69a6de70-0000-47e3-e053-5b8c7c11a4d1
 ```
 
 ---
@@ -54,5 +62,5 @@ In GitHub Actions or headless CI runners, pass credentials via job environment b
   env:
     WEFTER_KEYSTORE_PASSWORD: ${{ secrets.WEFTER_KEYSTORE_PASSWORD }}
     CI: "true"
-  run: npx wefter build android --release --env production
+  run: npx wefter build android --release --build-number "${{ github.run_number }}"
 ```

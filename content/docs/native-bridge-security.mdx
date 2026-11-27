@@ -35,6 +35,8 @@ Any JavaScript executing inside the main app WebView has technical access to cal
 
 ## 2. Content Security Policy (CSP) Guidelines
 
+The bundled files are already served with a Content Security Policy that only runs the app's own scripts and allows images, media and network requests over HTTPS and from the page's own `blob:` and `data:` URLs (see [Web APIs](/docs/app-configuration/web-apis#content-security-policy)). A policy in your `index.html` applies on top of it, so you can narrow it further.
+
 Add a strict Content Security Policy (`<meta http-equiv="Content-Security-Policy">`) to your web application's `index.html` to restrict unauthorized external script execution:
 
 ```html
@@ -66,8 +68,10 @@ Add a strict Content Security Policy (`<meta http-equiv="Content-Security-Policy
 
 By default, Wefter configures WebViews to intercept navigation requests:
 
-- **Internal Navigation**: Navigations within local app routes (`/#/route` or SPA routes) execute inside the WebView.
-- **External Links**: External URLs (`https://external-website.com`) should be opened in the system default browser (using system intent or a browser plugin) rather than navigating the main WebView away from bundled assets.
+- **Internal Navigation**: Navigations within the app's own origin (the bundled app, or the dev server in debug builds) execute inside the WebView. `target="_blank"` and `window.open()` to the app's own pages load in place.
+- **External Links**: Other sites open in the system browser, and `tel:`, `mailto:`, `sms:`, `intent:` and other app links in the app that handles them, so the main WebView never leaves the app's own pages. Frames inside a page load in place.
+- **Blocked Schemes**: `javascript:`, `file:` and `content:` links are never handed to other apps. Android `intent:` links are limited to what a browser allows: no explicit component and no URI permission grants.
+- **Device Access**: The camera, microphone and location are only given to the app's own pages, and only when the app declares them in `permissions`. See [Web APIs](/docs/app-configuration/web-apis).
 
 ---
 

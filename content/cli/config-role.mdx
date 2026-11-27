@@ -124,6 +124,56 @@ An array of explicit plugin package names (e.g., `["@wefterjs/camera", "@wefterj
 
 ---
 
+## Release Settings
+
+These are read by [`wefter build`](/cli/build); `wefter sync` writes the version into the native projects.
+
+| Field         | Description                                                                                                                                                                                           |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`     | The version users see, such as `1.4.0`. Defaults to `version` in `package.json`.                                                                                                                      |
+| `buildNumber` | A whole number that must go up with every store upload. Defaults to `1`.                                                                                                                              |
+| `build`       | `output` folder (`"build"`), `android.format`, `ios.exportMethod` and `ios.usesNonExemptEncryption`.                                                                                                  |
+| `signing`     | `signing.android` (keystore) and `signing.ios` (team, profile, App Store Connect key). See [Android](/docs/app-configuration/android-signing) and [iOS](/docs/app-configuration/ios-signing) signing. |
+
+Any string value can read an environment variable with `${VAR}`, so secrets stay out of the file:
+
+```json
+{
+  "version": "1.4.0",
+  "buildNumber": 42,
+  "signing": {
+    "android": {
+      "keystorePath": "keys/upload.jks",
+      "keyAlias": "upload",
+      "storePassword": "${WEFTER_KEYSTORE_PASSWORD}"
+    },
+    "ios": { "teamId": "ABCDE12345" }
+  }
+}
+```
+
+`WEFTER_*` environment variables, such as `WEFTER_BUILD_NUMBER`, override the matching field. See [CLI Environment Variables](/cli/cli-environment-variables).
+
+---
+
+## Permissions
+
+`permissions` declares the camera, microphone and location the web app uses through standard web APIs, each with the message iOS shows when asking. `wefter sync` writes the Android permissions into `AndroidManifest.xml` and the messages into `Info.plist`, next to the ones plugins declare.
+
+```json
+{
+  "permissions": {
+    "camera": "Take a photo of your receipt to attach it to the expense.",
+    "microphone": "Record voice notes.",
+    "location": "Show stores near you."
+  }
+}
+```
+
+See [Web APIs](/docs/app-configuration/web-apis#permissions) for what each one covers.
+
+---
+
 ## Behavior on Ejected Projects
 
 When a project is ejected via [`wefter eject`](/cli/eject), `wefter.config.json` remains the authoritative source for environment definitions, plugin registrations, and app branding. `wefter sync` continues to read `wefter.config.json` to weave native plugin dependencies and update generated registries inside root `android/` and `ios/` directories.

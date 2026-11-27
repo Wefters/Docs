@@ -50,7 +50,8 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
   Wefter reads `.env` variables automatically during initialization and build commands. Key environment variables
   include: - `WEFTER_APP_ID`: Reverse-DNS application identifier. - `WEFTER_APP_NAME`: Display application title. -
   `WEFTER_WEB_DIR`: Compiled web assets folder (`dist`). - `WEFTER_KEYSTORE_PASSWORD`: Password for Android release
-  keystores. - `WEFTER_IOS_SIGNING_IDENTITY`: Apple Developer code signing identity.
+  keystores, which `signing.android.storePassword` can read as `${WEFTER_KEYSTORE_PASSWORD}`. - `WEFTER_BUILD_NUMBER`:
+  Build number for `wefter build`, for example from CI.
 </Accordion>
 
   <Accordion title="How do I set up multiple build environments (Development, Staging, Production)?">

@@ -2,167 +2,190 @@
 title: CI/CD Pipelines & Automation
 sidebarTitle: "CI/CD Pipelines"
 icon: Workflow
-description: Automating Wefter mobile application builds, tests, and deployments using GitHub Actions, Fastlane, and cloud runners.
+description: Building signed Android App Bundles and iOS .ipa files in GitHub Actions, with secrets, build numbers, JSON results and store uploads.
 ---
 
 ## Overview
 
-Automating build, test, and release pipelines ensures that every code change is validated across headless Android SDK and iOS Xcode environments before reaching users.
+`wefter build` is made for CI: signing values come from environment variables, the build number can come from the pipeline, `--strict` fails the job on any release warning, and `--json` prints a machine-readable result. The built files land in `build/` with a `build-info.json` and checksums, ready to upload.
 
-This guide provides production-ready Continuous Integration and Continuous Delivery (CI/CD) workflows for GitHub Actions, Fastlane, Google Play Console, and Apple TestFlight.
+The examples assume the web app is built by a `wefter:build:before` hook:
+
+```json title="package.json"
+{
+  "scripts": {
+    "wefter:build:before": "vite build --mode $WEFTER_ENV"
+  }
+}
+```
 
 ---
 
-## 1. GitHub Actions: Android APK & AAB Build Workflow
+## 1. GitHub Actions: Android App Bundle
 
-Create `.github/workflows/android-build.yml` in your repository:
+`wefter.config.json` reads the passwords from the environment:
 
-```yaml
-name: Android Release Build
+```json
+{
+  "signing": {
+    "android": {
+      "keystorePath": "keys/upload.jks",
+      "keyAlias": "upload",
+      "storePassword": "${WEFTER_KEYSTORE_PASSWORD}"
+    }
+  }
+}
+```
+
+```yaml title=".github/workflows/android-release.yml"
+name: Android Release
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags: ["v*"]
 
 jobs:
-  build-android:
+  android:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: "pnpm"
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
 
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v3
+      - uses: actions/setup-java@v4
         with:
-          version: 9
-
-      - name: Install Node Dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Setup Java JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
+          distribution: temurin
           java-version: "17"
+      - uses: android-actions/setup-android@v3
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Build Web Application Assets
-        run: pnpm run build
-
-      - name: Decode Android Keystore
+      - name: Restore the upload keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          mkdir -p keys
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > keys/upload.jks
 
-      - name: Run Wefter Sync & Android Build
+      - name: Build signed App Bundle and APK
         env:
           WEFTER_KEYSTORE_PASSWORD: ${{ secrets.WEFTER_KEYSTORE_PASSWORD }}
-        run: |
-          npx wefter doctor --release-readiness
-          npx wefter build android --release --env production
+        run: npx wefter build android --release --build-number "${{ github.run_number }}" --strict --json > build-result.json
 
-      - name: Upload Android APK Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: .wefter/native/android/app/build/outputs/apk/release/app-release.apk
+          name: android-release
+          path: build/android/production/
 ```
+
+`--strict` fails the job on any release check warning (for example a source map left in the web app). `build-result.json` lists every file with its path, size and SHA-256.
 
 ---
 
-## 2. GitHub Actions: iOS App Store Archive Workflow
+## 2. GitHub Actions: iOS `.ipa`
 
-Create `.github/workflows/ios-build.yml` (requires `macos-latest` runner):
+A CI runner has no Xcode account, so iOS signing uses an App Store Connect API key (see [iOS Signing](/docs/app-configuration/ios-signing#automatic-signing-in-ci-app-store-connect-api-key)):
 
-```yaml
-name: iOS Release Build
+```json
+{
+  "signing": {
+    "ios": {
+      "teamId": "ABCDE12345",
+      "appStoreConnect": {
+        "keyPath": "keys/AuthKey.p8",
+        "keyId": "${WEFTER_ASC_KEY_ID}",
+        "issuerId": "${WEFTER_ASC_ISSUER_ID}"
+      }
+    }
+  }
+}
+```
+
+```yaml title=".github/workflows/ios-release.yml"
+name: iOS Release
 
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
 
 jobs:
-  build-ios:
-    runs-on: macos-14
-
+  ios:
+    runs-on: macos-15
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js & PNPM
-        uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
 
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Build Web Application
-        run: npm run build
-
-      - name: Select Xcode Version
-        run: sudo xcode-select -s /Applications/Xcode_15.2.app
-
-      - name: Run Wefter Sync & iOS Build
-        env:
-          WEFTER_IOS_SIGNING_IDENTITY: ${{ secrets.WEFTER_IOS_SIGNING_IDENTITY }}
+      - name: Restore the App Store Connect key
         run: |
-          npx wefter doctor --release-readiness
-          npx wefter build ios --release --env production
+          mkdir -p keys
+          echo "${{ secrets.ASC_KEY_BASE64 }}" | base64 -d > keys/AuthKey.p8
+
+      - name: Build signed .ipa
+        env:
+          WEFTER_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          WEFTER_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: npx wefter build ios --release --build-number "${{ github.run_number }}" --strict
+
+      - name: Upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          cp keys/AuthKey.p8 ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          xcrun altool --upload-app --type ios \
+            --file build/ios/production/*/*.ipa \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
 ```
 
 ---
 
-## 3. Fastlane Integration for Store Deployments
+## 3. Uploading from a Hook
 
-Fastlane automates Play Store and App Store deployments.
+Instead of separate CI steps, a `wefter:build:after` hook can upload what was built — it gets the paths in `WEFTER_ARTIFACT` and `WEFTER_ARTIFACTS` — and `wefter:build:failed` can notify your team. See [Hooks](/cli/hooks#example-2-uploading-build-artifacts).
 
-### Fastfile Configuration
+---
+
+## 4. Fastlane
+
+Fastlane can upload the files `wefter build` produced:
 
 ```ruby
-default_platform(:android)
-
 platform :android do
-  desc "Deploy production APK to Google Play Internal Track"
-  lane :deploy_play_store do
-    gradle(task: "clean assembleRelease", project_dir: ".wefter/native/android")
+  lane :internal do
+    sh("npx wefter build android --release --format aab")
     upload_to_play_store(
-      track: 'internal',
-      apk: '.wefter/native/android/app/build/outputs/apk/release/app-release.apk'
+      track: "internal",
+      aab: Dir["../build/android/production/*/*-release.aab"].max_by { |f| File.mtime(f) }
     )
   end
 end
 
 platform :ios do
-  desc "Deploy release build to Apple TestFlight"
-  lane :deploy_testflight do
-    build_app(
-      workspace: ".wefter/native/ios/App.xcworkspace",
-      scheme: "App",
-      export_method: "app-store"
+  lane :beta do
+    sh("npx wefter build ios --release")
+    upload_to_testflight(
+      ipa: Dir["../build/ios/production/*/*.ipa"].max_by { |f| File.mtime(f) }
     )
-    upload_to_testflight
   end
 end
 ```
 
 ---
 
-## Secrets Management Checklist
+## Secrets Checklist
 
-| Secret Name                   | Platform | Description                                                |
-| ----------------------------- | -------- | ---------------------------------------------------------- |
-| `ANDROID_KEYSTORE_BASE64`     | Android  | Base64-encoded string of your release `.keystore` file.    |
-| `WEFTER_KEYSTORE_PASSWORD`    | Android  | Password for your release keystore alias.                  |
-| `WEFTER_IOS_SIGNING_IDENTITY` | iOS      | Apple Distribution signing certificate name.               |
-| `APPLE_DEVELOPER_KEY`         | iOS      | App Store Connect API Key JSON file for automated uploads. |
+| Secret                         | Platform | Used for                                                                       |
+| ------------------------------ | -------- | ------------------------------------------------------------------------------ |
+| `ANDROID_KEYSTORE_BASE64`      | Android  | The upload keystore, base64-encoded.                                           |
+| `WEFTER_KEYSTORE_PASSWORD`     | Android  | The keystore password (and key password, unless `WEFTER_KEY_PASSWORD` is set). |
+| `WEFTER_KEY_PASSWORD`          | Android  | The key password, when it differs from the keystore's.                         |
+| `ASC_KEY_BASE64`               | iOS      | The App Store Connect API key (`.p8`), base64-encoded.                         |
+| `ASC_KEY_ID` / `ASC_ISSUER_ID` | iOS      | The key's ID and issuer, for signing and uploading.                            |

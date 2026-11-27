@@ -2,7 +2,7 @@
 title: CLI Hooks
 sidebarTitle: "Hooks"
 icon: Webhook
-description: Run custom automation scripts before or after sync, build, and run using standard package.json scripts.
+description: Run custom automation scripts before or after sync, build, and run — and when a build fails — using standard package.json scripts.
 ---
 
 Wefter CLI features a zero-config, convention-based lifecycle hook system. You can execute arbitrary pre-processing or post-processing scripts around core CLI operations (`sync`, `build`, and `run`) simply by declaring specially named scripts in your project's `package.json`.
@@ -13,16 +13,17 @@ Hooks require no additional configuration files or plugins—there is no `hooks`
 
 ## Supported Hooks Reference
 
-Hooks are triggered for **`sync`**, **`build`**, and **`run`** commands across two phases: **`before`** (runs before the command's primary operations begin) and **`after`** (runs after the command completes successfully).
+Hooks are triggered for **`sync`**, **`build`**, and **`run`** commands across two phases: **`before`** (runs before the command's primary operations begin) and **`after`** (runs after the command completes successfully). `wefter build` has a third phase, **`failed`**, which runs instead of `after` when the build fails.
 
-| Hook Script Name      | Command | Phase    | Execution Trigger Point                                                                                                                  |
-| --------------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `wefter:sync:before`  | `sync`  | `before` | Triggered immediately when `wefter sync` starts, prior to config validation or native generation.                                        |
-| `wefter:sync:after`   | `sync`  | `after`  | Triggered as the final step of `wefter sync`, after native files, lockfiles, and sync markers are written.                               |
-| `wefter:build:before` | `build` | `before` | Triggered after sync-freshness validation, prior to release security checks and native toolchain compilation (`gradlew` / `xcodebuild`). |
-| `wefter:build:after`  | `build` | `after`  | Triggered after native compilation succeeds and the final APK or `.app` artifact exists on disk.                                         |
-| `wefter:run:before`   | `run`   | `before` | Triggered after sync-freshness validation, prior to launching dev server, building, or deploying to a device/simulator.                  |
-| `wefter:run:after`    | `run`   | `after`  | Triggered immediately after the app has been successfully installed and launched on the target device/simulator.                         |
+| Hook Script Name      | Command | Phase    | Execution Trigger Point                                                                                                                                        |
+| --------------------- | ------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wefter:sync:before`  | `sync`  | `before` | Triggered immediately when `wefter sync` starts, prior to config validation or native generation.                                                              |
+| `wefter:sync:after`   | `sync`  | `after`  | Triggered as the final step of `wefter sync`, after native files, lockfiles, and sync markers are written.                                                     |
+| `wefter:build:before` | `build` | `before` | Triggered after the build's options are validated, before the web app is copied in (sync), release checks and native compilation. **Build your web app here.** |
+| `wefter:build:after`  | `build` | `after`  | Triggered once per platform, after the built files are copied to the output folder. Gets their paths (see below).                                              |
+| `wefter:build:failed` | `build` | `failed` | Triggered when the build fails at any point from `wefter:build:before` on. Gets the error in `WEFTER_ERROR`.                                                   |
+| `wefter:run:before`   | `run`   | `before` | Triggered after sync-freshness validation, prior to launching dev server, building, or deploying to a device/simulator.                                        |
+| `wefter:run:after`    | `run`   | `after`  | Triggered immediately after the app has been successfully installed and launched on the target device/simulator.                                               |
 
 <Callout type="info">
   **Commands without hooks**: Other CLI commands such as `init`, `doctor`, `add`, `audit`, `eject`, `create-plugin`,
@@ -60,13 +61,32 @@ When a hook script is invoked, Wefter automatically detects your package manager
 
 The hook process inherits `process.env` along with five dedicated environment variables injected by Wefter:
 
-| Environment Variable | Type     | Description & Possible Values                                                                                                                             |
-| -------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `WEFTER_COMMAND`     | `string` | The CLI command currently executing: `"sync"`, `"build"`, or `"run"`.                                                                                     |
-| `WEFTER_PHASE`       | `string` | The current lifecycle phase: `"before"` or `"after"`.                                                                                                     |
-| `WEFTER_PLATFORM`    | `string` | Target platform for `build` and `run` commands: `"android"` or `"ios"`. For `sync` (which processes both platforms), this is set to an empty string `""`. |
-| `WEFTER_ENV`         | `string` | The environment name passed to `--env` (e.g. `"development"`, `"staging"`, `"production"`). For `sync`, this is set to an empty string `""`.              |
-| `WEFTER_PROJECT_DIR` | `string` | Absolute filesystem path to the project root directory.                                                                                                   |
+| Environment Variable | Type     | Description & Possible Values                                                                                                                                                                                     |
+| -------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WEFTER_COMMAND`     | `string` | The CLI command currently executing: `"sync"`, `"build"`, or `"run"`.                                                                                                                                             |
+| `WEFTER_PHASE`       | `string` | The current lifecycle phase: `"before"`, `"after"`, or `"failed"` (build only).                                                                                                                                   |
+| `WEFTER_PLATFORM`    | `string` | Target platform for `build` and `run` commands: `"android"` or `"ios"`, or `"all"` for the `before` hook of `wefter build all`. For `sync` (which processes both platforms), this is set to an empty string `""`. |
+| `WEFTER_ENV`         | `string` | The environment name passed to `--env` (e.g. `"development"`, `"staging"`, `"production"`). For `sync`, this is set to an empty string `""`.                                                                      |
+| `WEFTER_PROJECT_DIR` | `string` | Absolute filesystem path to the project root directory.                                                                                                                                                           |
+
+### Extra Variables for `wefter build`
+
+Build hooks also get:
+
+| Environment Variable  | Hooks           | Description                                                                        |
+| --------------------- | --------------- | ---------------------------------------------------------------------------------- |
+| `WEFTER_RELEASE`      | all build hooks | `"true"` for `--release`, else `"false"`.                                          |
+| `WEFTER_APP_VERSION`  | all build hooks | The version being built, such as `"1.4.0"`.                                        |
+| `WEFTER_BUILD_NUMBER` | all build hooks | The build number, such as `"42"`.                                                  |
+| `WEFTER_FORMAT`       | all build hooks | Android format: `"apk"`, `"aab"` or `"both"`; empty for iOS-only builds.           |
+| `WEFTER_OUTPUT_DIR`   | all build hooks | Absolute path of the output folder (`build` by default).                           |
+| `WEFTER_ARTIFACT`     | `after`         | The main built file: the App Bundle (or APK), the `.ipa`, or the simulator `.app`. |
+| `WEFTER_ARTIFACTS`    | `after`         | JSON list of every built file: `[{ "kind": "aab", "path": "…" }, …]`.              |
+| `WEFTER_BUILD_INFO`   | `after`         | Path of the build's `build-info.json`.                                             |
+| `WEFTER_BUILD_DIR`    | `after`         | This build's own folder, such as `build/android/production/1.4.0-42`.              |
+| `WEFTER_ERROR`        | `failed`        | The first line of the error that stopped the build.                                |
+
+A hook may not run `wefter build` itself: `wefter build` refuses to start while another build is running (the variable `WEFTER_BUILD_ACTIVE` marks it), which stops a hook from looping forever.
 
 ### Single-Script Multi-Phase Handling
 
@@ -128,19 +148,27 @@ Understanding exactly when hooks execute relative to CLI operations ensures pred
 
 <Steps>
   <Step>
-    ### 1. Freshness Check & `wefter:build:before` Hook Validates sync freshness marker and executes
-    `wefter:build:before` hook before release security verification.
+    ### 1. Validation The environment, version, build number, output folder and (for a release) signing settings are
+    checked. A problem stops the build before any hook runs.
+  </Step>
+  <Step>### 2. `wefter:build:before` Build your web app here, for example `vite build --mode $WEFTER_ENV`.</Step>
+  <Step>
+    ### 3. Sync The web app and config are copied into the native projects; `wefter:sync:before` and `wefter:sync:after`
+    run as part of it.
   </Step>
   <Step>
-    ### 2. Native Compilation Invokes native toolchain (`./gradlew assembleDebug/assembleRelease` or `xcodebuild`).
+    ### 4. Version, release checks and native compilation The version is written in, `--release` runs the release
+    checks, then Gradle or xcodebuild builds the app.
   </Step>
   <Step>
-    ### 3. `wefter:build:after` Hook Execution Runs once the compiled APK or `.app` binary artifact exists on disk.
+    ### 5. `wefter:build:after` (or `wefter:build:failed`) `after` runs once per platform when its files are in the
+    output folder. If anything from step 2 on fails, `failed` runs instead.
   </Step>
 </Steps>
 
-- **`wefter:build:before`**: Runs after confirming the project is fresh (synced), but before release-security verification and native compilation (`./gradlew` or `xcodebuild`).
-- **`wefter:build:after`**: Runs once the compiled APK or `.app` artifact exists on disk.
+- **`wefter:build:before`**: Runs once, before sync, so the web app it builds is what gets copied in. With `wefter build all` it runs once for both platforms (`WEFTER_PLATFORM` is `"all"`).
+- **`wefter:build:after`**: Runs per platform, with `WEFTER_ARTIFACT`, `WEFTER_ARTIFACTS` and `WEFTER_BUILD_INFO`.
+- **`wefter:build:failed`**: Runs on any failure after validation. If this hook fails itself, that is only reported, so it never hides the build error.
 
 ### 3. `wefter run` Lifecycle
 
@@ -176,6 +204,8 @@ Hook scripts execute with `stdio: "inherit"`. Standard output (`stdout`) and sta
 
 Any logging, progress indicators, or color styling generated by your hook script appears in real-time alongside Wefter CLI logs.
 
+With `wefter build --json`, hook output goes to stderr instead, so stdout carries only the JSON result.
+
 ---
 
 ## Error Handling & Failure Behavior
@@ -185,6 +215,7 @@ If a hook script exits with a non-zero status code:
 1. `runHook` throws an error: `Hook "wefter:<command>:<phase>" exited with code <exitCode>`.
 2. Execution of the active CLI command halts immediately.
 3. Wefter CLI sets `process.exitCode = 1` and logs the failure message.
+4. For `wefter build`, `wefter:build:failed` then runs with the error in `WEFTER_ERROR`.
 
 <Callout type="warn">
   **Important difference between `before` and `after` hook failures**: - **`before` Hook Failure**: Prevents the
@@ -198,41 +229,40 @@ If a hook script exits with a non-zero status code:
 
 ## Practical Examples
 
-### Example 1: Web App Pre-Compilation before Sync / Build
+### Example 1: Building the Web App before `wefter build`
 
-Automatically compile your Vite or React web app into `dist/` before Wefter syncs web assets:
+`wefter build` copies your web app into the native projects, so build it first in `wefter:build:before`. Each environment can use its own Vite mode:
 
 ```json
 {
   "scripts": {
     "build:web": "vite build",
-    "wefter:sync:before": "npm run build:web",
-    "wefter:build:before": "npm run build:web"
+    "wefter:build:before": "vite build --mode $WEFTER_ENV"
   }
 }
 ```
 
-### Example 2: Uploading Build Artifacts to S3 / Storage
+### Example 2: Uploading Build Artifacts
 
-Upload the generated APK or `.app` artifact to cloud storage after `wefter build`:
+Upload what `wefter build` produced, using the paths it passes in:
 
 ```javascript
 // scripts/upload-artifact.js
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+const { WEFTER_PLATFORM, WEFTER_ENV, WEFTER_ARTIFACT, WEFTER_APP_VERSION, WEFTER_BUILD_NUMBER } = process.env;
+const artifacts = JSON.parse(process.env.WEFTER_ARTIFACTS);
 
-const { WEFTER_PLATFORM, WEFTER_ENV, WEFTER_PROJECT_DIR } = process.env;
-
-console.log(`[HOOK] Uploading ${WEFTER_PLATFORM} (${WEFTER_ENV}) build artifact...`);
-// Artifact upload logic...
+console.log(`[HOOK] Uploading ${WEFTER_PLATFORM} ${WEFTER_ENV} ${WEFTER_APP_VERSION} (${WEFTER_BUILD_NUMBER})`);
+console.log(`Main file: ${WEFTER_ARTIFACT}`);
+for (const { kind, path } of artifacts) {
+  // upload `path`; kind is aab, apk, ipa, app, mapping, native-symbols or dsyms
+}
 ```
-
-In `package.json`:
 
 ```json
 {
   "scripts": {
-    "wefter:build:after": "node scripts/upload-artifact.js"
+    "wefter:build:after": "node scripts/upload-artifact.js",
+    "wefter:build:failed": "node scripts/notify-failure.js"
   }
 }
 ```

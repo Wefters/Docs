@@ -71,7 +71,7 @@ wefter deep-links files    # writes .wefter/deep-links/<domain>/.well-known/
 wefter deep-links check    # checks what the domains serve
 ```
 
-The files need the Android signing certificate and the Apple team id (`iosSigning.teamId`). See [`wefter deep-links`](/cli/deep-links) for the details, including Play App Signing.
+The files need the Android signing certificate and the Apple team id (`signing.ios.teamId`). See [`wefter deep-links`](/cli/deep-links) for the details, including Play App Signing.
 
 <Callout type="warn">
   On iOS, verified domains need the Associated Domains capability. Xcode adds it with automatic signing; with a manual

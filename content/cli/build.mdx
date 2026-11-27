@@ -1,124 +1,216 @@
 ---
 title: wefter build
 icon: Hammer
-description: Compiles native Android APK binaries or iOS Simulator .app artifacts using official Gradle and Xcode toolchains.
+description: Builds your app for testing or for the stores — Android APKs and App Bundles, iOS simulator apps and .ipa files — with versioning, signing, release checks and a tidy output folder.
 ---
 
 ## Synopsis
 
 ```bash
-wefter build <platform> [--release] [--env <name>] [--simulator <name>] [projectDir]
+wefter build <android|ios|all> [projectDir]
+  [--release] [--env <name>]
+  [--app-version <x.y.z>] [--build-number <n>]
+  [--format <apk|aab|both>] [--output <dir>]
+  [--unsigned] [--export-method <method>] [--simulator <name>]
+  [--strict] [--clean] [--json] [--debug]
 ```
 
-## Overview & Use Cases
+## Overview
 
-`wefter build` orchestrates the official native platform toolchains (`./gradlew` for Android and `xcodebuild` for iOS) to compile your synced native project into a binary artifact.
+`wefter build` takes your built web app and produces an installable app:
 
-It does **not** re-sync native files or modify native bridge code. It verifies that your project has been synced recently, runs release security lints (if `--release` is passed), and invokes native toolchain compilation.
+| Command                          | What you get                                                                     |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| `wefter build android`           | A debug APK of the `development` environment, to install and test.               |
+| `wefter build android --release` | A signed App Bundle (`.aab`) for Google Play and a signed APK, for `production`. |
+| `wefter build ios`               | A debug app for the iOS simulator.                                               |
+| `wefter build ios --release`     | A signed `.ipa` for App Store Connect, for `production`.                         |
+| `wefter build all --release`     | Both of the above, from one web build and one sync.                              |
 
-### Primary Use Cases
-
-- Generating a Debug or Release APK for Android testing/distribution.
-- Compiling an iOS Simulator `.app` bundle for iOS testing.
-- Running CI/CD build scripts to produce compiled native application artifacts.
+Every build is copied to `build/<platform>/<env>/<version>-<build number>/`, together with the files crash reporters need and a `build-info.json` describing it.
 
 ---
 
 ## What It Does
 
-When invoked, `wefter build` executes the following sequence:
-
-1. **Platform Validation**: Validates that `<platform>` is set to either `android` or `ios`.
-2. **Sync Freshness Check**: Verifies `.wefter/sync.marker` matches the current `wefter.config.json` hash. Refuses to build if the project has never been synced or if `wefter.config.json` was modified after the last sync.
-3. **Lifecycle Hook (`wefter:build:before`)**: Fires `wefter:build:before` script if declared in `package.json`.
-4. **Release Security Lints**: If `--release` is passed, runs security lints (`checkReleaseSecurity` for Android, `checkReleaseSecurityIos` for iOS) to ensure debug flags are disabled and signing parameters are configured.
-5. **iOS Permission Keys Check**: For iOS builds, verifies that required `Info.plist` usage description strings are present for all installed plugins.
-6. **Native Compilation**:
-   - **Android**: Invokes `./gradlew assemble<Env><Debug|Release>` inside `.wefter/native/android`.
-   - **iOS**: Invokes `xcodebuild` targeting the iOS Simulator inside `.wefter/native/ios`.
-7. **Lifecycle Hook (`wefter:build:after`)**: Fires `wefter:build:after` script once the output binary exists on disk.
+1. **Validate** — the environment exists, the version and build number are valid, the output folder is usable, and for a release the signing settings are complete. Problems stop the build before anything runs.
+2. **`wefter:build:before` hook** — build your web app here (see [Hooks](/cli/hooks)).
+3. **Sync** — the web app (`webDir`) and `wefter.config.json` are copied into the native projects, exactly as `wefter sync` does (including its hooks). The app can never ship stale web code.
+4. **Version** — the version and build number are written into both native projects.
+5. **Release checks** (`--release`) — security checks, store requirements and web app checks. Errors stop the build; warnings are shown and stop it only with `--strict`. See [Release checks](#release-checks).
+6. **Native build**:
+   - **Android**: Gradle builds the APK (`assemble<Env><Type>`), the App Bundle (`bundle<Env><Type>`), or both in one run. Release signatures are verified afterwards and the APK is checked for Google Play's 16 KB page alignment.
+   - **iOS**: debug builds (and `--simulator`) build for the simulator. Release builds archive the app for devices and export a signed `.ipa` with an `ExportOptions.plist` generated from your config.
+7. **Collect** — the built files, crash-report symbols and `build-info.json` are copied to the output folder.
+8. **`wefter:build:after` hook** — with the paths of the built files. If anything fails from step 2 on, `wefter:build:failed` runs instead.
 
 ---
 
 ## Arguments & Options
 
-### Arguments
+| Argument     | Description                          | Default           |
+| ------------ | ------------------------------------ | ----------------- |
+| `<platform>` | `android`, `ios`, or `all` for both. | Required          |
+| `projectDir` | Project root.                        | Current directory |
 
-| Argument     | Type       | Required / Optional | Description                                 | Default                                     |
-| ------------ | ---------- | ------------------- | ------------------------------------------- | ------------------------------------------- |
-| `<platform>` | Positional | **Required**        | Target native platform: `android` or `ios`. | None (must be specified)                    |
-| `projectDir` | Positional | Optional            | Path to project root directory.             | Current working directory (`process.cwd()`) |
+| Option                      | Description                                                                                                                                | Default                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| `--release`                 | Build a signed release for the stores.                                                                                                     | Debug build                                       |
+| `--env <name>`              | Environment from `environments` in `wefter.config.json`.                                                                                   | `production` with `--release`, else `development` |
+| `--app-version <x.y.z>`     | Version shown in the stores, overriding `version` in the config.                                                                           | See [Versioning](#versioning)                     |
+| `--build-number <n>`        | Build number, overriding `buildNumber` in the config.                                                                                      | See [Versioning](#versioning)                     |
+| `--format <apk\|aab\|both>` | **Android**: what to build.                                                                                                                | `both` with `--release`, else `apk`               |
+| `--output <dir>`            | Folder for the built files, overriding `build.output`.                                                                                     | `build`                                           |
+| `--unsigned`                | Build a release without signing it, to sign it elsewhere.                                                                                  | Signed                                            |
+| `--export-method <method>`  | **iOS**: `app-store-connect`, `release-testing`, `enterprise` or `debugging` (older names `app-store`, `ad-hoc`, `development` also work). | `build.ios.exportMethod` (`app-store-connect`)    |
+| `--simulator <name>`        | **iOS**: build for this simulator (name or UDID) instead of devices.                                                                       | Devices for `--release`                           |
+| `--strict`                  | Treat release check warnings as errors — useful in CI.                                                                                     | Off                                               |
+| `--clean`                   | Clean the Gradle and Xcode build caches first.                                                                                             | Off                                               |
+| `--json`                    | Print the result as JSON on stdout; progress and hook output go to stderr.                                                                 | Off                                               |
+| `--debug`                   | Stream the full Gradle / Xcode output instead of a progress line.                                                                          | Off                                               |
 
-### Options (Flags)
+---
 
-| Flag                 | Type    | Description                                                                 | Default                 |
-| -------------------- | ------- | --------------------------------------------------------------------------- | ----------------------- |
-| `--release`          | Boolean | Builds a release artifact instead of a debug build.                         | `false` (debug build)   |
-| `--env <name>`       | String  | Environment to build against (from `environments` in `wefter.config.json`). | `"development"`         |
-| `--simulator <name>` | String  | **iOS only**: `xcrun simctl` device name or UDID to build for.              | Xcode default simulator |
+## Versioning
+
+The **version** (`1.4.0`) is what users see in the stores. The **build number** (`42`) tells uploads apart and must go up with every upload — both stores reject a build number they have already seen.
+
+```json title="wefter.config.json"
+{
+  "version": "1.4.0",
+  "buildNumber": 42
+}
+```
+
+Each value is taken from the first of:
+
+| Source               | Version                | Build number          |
+| -------------------- | ---------------------- | --------------------- |
+| Command line         | `--app-version 1.4.1`  | `--build-number 43`   |
+| Environment variable | `WEFTER_APP_VERSION`   | `WEFTER_BUILD_NUMBER` |
+| `wefter.config.json` | `version`              | `buildNumber`         |
+| Fallback             | `package.json` version | `1`                   |
+
+The version must be three numbers (`1.4.0`); the build number a whole number from 1 to 2,100,000,000. They become `versionName` / `versionCode` on Android and `CFBundleShortVersionString` / `CFBundleVersion` on iOS. In CI, set the build number from the pipeline's run number:
+
+```bash
+wefter build android --release --build-number "$GITHUB_RUN_NUMBER"
+```
+
+---
+
+## Output
+
+```text
+build/
+  android/production/1.4.0-42/
+    Shop-production-1.4.0-42-release.aab      # upload to Google Play
+    Shop-production-1.4.0-42-release.apk      # install directly for testing
+    mapping.txt                               # R8 mapping, for readable crash reports
+    native-debug-symbols.zip                  # when plugins ship native libraries
+    build-info.json
+  ios/production/1.4.0-42/
+    Shop-production-1.4.0-42.ipa              # upload to App Store Connect
+    Shop.dSYM.zip                             # debug symbols, for readable crash reports
+    build-info.json
+```
+
+Change the folder with `--output` or `"build": { "output": "dist-native" }`. It cannot be the project itself, overlap `webDir`, or sit inside `.wefter`. Add it to `.gitignore` — `wefter init` does this for new projects and `wefter sync` warns when it is missing.
+
+`build-info.json` records what was built, so any file can be traced back to its source:
+
+```json
+{
+  "app": { "name": "Shop", "id": "com.example.shop" },
+  "platform": "android",
+  "environment": "production",
+  "release": true,
+  "version": "1.4.0",
+  "buildNumber": 42,
+  "format": "both",
+  "signed": true,
+  "signingCertificateSha256": "FC:AA:F6:…:47:B9",
+  "git": { "commit": "3ff7447d…", "dirty": false },
+  "cli": "0.0.5",
+  "builtAt": "2026-11-26T17:06:40.261Z",
+  "artifacts": [
+    { "kind": "aab", "file": "Shop-production-1.4.0-42-release.aab", "sizeBytes": 18414469, "sha256": "9493cf06…" }
+  ]
+}
+```
+
+The summary printed at the end lists the same: each file and its size, the signing certificate fingerprint (also what `assetlinks.json` needs), how long ago the web app was built, and the number of warnings.
+
+---
+
+## Release Checks
+
+`--release` runs these before compiling. `wefter doctor --release-readiness` runs the same list without building.
+
+**Errors** (the build stops):
+
+- Debug settings left in the native project (a dev server address, web view debugging, cleartext exceptions).
+- Missing or incomplete signing settings (unless `--unsigned`), or a keystore / API key file that does not exist.
+- The environment still uses the template's app id, or shares its app id with another environment.
+- No `index.html` in `webDir`.
+
+**Warnings** (the build continues, unless `--strict`):
+
+- Source maps (`.map`) in the web app, which would ship your original source code.
+- Development addresses in the web app, such as `http://localhost:5173` or `http://192.168.1.20:3000`.
+- Stylesheets, scripts, fonts or frames from other sites — the app's Content Security Policy blocks them, so they silently fail to load. Bundle them with the web app (for example, install fonts with npm instead of linking Google Fonts).
+- A build number not higher than an earlier release in the output folder.
+- Passwords written into `wefter.config.json` while git tracks it.
+- Settings in an older config shape (`iosSigning`, a flat `signing` block).
+- No `version` set anywhere.
+- **iOS**: the App Store icon has transparent pixels, there is no privacy manifest, or export compliance (`usesNonExemptEncryption`) is not declared.
+
+After compiling, Android release builds also verify the APK and App Bundle signatures (`apksigner`, `jarsigner`) and the APK's 16 KB page alignment.
 
 ---
 
 ## Usage Examples
 
-### Debug Android Build
-
 ```bash
+# Debug APK of the development environment
 wefter build android
+
+# Store release: signed App Bundle + APK for production
+wefter build android --release
+
+# Only the App Bundle, with an explicit version, failing on any warning
+wefter build android --release --format aab --app-version 2.0.0 --build-number 120 --strict
+
+# A release of the staging environment, unsigned, for signing in another system
+wefter build android --release --env staging --unsigned
+
+# iOS release for TestFlight / App Store
+wefter build ios --release
+
+# Ad hoc iOS release for registered test devices
+wefter build ios --release --export-method release-testing
+
+# Release configuration on a simulator (no signing needed)
+wefter build ios --release --simulator "iPhone 16"
+
+# Both platforms, machine-readable result for CI
+wefter build all --release --json > build-result.json
 ```
 
-### Release Android APK for Production Environment
-
-```bash
-wefter build android --release --env production
-```
-
-### iOS Simulator Build for Staging Environment
-
-```bash
-wefter build ios --env staging --simulator "iPhone 15 Pro"
-```
+With `--json`, stdout gets one document — `{ "ok": true, "builds": [ … ] }` with each build's files, checksums, version and warnings, or `{ "ok": false, "error": "…" }` with exit code 1.
 
 ---
 
-## Output Artifact Locations
+## Failure Modes
 
-Compiled artifacts are output to the following filesystem locations:
-
-| Platform | Build Type | Output File Location                                                          |
-| -------- | ---------- | ----------------------------------------------------------------------------- |
-| Android  | Debug      | `.wefter/native/android/app/build/outputs/apk/<env>/debug/*.apk`              |
-| Android  | Release    | `.wefter/native/android/app/build/outputs/apk/<env>/release/*.apk`            |
-| iOS      | Debug      | `.wefter/native/ios/build/Build/Products/Debug-<Env>-iphonesimulator/*.app`   |
-| iOS      | Release    | `.wefter/native/ios/build/Build/Products/Release-<Env>-iphonesimulator/*.app` |
-
----
-
-## Execution Output & Log Indicators
-
-```text
-[INFO] Building the native project (env: development)...
-[SUCCESS] Built .wefter/native/android/app/build/outputs/apk/development/debug/app-development-debug.apk (18.4 MB)
-[INFO] Using 2 registered plugin(s): @wefterjs/camera, @wefterjs/device
-```
-
----
-
-## Lifecycle Hooks
-
-`wefter build` supports the following lifecycle hooks declared in your `package.json`:
-
-- **`wefter:build:before`**: Fires after sync freshness check, prior to native compilation.
-- **`wefter:build:after`**: Fires after native compilation succeeds and the output artifact exists on disk.
-
----
-
-## Failure Modes & Error Resolution
-
-| Error Message                                               | Root Cause                                                                  | Actionable Resolution                                                 |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `Unsupported platform "..."`                                | Platform argument was not `android` or `ios`.                               | Run `wefter build android` or `wefter build ios`.                     |
-| `Project has never been synced. Run wefter sync first.`     | Project missing `.wefter/sync.marker`.                                      | Run `wefter sync` before building.                                    |
-| `wefter.config.json has changed since the last wefter sync` | Configuration modified after sync.                                          | Run `wefter sync` to refresh native project files.                    |
-| `Gradle build failed with exit code 1`                      | Android Gradle build error (compilation, missing dependency, syntax error). | Review Gradle error output printed above the failure message.         |
-| `xcodebuild failed with exit code 65`                       | Xcode compilation or signing failure.                                       | Run `wefter doctor --release-readiness` to verify iOS signing config. |
+| Error                                                     | Cause                                                                       | Fix                                                                                           |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `Unknown environment "production"`                        | `--release` builds `production`, and the config has no such environment.    | Add a `production` environment, or pass `--env`.                                              |
+| `Android release signing is not ready`                    | `signing.android` is missing, or a value it reads with `${VAR}` is not set. | See [Android Signing](/docs/app-configuration/android-signing), or build with `--unsigned`.   |
+| `iOS release signing is not ready`                        | `signing.ios` is missing.                                                   | See [iOS Signing](/docs/app-configuration/ios-signing), or use `--simulator` / `--unsigned`.  |
+| `Release checks failed`                                   | A release check found an error.                                             | Fix each listed item; `wefter doctor --release-readiness` repeats the checks quickly.         |
+| `… which --strict treats as errors`                       | A warning in a `--strict` build.                                            | Fix the warning, or drop `--strict`.                                                          |
+| `` `wefter build` is already running ``                   | A build hook started `wefter build` again.                                  | Build only the web app in `wefter:build:before`.                                              |
+| `The build output folder … overlaps the web app's folder` | `--output` / `build.output` points into `webDir` (or the other way round).  | Choose another output folder.                                                                 |
+| `Gradle build failed` / `xcodebuild … failed`             | A native compile or signing error.                                          | Read the errors and hints printed with the failure; rerun with `--debug` for the full output. |
+| `No profiles for '…' were found`                          | Xcode has no provisioning profile for the app.                              | Add an App Store Connect API key, name an installed profile, or sign in to the team in Xcode. |

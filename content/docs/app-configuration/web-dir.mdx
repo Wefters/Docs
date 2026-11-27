@@ -52,19 +52,19 @@ wefter sync
 
 1. **Verification**: Checks that the directory specified in `webDir` exists and contains an entry `index.html` file.
 2. **Purge & Copy**: Clears existing web assets in native shells and mirrors your compiled web files:
-   - Android shell destination: `.wefter/native/android/app/src/main/assets/public/`
-   - iOS shell destination: `.wefter/native/ios/Resources/public/`
+   - Android shell destination: `.wefter/native/android/app/src/main/assets/www/`
+   - iOS shell destination: `.wefter/native/ios/WefterBridge/www/`
 3. **MIME Type & Asset Integrity**: Ensures local file paths and media files are registered for native WebView asset loaders (`androidx.webkit.WebViewAssetLoader` on Android and local scheme handlers on iOS).
 
 ---
 
 ## Base Path and Single Page Application Routing
 
-Because native WebViews serve web assets from local file systems or custom asset schemes (`https://appassets.androidplatform.net/` on Android and `wefter://localhost/` on iOS), relative path resolution is essential:
+The app serves the copied files from the root of its own origin: `https://appassets.androidplatform.net/` on Android and `app://local/` on iOS. Paths that start with `/`, such as the `/assets/index-….js` a Vite build writes, resolve to files in your `webDir`, so the default `base` works. `base: "./"` works too.
 
 ### Vite Configuration (`vite.config.ts`)
 
-Configure `base: "./"` so script and stylesheet tags resolve relatively:
+No `base` setting is needed:
 
 ```typescript
 import { defineConfig } from "vite";
@@ -72,7 +72,6 @@ import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [vue()],
-  base: "./",
   build: {
     outDir: "dist",
     emptyOutDir: true,

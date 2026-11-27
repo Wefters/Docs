@@ -1,0 +1,186 @@
+---
+title: Web APIs
+icon: Globe
+description: Dialogs, file uploads, the camera and microphone, location, links to other apps, downloads, fullscreen video and storage work in the native app as they do in a browser.
+---
+
+## Overview
+
+A plain web view leaves many browser features to its app: without help, `alert()` shows nothing, `<input type="file">` does nothing on Android, and `tel:` links go nowhere. Wefter's native shells fill these in, so standard web code works without a plugin:
+
+| Feature               | Web API                                          | Android                                    | iOS                                           |
+| --------------------- | ------------------------------------------------ | ------------------------------------------ | --------------------------------------------- |
+| Dialogs               | `alert()`, `confirm()`, `prompt()`               | Native dialogs                             | Native alerts                                 |
+| File uploads          | `<input type="file">`                            | File picker, camera for photos and videos  | WebKit's menu: photo library, camera, files   |
+| Camera and microphone | `navigator.mediaDevices.getUserMedia()`          | After the Android permission prompt        | After the iOS permission prompt               |
+| Location              | `navigator.geolocation`                          | After the Android permission prompt        | Core Location, with one prompt                |
+| Links to other apps   | `tel:`, `mailto:`, `sms:`, `geo:`, `intent:`, …  | Opened in their apps                       | Opened in their apps                          |
+| Other sites           | Links, `target="_blank"`, `window.open()`        | Opened in the browser                      | Opened in Safari                              |
+| Downloads             | `<a download>`, attachments, `blob:` and `data:` | Saved to Downloads                         | Offered in the **Save to Files** sheet        |
+| Video and fullscreen  | `<video playsinline>`, `requestFullscreen()`     | Inline, fullscreen; back leaves fullscreen | Inline, fullscreen; muted videos may autoplay |
+| Storage               | `localStorage`, `sessionStorage`, IndexedDB      | Kept until the app is uninstalled          | Kept until the app is uninstalled             |
+
+The camera, microphone and location are only given to the app's own pages: the bundled app, or the dev server during `wefter run --watch`.
+
+---
+
+## Permissions
+
+The camera, microphone and location need the app to declare them. Add the ones the web app uses to `permissions`, each with the message iOS shows when asking for it:
+
+```json title="wefter.config.json"
+{
+  "permissions": {
+    "camera": "Take a photo of your receipt to attach it to the expense.",
+    "microphone": "Record voice notes.",
+    "location": "Show stores near you."
+  }
+}
+```
+
+| Property                 | Type   | Used by                                                                      | Android                                          | iOS (`Info.plist`)                    |
+| ------------------------ | ------ | ---------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------- |
+| `permissions.camera`     | String | `getUserMedia({ video })`; taking photos and videos in `<input type="file">` | `CAMERA`                                         | `NSCameraUsageDescription`            |
+| `permissions.microphone` | String | `getUserMedia({ audio })`                                                    | `RECORD_AUDIO`, `MODIFY_AUDIO_SETTINGS`          | `NSMicrophoneUsageDescription`        |
+| `permissions.location`   | String | `navigator.geolocation`                                                      | `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION` | `NSLocationWhenInUseUsageDescription` |
+
+Run `wefter sync` after changing them. Sync writes the Android permissions into `AndroidManifest.xml` and the messages into `Info.plist`, next to the ones plugins declare; when a plugin sets the same iOS message, the app's own wins.
+
+Write each message for the user: say what the app does with the feature. App Store review rejects vague messages such as "Needs camera access".
+
+Without the permission, the request is denied as in a browser where the user said no (`NotAllowedError` from `getUserMedia`, `PERMISSION_DENIED` from geolocation), and in debug builds the page's console says which `permissions` entry is missing. Plugins declare their own permissions and need nothing here.
+
+<Callout type="info">
+  Taking a photo in `<input type="file">` needs no permission on Android unless the app declares `CAMERA` for another
+  reason (`permissions.camera` or a plugin such as a scanner); then Wefter asks for it first, as Android requires. On
+  iOS, keep `permissions.camera` set if the web app accepts images, since iOS offers **Take Photo** for them.
+</Callout>
+
+---
+
+## Dialogs
+
+`alert()`, `confirm()` and `prompt()` show native dialogs and block the page until they are answered, as in a browser. On Android they follow the system's light or dark mode; on iOS, **Return** on a hardware keyboard chooses **OK**.
+
+For dialogs with your own title and button labels, use the [`@wefterjs/dialog` plugin](https://github.com/Wefters/Plugins).
+
+---
+
+## File Uploads
+
+`<input type="file">` works with its usual attributes: `accept` (MIME types such as `image/*`, or extensions such as `.pdf`), `multiple` and `capture`.
+
+- **Android**: When images or videos are accepted, a menu offers **Take a photo**, **Record a video** and **Browse files**; otherwise the system file picker opens directly. `capture` opens the camera at once. The file picker also reaches the photo library and cloud drives.
+- **iOS**: WebKit shows its own menu: **Photo Library**, **Take Photo** and **Choose Files**.
+
+The page receives `File` objects as in a browser. Previews with `URL.createObjectURL(file)` work, since the built-in [Content Security Policy](#content-security-policy) allows `blob:` images and video.
+
+---
+
+## Camera and Microphone
+
+`navigator.mediaDevices.getUserMedia()` works after the system permission prompt, with no second prompt from the web view. Show the stream in a `<video autoplay muted playsinline>` element; without `playsinline`, iOS plays it fullscreen.
+
+```typescript
+const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+video.srcObject = stream;
+```
+
+---
+
+## Location
+
+`navigator.geolocation` (`getCurrentPosition`, `watchPosition`, `clearWatch`) works with its options (`enableHighAccuracy`, `timeout`, `maximumAge`).
+
+- **Android**: The web view's own location, after the Android permission prompt.
+- **iOS**: Answered by Core Location. WebKit's own location asks twice (iOS's prompt, then a second one naming the page's origin); Wefter's asks once, with your `permissions.location` message.
+
+---
+
+## Links
+
+Links to the app's own pages load in the app. Everything else opens outside it:
+
+| Link                                                 | Opens                                                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `https://…` on another site                          | The browser (Safari on iOS)                                                                |
+| `tel:`, `mailto:`, `sms:`                            | The phone, mail or messages app                                                            |
+| `geo:` (Android), `maps:` (iOS), other apps' schemes | The app that handles them                                                                  |
+| `intent:` (Android)                                  | The app it names; its `S.browser_fallback_url`, or its Play Store page, when not installed |
+| `target="_blank"`, `window.open()`                   | Other sites outside the app; the app's own pages load in place                             |
+
+When no app can open a link, a short message says so. Frames inside a page (`<iframe>`) load in place; `javascript:`, `file:` and `content:` links are never handed to other apps.
+
+---
+
+## Downloads
+
+Links with the `download` attribute, responses sent as attachments (`Content-Disposition: attachment`), and files the web view cannot show are downloaded. Files made in the page work too, including the common pattern that revokes the URL right after clicking:
+
+```typescript
+const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+const link = document.createElement("a");
+link.href = url;
+link.download = "report.csv";
+link.click();
+URL.revokeObjectURL(url);
+```
+
+- **Android**: Saved to the **Downloads** folder, with a short message. Files from other sites go through Android's download manager, with the page's cookies. Android 9 and older keep them in the app's own Downloads folder, listed in the Downloads app.
+- **iOS**: The **Save to Files** sheet opens, so the user picks where to keep the file.
+
+---
+
+## Video and Fullscreen
+
+- Videos with `playsinline` play in the page; without it, iOS plays them fullscreen.
+- Muted videos may autoplay on iOS, as in Safari. Video with sound starts from a tap.
+- The fullscreen button of `<video controls>` and `element.requestFullscreen()` work. On Android, the back button leaves fullscreen.
+
+Call `play()` before `requestFullscreen()` when doing both from one tap: a fullscreen request uses up the tap that allows playing with sound.
+
+---
+
+## Storage
+
+`localStorage`, `sessionStorage`, IndexedDB and cookies work and are kept until the app is uninstalled (`sessionStorage` until the app closes). They are separate for each environment, since each is a separate app.
+
+For secrets such as tokens, use the [`@wefterjs/secure-storage` plugin](https://github.com/Wefters/Plugins), which keeps them in the Android Keystore and iOS Keychain.
+
+---
+
+## Content Security Policy
+
+The app's bundled files are served with this Content Security Policy:
+
+```text
+default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';
+img-src 'self' data: blob: https:; media-src 'self' data: blob: https:;
+connect-src 'self' data: blob: https:; font-src 'self' data:;
+```
+
+Images, audio, video and network requests may use HTTPS and the `blob:` and `data:` URLs the page makes itself; scripts, styles and fonts must be bundled. A policy of your own in `index.html` applies on top of it. See [Native Bridge Security](/docs/native-bridge-security).
+
+---
+
+## During Development
+
+`wefter run --watch` loads the dev server from `localhost`: an iOS simulator shares this computer's network, and Android devices reach it through `adb reverse`. Web views treat `localhost` as a secure origin, so the camera, microphone and location work as in the built app. If `adb reverse` is not available, the app falls back to this computer's network address, where those three are unavailable (`window.isSecureContext` is `false`).
+
+---
+
+## Native Platform Implementation
+
+- **Android** (`.wefter/native/android/app/src/main/java/…`):
+  - `WefterChromeClient.kt`: dialogs, the file picker and camera, camera, microphone and location permissions, and fullscreen.
+  - `RuntimePermissions.kt`: asks for Android permissions the app declares, one request at a time.
+  - `ExternalLinks.kt`: opens links in other apps.
+  - `WebDownloads.kt`: saves downloads; files only the page can read (`blob:`, `data:`, the app's own) come through a message channel that only the app's own origins can reach.
+  - `WefterFileProvider.kt`: shares photos and videos the camera app takes with it.
+  - The web view enables DOM storage (`localStorage`, `sessionStorage`).
+- **iOS** (`.wefter/native/ios/WefterBridge/`):
+  - `WebUIDelegate.swift`: dialogs, `target="_blank"` and `window.open()`, and camera and microphone permissions.
+  - `WebGeolocation.swift`: `navigator.geolocation` with Core Location.
+  - `WebDownloads.swift`: downloads and the **Save to Files** sheet.
+  - `ExternalLinks.swift`: opens links in other apps.
+  - The web view plays `playsinline` video inline and allows element fullscreen.

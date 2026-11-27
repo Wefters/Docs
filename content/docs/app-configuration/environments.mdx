@@ -15,7 +15,7 @@ Wefter addresses this natively through the `environments` dictionary in `wefter.
 
 ## Schema Reference
 
-The `environments` property is a required dictionary where each key represents an environment name, mapping to an environment configuration object:
+The `environments` property is a required dictionary where each key represents an environment name, mapping to an environment configuration object. A name starts with a lower-case letter and uses only letters and digits (`staging`, `qaEu`), because it becomes an Android build flavor and an Xcode build configuration; `main`, `test`, `androidTest`, `testFixtures`, `debug` and `release` are reserved by Gradle.
 
 ```json
 {
@@ -66,34 +66,39 @@ The `environments` property is a required dictionary where each key represents a
 
 ## Selecting Environments via CLI
 
-By default, Wefter uses the `development` environment if no flag is passed. You can target any defined environment using the `--env` flag:
+By default, Wefter uses the `development` environment, and `wefter build --release` uses `production`. You can target any defined environment using the `--env` flag; an environment that is not in `wefter.config.json` stops the command with a list of the configured ones.
 
 ### Running on Physical Devices or Emulators
 
 ```bash
 # Launch development environment (default)
-wefter run --platform android
+wefter run android
 
 # Launch staging environment
-wefter run --platform android --env staging
+wefter run android --env staging
 
 # Launch production environment on iOS simulator
-wefter run --platform ios --env production
+wefter run ios --env production
 ```
 
 ### Compiling Production Binaries
 
 ```bash
-# Compile staging APK / AAB
-wefter build --platform android --env staging
+# Debug APK of staging
+wefter build android --env staging
 
-# Compile production release build
-wefter build --platform android --env production --release
+# Store release of production (the default for --release)
+wefter build android --release
+
+# Release of staging, for internal testers
+wefter build android --release --env staging
 ```
 
 ---
 
 ## Platform Synchronization Mechanics
+
+The native templates come with `development` and `production`. For any other environment, `wefter sync` adds an Android product flavor and iOS `Debug-<Env>` / `Release-<Env>` build configurations (with their `.xcconfig` files), so `staging` builds like the others.
 
 During `wefter sync`:
 

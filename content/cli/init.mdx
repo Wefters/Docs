@@ -41,7 +41,7 @@ When invoked, `wefter init` executes the following sequence:
    - **`wefter.config.json`**: Writes project configuration with `webDir`, empty plugins array, and a `development` environment mapping.
    - **`package.json`**: Appends `@wefterjs/core` to `dependencies` and `@wefterjs/cli` to `devDependencies` with compile-time hardcoded versions.
    - **`.env`**: Appends a `# --- wefter ---` block containing `WEFTER_APP_ID`, `WEFTER_APP_NAME`, and `WEFTER_WEB_DIR`.
-   - **`.gitignore`**: Appends `.wefter/` build output directory if `.gitignore` exists.
+   - **`.gitignore`**: Appends `.wefter/` and the `wefter build` output folder (`build/`, or `native-build/` when `webDir` is `build`) if `.gitignore` exists and does not list them yet.
 4. **Success Summary & Next Steps**:
    - Displays the WEFTER ASCII logo, summary checklist, recommended package installation command (`pnpm install`, `npm install`, or `yarn install`), and community resource links.
 
@@ -117,7 +117,7 @@ Upon completion, `wefter init` renders a summary:
     ✓ Wrote wefter.config.json (appId: dev.local.my_app, webDir: dist)
     ✓ Added @wefterjs/core@0.0.1 and @wefterjs/cli@0.0.3 to package.json
     ✓ Wrote WEFTER_* variables to .env
-    ✓ Added .wefter/ to .gitignore
+    ✓ Added .wefter/ and build/ to .gitignore
 
   Next Steps:
     1. Run pnpm install to install dependencies

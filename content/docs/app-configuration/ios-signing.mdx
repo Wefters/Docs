@@ -2,90 +2,123 @@
 title: iOS Code Signing
 sidebarTitle: "iOS Signing"
 icon: FileKey
-description: Setting Apple Developer Team IDs, provisioning profiles, and automated Xcode code signing configurations.
+description: Team, certificates, provisioning profiles and App Store Connect API keys for signed iOS releases (.ipa).
 ---
 
 ## Overview
 
-Distributing an iOS application to test devices via TestFlight or submitting to the Apple App Store requires code signing with Apple Developer certificates and provisioning profiles.
+Installing on iPhones, TestFlight and the App Store all need an app signed with an Apple certificate and a provisioning profile. `wefter build ios --release` archives the app for devices and exports a signed `.ipa` using `signing.ios` in `wefter.config.json`.
 
-Wefter simplifies iOS code signing through the `iosSigning` configuration object in `wefter.config.json`.
+Simulator builds (`wefter build ios`, or `--release --simulator`) need no signing.
 
 ---
 
 ## Schema Reference
 
-| Property              | Type   | Required / Optional | Default   | Description                                                                |
-| --------------------- | ------ | ------------------- | --------- | -------------------------------------------------------------------------- |
-| `teamId`              | String | **Required**        | None      | 10-character Apple Developer Team ID from your Apple Developer account.    |
-| `provisioningProfile` | String | Optional            | Automatic | Name or UUID of a manual provisioning profile. Omit for automatic signing. |
-
-```json
+```json title="wefter.config.json"
 {
-  "iosSigning": {
-    "teamId": "ABCDE12345"
+  "signing": {
+    "ios": {
+      "teamId": "ABCDE12345",
+      "provisioningProfile": "Shop App Store",
+      "signingIdentity": "Apple Distribution",
+      "appStoreConnect": {
+        "keyPath": "keys/AuthKey_ABC123XYZ.p8",
+        "keyId": "${WEFTER_ASC_KEY_ID}",
+        "issuerId": "${WEFTER_ASC_ISSUER_ID}"
+      }
+    }
+  },
+  "build": {
+    "ios": {
+      "exportMethod": "app-store-connect",
+      "usesNonExemptEncryption": false
+    }
   }
 }
 ```
 
----
+| Property                            | Required | Description                                                                                                                                                              |
+| ----------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `teamId`                            | Yes      | Your 10-character Apple Developer Team ID.                                                                                                                               |
+| `provisioningProfile`               | No       | Name of an installed provisioning profile. Setting it switches to **manual** signing.                                                                                    |
+| `signingIdentity`                   | No       | The certificate to sign with, such as `Apple Distribution` or its full name. Used with manual signing.                                                                   |
+| `appStoreConnect`                   | No       | An App Store Connect API key, so Xcode can create certificates and profiles itself — the way to sign in CI.                                                              |
+| `build.ios.exportMethod`            | No       | `app-store-connect` (default), `release-testing`, `enterprise` or `debugging`.                                                                                           |
+| `build.ios.usesNonExemptEncryption` | No       | Written to `Info.plist` as `ITSAppUsesNonExemptEncryption`. Set `false` if the app only uses HTTPS, and App Store Connect stops asking about encryption on every upload. |
 
-## Finding Your Apple Developer Team ID
+Any value can be written as `${VAR}` to read it from the environment or `.env`. Variables also override the config:
 
-1. Log into your account at [developer.apple.com](https://developer.apple.com).
-2. Navigate to **Membership Details** in the sidebar.
-3. Copy your 10-character alphanumeric **Team ID** (for example, `ABCDE12345`).
+| Setting                    | Variable                          |
+| -------------------------- | --------------------------------- |
+| `teamId`                   | `WEFTER_IOS_TEAM_ID`              |
+| `provisioningProfile`      | `WEFTER_IOS_PROVISIONING_PROFILE` |
+| `signingIdentity`          | `WEFTER_IOS_SIGNING_IDENTITY`     |
+| `appStoreConnect.keyPath`  | `WEFTER_ASC_KEY_PATH`             |
+| `appStoreConnect.keyId`    | `WEFTER_ASC_KEY_ID`               |
+| `appStoreConnect.issuerId` | `WEFTER_ASC_ISSUER_ID`            |
 
----
-
-## Automatic vs Manual Signing
-
-### Automatic Signing (Recommended)
-
-When `provisioningProfile` is omitted, Wefter configures Xcode for automatic code signing:
-
-```json
-{
-  "iosSigning": {
-    "teamId": "ABCDE12345"
-  }
-}
-```
-
-Xcode automatically creates, downloads, and updates developer certificates and App Store provisioning profiles associated with your Apple Developer account during compilation.
-
-### Manual Provisioning Profiles
-
-For enterprise deployments or restricted CI/CD environments that require explicitly installed provisioning profiles, specify the profile name:
-
-```json
-{
-  "iosSigning": {
-    "teamId": "ABCDE12345",
-    "provisioningProfile": "Company_InHouse_Distribution_Profile"
-  }
-}
-```
+`signing.android` sits next to `signing.ios` — see [Android Signing](/docs/app-configuration/android-signing).
 
 ---
 
-## Building Signed iOS Binaries via CLI
+## Finding Your Team ID
 
-To compile a signed iOS archive or standalone IPA package, run `wefter build`:
+Sign in at [developer.apple.com](https://developer.apple.com), open **Membership Details**, and copy the 10-character **Team ID**.
+
+---
+
+## Signing Styles
+
+### Automatic signing on your Mac
+
+With only `teamId`, Xcode signs automatically using the accounts signed in under **Xcode › Settings › Accounts**. This is the simplest setup for building on your own machine.
+
+### Automatic signing in CI (App Store Connect API key)
+
+A CI machine has no Xcode account, so give it an API key instead:
+
+1. In App Store Connect, open **Users and Access › Integrations › App Store Connect API** and create a key with the **App Manager** role.
+2. Download the `.p8` file (only possible once) and note the **Key ID** and **Issuer ID**.
+3. Set `appStoreConnect` as above, keeping the `.p8` file out of git.
+
+Wefter then passes `-allowProvisioningUpdates` and the key to xcodebuild, which creates or downloads the certificate and profile it needs.
+
+### Manual signing
+
+Set `provisioningProfile` (and usually `signingIdentity`) to use a profile and certificate already installed on the machine — common for enterprise distribution or locked-down CI. The profile must match the environment's bundle id.
+
+---
+
+## Building a Signed `.ipa`
 
 ```bash
-# Build signed production archive
-wefter build --platform ios --release
+# App Store Connect / TestFlight
+wefter build ios --release
 
-# Build and export IPA for TestFlight distribution
-wefter build --platform ios --release --export-method app-store
+# Registered test devices (ad hoc)
+wefter build ios --release --export-method release-testing
 ```
 
-Supported export methods include:
+| Export method       | For                                                               | Older name    |
+| ------------------- | ----------------------------------------------------------------- | ------------- |
+| `app-store-connect` | TestFlight and the App Store. Uploads symbols with the export.    | `app-store`   |
+| `release-testing`   | Devices registered in your account (ad hoc).                      | `ad-hoc`      |
+| `enterprise`        | In-house distribution with an Apple Developer Enterprise account. | `enterprise`  |
+| `debugging`         | Development devices.                                              | `development` |
 
-- `app-store`: Upload to App Store Connect and TestFlight.
-- `ad-hoc`: Direct distribution to registered UDID devices.
-- `development`: Local debugging on development devices.
-- `enterprise`: In-house distribution under an Apple Developer Enterprise program.
+The `.ipa` and a zip of the debug symbols (dSYMs) go to `build/ios/<env>/<version>-<build>/`. Upload the `.ipa` with Transporter, `xcrun altool`, or your CI's App Store step.
 
-Outputs are generated inside `.wefter/native/ios/build/`.
+To sign elsewhere, use `--unsigned`: Wefter archives without signing and packs an unsigned `.ipa` (`…-unsigned.ipa`) for your signing tools.
+
+---
+
+## Release Checks for iOS
+
+Besides the security checks, `--release` warns when the App Store icon has transparent pixels (App Store Connect rejects it), when the privacy manifest (`PrivacyInfo.xcprivacy`) is missing, and when export compliance is not declared. See [`wefter build`](/cli/build#release-checks).
+
+---
+
+## Older Config Shape
+
+The earlier top-level `"iosSigning": { … }` block still works and is read as `signing.ios`; `wefter sync` and release builds remind you to move it.

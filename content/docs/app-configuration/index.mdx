@@ -59,6 +59,11 @@ App configuration is divided into dedicated functional domains. Select any topic
     description="Hide or keep the previous, next and Done bar iOS shows above the keyboard in web forms."
   />
   <Card
+    title="Web APIs"
+    href="/docs/app-configuration/web-apis"
+    description="Dialogs, file uploads, camera, microphone, location, links, downloads and fullscreen video, and the permissions they need."
+  />
+  <Card
     title="Deep Links"
     href="/docs/app-configuration/deep-links"
     description="Open the app from custom URL schemes and receive the links in JavaScript with onDeepLink."
@@ -81,21 +86,24 @@ App configuration is divided into dedicated functional domains. Select any topic
 
 The table below outlines all available top-level properties in `wefter.config.json`:
 
-| Property           | Type                          | Required / Optional | Default                  | Description                                                                                    |
-| ------------------ | ----------------------------- | ------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `webDir`           | String                        | **Required**        | `"dist"`                 | Directory containing compiled web production assets. Copied to native shells during sync.      |
-| `environments`     | `Record<string, Environment>` | **Required**        | `{ development: {...} }` | Named dictionary of environment definitions (`appId`, `appName`, `iosBundleId`).               |
-| `plugins`          | Array of Strings              | Optional            | `[]`                     | Explicit list of native plugin npm package names to compile into native shells.                |
-| `pluginsDir`       | String                        | Optional            | `"node_modules"`         | Root directory where declared plugin packages are resolved.                                    |
-| `pluginConfig`     | `Record<string, string>`      | Optional            | `{}`                     | Key-value store used to replace `${key}` placeholders in native plugin manifests.              |
-| `icon`             | String                        | Optional            | None                     | Relative path to source PNG image (minimum 1024x1024px) for launcher icons.                    |
-| `splash`           | Boolean or Object             | Optional            | `false`                  | Custom HTML splash screen configuration object or `false` to disable.                          |
-| `launchBackground` | String                        | Optional            | Sampled / `#FFFFFF`      | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch.                        |
-| `landscape`        | Boolean                       | Optional            | `false`                  | Forces application into landscape mode immediately upon launch.                                |
-| `deepLinks`        | Object                        | Optional            | None                     | Custom URL schemes and verified domains the app opens for (`schemes`, `domains`, `paths`).     |
-| `keyboard`         | Object                        | Optional            | None                     | Keyboard behaviour. `accessoryBar` keeps the iOS form bar above the keyboard (off by default). |
-| `signing`          | Object                        | Optional            | None                     | Android release keystore signing configuration for production builds.                          |
-| `iosSigning`       | Object                        | Optional            | None                     | iOS Apple Developer signing configuration for distribution builds.                             |
+| Property           | Type                          | Required / Optional | Default                  | Description                                                                                                                                                                                            |
+| ------------------ | ----------------------------- | ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `webDir`           | String                        | **Required**        | `"dist"`                 | Directory containing compiled web production assets. Copied to native shells during sync.                                                                                                              |
+| `environments`     | `Record<string, Environment>` | **Required**        | `{ development: {...} }` | Named dictionary of environment definitions (`appId`, `appName`, `iosBundleId`).                                                                                                                       |
+| `plugins`          | Array of Strings              | Optional            | `[]`                     | Explicit list of native plugin npm package names to compile into native shells.                                                                                                                        |
+| `pluginsDir`       | String                        | Optional            | `"node_modules"`         | Root directory where declared plugin packages are resolved.                                                                                                                                            |
+| `pluginConfig`     | `Record<string, string>`      | Optional            | `{}`                     | Key-value store used to replace `${key}` placeholders in native plugin manifests.                                                                                                                      |
+| `icon`             | String                        | Optional            | None                     | Relative path to source PNG image (minimum 1024x1024px) for launcher icons.                                                                                                                            |
+| `splash`           | Boolean or Object             | Optional            | `false`                  | Custom HTML splash screen configuration object or `false` to disable.                                                                                                                                  |
+| `launchBackground` | String                        | Optional            | Sampled / `#FFFFFF`      | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch.                                                                                                                                |
+| `landscape`        | Boolean                       | Optional            | `false`                  | Forces application into landscape mode immediately upon launch.                                                                                                                                        |
+| `deepLinks`        | Object                        | Optional            | None                     | Custom URL schemes and verified domains the app opens for (`schemes`, `domains`, `paths`).                                                                                                             |
+| `keyboard`         | Object                        | Optional            | None                     | Keyboard behaviour. `accessoryBar` keeps the iOS form bar above the keyboard (off by default).                                                                                                         |
+| `permissions`      | Object                        | Optional            | None                     | Camera, microphone and location the web app uses (`getUserMedia`, `navigator.geolocation`), each with the message iOS shows. See [Web APIs](/docs/app-configuration/web-apis#permissions).             |
+| `version`          | String                        | Optional            | `package.json` version   | App version shown in the stores, three numbers such as `1.4.0`. See [Versioning](/cli/build#versioning).                                                                                               |
+| `buildNumber`      | Integer                       | Optional            | `1`                      | Build number; must go up with every store upload (1 – 2,100,000,000).                                                                                                                                  |
+| `build`            | Object                        | Optional            | See below                | `output` folder (`"build"`), `android.format` (`apk`/`aab`/`both`), `ios.exportMethod`, `ios.usesNonExemptEncryption`. See [`wefter build`](/cli/build).                                               |
+| `signing`          | Object                        | Optional            | None                     | Release signing: `android` ([Android Signing](/docs/app-configuration/android-signing)) and `ios` ([iOS Signing](/docs/app-configuration/ios-signing)). Values may read the environment with `${VAR}`. |
 
 ---
 
@@ -141,12 +149,26 @@ A comprehensive `wefter.config.json` manifest demonstrating all configuration op
   "keyboard": {
     "accessoryBar": false
   },
-  "signing": {
-    "keystorePath": "./release.keystore",
-    "keyAlias": "my-key-alias"
+  "permissions": {
+    "camera": "Take a photo of your receipt to attach it to the expense.",
+    "location": "Show stores near you."
   },
-  "iosSigning": {
-    "teamId": "ABCDE12345"
+  "version": "1.4.0",
+  "buildNumber": 42,
+  "build": {
+    "output": "build",
+    "android": { "format": "both" },
+    "ios": { "exportMethod": "app-store-connect", "usesNonExemptEncryption": false }
+  },
+  "signing": {
+    "android": {
+      "keystorePath": "keys/upload.jks",
+      "keyAlias": "upload",
+      "storePassword": "${WEFTER_KEYSTORE_PASSWORD}"
+    },
+    "ios": {
+      "teamId": "ABCDE12345"
+    }
   }
 }
 ```

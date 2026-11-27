@@ -22,9 +22,9 @@ Add convenience scripts to your root `package.json` file:
     "wefter:sync": "wefter sync",
     "wefter:doctor": "wefter doctor",
     "android:dev": "wefter run android --watch",
-    "android:release": "wefter doctor --release-readiness && wefter build android --release --env production",
+    "android:release": "wefter doctor --release-readiness && wefter build android --release",
     "ios:dev": "wefter run ios --watch",
-    "ios:release": "wefter doctor --release-readiness && wefter build ios --release --env production"
+    "ios:release": "wefter doctor --release-readiness && wefter build ios --release"
   }
 }
 ```
@@ -45,6 +45,20 @@ Use standard npm `pre` and `post` lifecycle scripts to automate web builds prior
 ```
 
 When running `npm run wefter:sync`, npm automatically runs `npm run build` first to ensure fresh web assets reside in `webDir` before `wefter sync` copies assets into native project directories.
+
+`wefter build` runs its own hooks from `package.json`, so a release always contains a fresh web build, however it is started:
+
+```json
+{
+  "scripts": {
+    "wefter:build:before": "vite build --mode $WEFTER_ENV",
+    "wefter:build:after": "echo Built $WEFTER_ARTIFACT",
+    "wefter:build:failed": "echo Build failed: $WEFTER_ERROR"
+  }
+}
+```
+
+See [Hooks](/cli/hooks) for every hook and the variables they receive.
 
 ---
 

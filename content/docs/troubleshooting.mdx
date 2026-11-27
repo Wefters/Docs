@@ -124,3 +124,22 @@ WefterBridgeError: [TIMEOUT] Native method call timed out after 10000ms.
 
 - **Root Cause**: The native Kotlin or Swift method failed to call `resolve()` or `reject()` on its callback parameter, leaving the JavaScript Promise pending.
 - **Solution**: Inspect native plugin code and ensure every conditional branch settles via `resolve` or `reject`.
+
+### 8. Camera, Microphone or Location Denied in the Web App
+
+```text
+NotAllowedError: Permission denied
+GeolocationPositionError { code: 1, message: "User denied Geolocation" }
+```
+
+- **Root Cause**: The app does not declare the permission, the user said no, or the page is not a secure context (`window.isSecureContext` is `false`, as on a dev server reached through a network address). In debug builds, the page's console names the missing `permissions` entry.
+- **Solution**: Add the feature to `permissions` in `wefter.config.json` and run `wefter sync`:
+  ```json
+  {
+    "permissions": {
+      "camera": "Take a photo of your receipt to attach it to the expense.",
+      "location": "Show stores near you."
+    }
+  }
+  ```
+  A user who said no can allow it again in the system settings. With `wefter run --watch` on Android, keep the device connected through `adb` so the app can load the dev server from `localhost`. See [Web APIs](/docs/app-configuration/web-apis).

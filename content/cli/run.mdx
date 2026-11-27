@@ -14,7 +14,7 @@ wefter run <platform> [--watch] [--env <name>] [--simulator <name>] [projectDir]
 
 `wefter run` compiles your native application, installs it onto a target device or simulator, and launches it automatically.
 
-When run with `--watch`, it starts a local Vite development server, resolves your LAN IP address, wires network security permissions into the native app, and streams live code changes to your device/simulator with instant hot reload.
+When run with `--watch`, it starts a local Vite development server, points the app at it, and streams live code changes to your device/simulator with instant hot reload. The app loads the dev server from `localhost` (through `adb reverse` on Android; an iOS simulator shares this computer's network), which web views treat as a secure origin, so the camera, microphone and location work as in the built app.
 
 ### Primary Use Cases
 
@@ -36,6 +36,7 @@ When invoked, `wefter run` executes the following sequence:
 4. **Dev Server Initialization (`--watch`)**:
    - Resolves local LAN IP (`resolveLanIp`).
    - Starts Vite development server (`startDevServer`).
+   - On Android, forwards the dev server's port to the device with `adb reverse`, so the app reaches it at `http://localhost:<port>`; without it, the app uses the LAN address, where the camera, microphone and location are unavailable. An iOS simulator always uses `http://localhost:<port>`.
    - Injects network security exception rules and dev server URL into Android `build.gradle.kts` or iOS `BuildConfig.swift`.
 5. **Native Build**: Compiles debug native binary via `buildAndroid` or `buildIos`.
 6. **Installation & Launch**:

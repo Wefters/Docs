@@ -10,6 +10,7 @@
     "launch-background",
     "landscape",
     "keyboard",
+    "web-apis",
     "deep-links",
     "android-signing",
     "ios-signing"

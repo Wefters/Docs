@@ -45,9 +45,11 @@ When executed, `wefter sync` runs through a 15-step pipeline:
 9. **Native Plugin Source Weaving**: Copies Kotlin (`.kt`) and Swift (`.swift`) source files from installed npm plugin packages into the native project trees.
 10. **Dependency & Manifest Merging**:
     - Merges Gradle dependencies (`build.gradle.kts`) and SPM packages (`Package.swift`).
-    - Merges `AndroidManifest.xml` permissions, activities, intent-filters, and ProGuard rules (`proguard-rules.pro`).
-    - Merges iOS `Info.plist` usage description keys.
-11. **Environment Configuration**: Injects per-environment product flavors (`build.gradle.kts`) and iOS xcconfig files (`Environment-<env>.xcconfig`).
+    - Merges `AndroidManifest.xml` permissions, activities, intent-filters, and ProGuard rules (`proguard-rules.pro`), adding the Android permissions behind the app's own `permissions` (camera, microphone, location).
+    - Merges iOS `Info.plist` usage description keys, including the messages in `permissions`, which win over a plugin's for the same key.
+11. **Environment Configuration**: Injects per-environment product flavors (`build.gradle.kts`) and iOS xcconfig files (`Environment-<env>.xcconfig`). Environments beyond `development` and `production`, such as `staging`, get their own Android product flavor and iOS `Debug-<Env>` / `Release-<Env>` build configurations.
+    - **Version**: Writes `version` and `buildNumber` into `versionName` / `versionCode` (Android) and `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `Shared.xcconfig` (iOS).
+    - **Export compliance**: Writes `ITSAppUsesNonExemptEncryption` into `Info.plist` when `build.ios.usesNonExemptEncryption` is set.
 12. **Icon & Splash Generation**: Generates native launcher icons and splash screens if `config.icon` or `config.splash` are defined.
 13. **Bridge Registry Generation**: Writes `WefterPluginRegistry.kt` and `WefterPluginRegistry.swift` containing registration code for all native plugin methods.
 14. **Lockfile Update (`wefter.lock.json`)**: Writes updated plugin version numbers and integrity hashes.

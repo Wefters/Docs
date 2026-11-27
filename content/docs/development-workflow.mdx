@@ -14,11 +14,11 @@ Understanding when to run each command optimizes your development cycle and ensu
 
 ## Core CLI Commands Comparison
 
-| Command                       | Native Codegen & Manifest Weaving | Compiles Native Code          | Produces Binary Artifact   | Installs & Launches on Device |
-| ----------------------------- | --------------------------------- | ----------------------------- | -------------------------- | ----------------------------- |
-| **`wefter sync`**             | **Yes**                           | No                            | No (Manifests & Code only) | No                            |
-| **`wefter build <platform>`** | **Yes** (calls `sync`)            | **Yes** (Gradle / xcodebuild) | **Yes** (`.apk` / `.app`)  | No                            |
-| **`wefter run <platform>`**   | **Yes** (calls `sync`)            | **Yes** (calls `build`)       | **Yes**                    | **Yes** (via `adb` / `xcrun`) |
+| Command                       | Native Codegen & Manifest Weaving | Compiles Native Code          | Produces Binary Artifact                                 | Installs & Launches on Device |
+| ----------------------------- | --------------------------------- | ----------------------------- | -------------------------------------------------------- | ----------------------------- |
+| **`wefter sync`**             | **Yes**                           | No                            | No (Manifests & Code only)                               | No                            |
+| **`wefter build <platform>`** | **Yes** (calls `sync`)            | **Yes** (Gradle / xcodebuild) | **Yes** (`.apk` / `.aab` / `.app` / `.ipa`, in `build/`) | No                            |
+| **`wefter run <platform>`**   | **Yes** (calls `sync`)            | **Yes** (calls `build`)       | **Yes**                                                  | **Yes** (via `adb` / `xcrun`) |
 
 ---
 
@@ -118,12 +118,14 @@ Before producing production artifacts for App Store or Google Play deployment:
    ```bash
    wefter doctor --release-readiness
    ```
-2. **Build Signed Release Binary**:
+2. **Build Signed Release Binary** (`--release` builds the `production` environment):
 
    ```bash
-   # Android release APK
-   wefter build android --release --env production
+   # Android: signed App Bundle for Google Play, plus an APK for testing
+   wefter build android --release
 
-   # iOS release build
-   wefter build ios --release --env production
+   # iOS: signed .ipa for App Store Connect
+   wefter build ios --release
    ```
+
+   The files are copied to `build/<platform>/production/<version>-<build>/`. See [Releasing](/docs/releasing-and-publishing).

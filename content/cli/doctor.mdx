@@ -59,9 +59,9 @@ All checks execute regardless of earlier failures. Diagnostic results are aggreg
 
 ### Options (Flags)
 
-| Flag                  | Type    | Description                                                                             | Default |
-| --------------------- | ------- | --------------------------------------------------------------------------------------- | ------- |
-| `--release-readiness` | Boolean | Includes additional release-signing keystore and iOS provisioning profile verification. | `false` |
+| Flag                  | Type    | Description                                                                                                     | Default |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------------------- | ------- |
+| `--release-readiness` | Boolean | Also runs the release checks `wefter build --release` runs, for the `production` environment on both platforms. | `false` |
 
 ---
 
@@ -69,8 +69,14 @@ All checks execute regardless of earlier failures. Diagnostic results are aggreg
 
 When `--release-readiness` is enabled, `wefter doctor` performs additional release security checks for production builds:
 
-- **Android Keystore Configuration**: Verifies `signing` configuration in `wefter.config.json` (`keystorePath`, `keyAlias`) and confirms the keystore file exists on disk and `WEFTER_KEYSTORE_PASSWORD` environment variable is defined.
-- **iOS Signing Configuration**: Verifies `iosSigning` configuration in `wefter.config.json` (`teamId`) and confirms `WEFTER_IOS_SIGNING_IDENTITY` environment variable is set.
+With `--release-readiness`, `wefter doctor` runs the same checks as `wefter build --release`, without building. See [Release checks](/cli/build#release-checks) for the full list. In short:
+
+- **Version**: the version and build number that a release would use.
+- **Android and iOS** (each): debug settings left in the native project, complete signing (`signing.android` with its keystore and passwords, `signing.ios` with its team), the production app id, and the iOS store requirements.
+- **Web app**: source maps, development addresses, and stylesheets, scripts or fonts from other sites that the Content Security Policy blocks.
+- **Deep link domains**: when the app opens verified `https` links, that each domain serves its verification files.
+
+Errors are marked ✘ and fail the command; warnings are marked `!` and do not.
 
 ---
 
@@ -136,13 +142,13 @@ wefter doctor --release-readiness ./apps/mobile-app
 
 ## Failure Modes & Error Resolution
 
-| Check Failure                                | Root Cause                                                                              | Actionable Resolution                                                                                                       |
-| -------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `ANDROID_HOME set`                           | `ANDROID_HOME` or `ANDROID_SDK_ROOT` environment variable is not defined.               | Set `export ANDROID_HOME=$HOME/Android/Sdk` in your shell profile (`~/.zshrc` or `~/.bashrc`).                              |
-| `adb on PATH`                                | `adb` binary cannot be found in `$PATH`.                                                | Add `$ANDROID_HOME/platform-tools` to your `$PATH`.                                                                         |
-| `JDK version`                                | System Java version is not JDK 17.                                                      | Install JDK 17 (e.g. `brew install openjdk@17`) and set `JAVA_HOME`.                                                        |
-| `Connected device or running emulator`       | No active Android device or emulator detected.                                          | Launch an Android Virtual Device (AVD) from Android Studio or connect a physical device via USB with USB Debugging enabled. |
-| `Running on macOS`                           | Command executed on Linux or Windows.                                                   | iOS builds require macOS. For Android-only development on Linux/Windows, disregard iOS-specific warnings.                   |
-| `Xcode installed`                            | Xcode application is not installed on macOS.                                            | Install Xcode from the Mac App Store.                                                                                       |
-| `Signing config` (`--release-readiness`)     | Android release keystore missing or `WEFTER_KEYSTORE_PASSWORD` unset.                   | Define `signing` block in `wefter.config.json` and export `WEFTER_KEYSTORE_PASSWORD`.                                       |
-| `iOS signing config` (`--release-readiness`) | `iosSigning` block missing or `WEFTER_IOS_SIGNING_IDENTITY` environment variable unset. | Define `iosSigning.teamId` in `wefter.config.json` and export `WEFTER_IOS_SIGNING_IDENTITY`.                                |
+| Check Failure                                  | Root Cause                                                                  | Actionable Resolution                                                                                                       |
+| ---------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `ANDROID_HOME set`                             | `ANDROID_HOME` or `ANDROID_SDK_ROOT` environment variable is not defined.   | Set `export ANDROID_HOME=$HOME/Android/Sdk` in your shell profile (`~/.zshrc` or `~/.bashrc`).                              |
+| `adb on PATH`                                  | `adb` binary cannot be found in `$PATH`.                                    | Add `$ANDROID_HOME/platform-tools` to your `$PATH`.                                                                         |
+| `JDK version`                                  | System Java version is not JDK 17.                                          | Install JDK 17 (e.g. `brew install openjdk@17`) and set `JAVA_HOME`.                                                        |
+| `Connected device or running emulator`         | No active Android device or emulator detected.                              | Launch an Android Virtual Device (AVD) from Android Studio or connect a physical device via USB with USB Debugging enabled. |
+| `Running on macOS`                             | Command executed on Linux or Windows.                                       | iOS builds require macOS. For Android-only development on Linux/Windows, disregard iOS-specific warnings.                   |
+| `Xcode installed`                              | Xcode application is not installed on macOS.                                | Install Xcode from the Mac App Store.                                                                                       |
+| `Android: … signing …` (`--release-readiness`) | `signing.android` missing, or a password it reads with `${VAR}` is not set. | See [Android Signing](/docs/app-configuration/android-signing).                                                             |
+| `iOS: … signing …` (`--release-readiness`)     | `signing.ios` missing or incomplete.                                        | See [iOS Signing](/docs/app-configuration/ios-signing).                                                                     |

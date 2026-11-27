@@ -29,11 +29,11 @@ Writes `<out>/<domain>/.well-known/assetlinks.json` and `apple-app-site-associat
 
 `assetlinks.json` lists these signing certificates:
 
-- The release keystore from `signing` in `wefter.config.json`, when `WEFTER_KEYSTORE_PASSWORD` is set.
+- The release keystore from `signing.android` in `wefter.config.json`, when its password is available (`storePassword` or `WEFTER_KEYSTORE_PASSWORD`).
 - Each `--fingerprint`. With Play App Signing, Google re-signs the app, so add the **app signing key** fingerprint from the Play Console (Setup → App signing).
 - The debug keystore, with `--debug`.
 
-`apple-app-site-association` needs the Apple team id from `iosSigning.teamId`, and lists each environment's bundle id with its `deepLinks.paths`.
+`apple-app-site-association` needs the Apple team id from `signing.ios.teamId`, and lists each environment's bundle id with its `deepLinks.paths`.
 
 <Callout type="warn">
   Serve both files over HTTPS as `application/json`, directly at `/.well-known/` without redirects.
