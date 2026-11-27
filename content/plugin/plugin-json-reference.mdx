@@ -15,18 +15,20 @@ It defines native permissions, Gradle/SPM package dependencies, ProGuard rules, 
 
 ## Schema Reference Table
 
-| Field Name                                 | Type                     | Required / Optional | Default Value | Description                                                                             |
-| ------------------------------------------ | ------------------------ | ------------------- | ------------- | --------------------------------------------------------------------------------------- |
-| `name`                                     | String                   | **Required**        | None          | Unique plugin package identifier (matches `wefter.config.json`'s `plugins` array).      |
-| `permissions.android`                      | Array of Strings         | Optional            | `[]`          | List of Android manifest permission constants (`android.permission.CAMERA`).            |
-| `permissions.ios`                          | `Record<string, string>` | Optional            | `{}`          | Key-value pairs mapping iOS `Info.plist` usage keys to user prompt description strings. |
-| `nativeDependencies.android.gradle`        | Array of Strings         | Optional            | `[]`          | Maven Gradle dependency coordinates (`group:artifact:version`).                         |
-| `nativeDependencies.android.proguardRules` | String                   | Optional            | None          | Raw ProGuard rules text merged into `proguard-rules.pro`.                               |
-| `nativeDependencies.ios.spm`               | Array of Objects         | Optional            | `[]`          | Swift Package Manager dependencies (`url`, `from`, `product`).                          |
-| `android.manifestEntries`                  | Array of Objects         | Optional            | `[]`          | Android manifest component entries (Activities and Intent Filters).                     |
-| `methods`                                  | Array of Strings         | Optional            | `[]`          | List of `@WefterMethod` function names implemented by native source files.              |
-| `hooks`                                    | Array of Strings         | Optional            | `[]`          | List of `@WefterHook` signal names implemented by native source files.                  |
-| `events`                                   | Array of Strings         | Optional            | `[]`          | List of event names emitted by native plugin code (`emit`).                             |
+| Field Name                                 | Type                     | Required / Optional | Default Value | Description                                                                                                  |
+| ------------------------------------------ | ------------------------ | ------------------- | ------------- | ------------------------------------------------------------------------------------------------------------ |
+| `name`                                     | String                   | **Required**        | None          | Unique plugin package identifier (matches `wefter.config.json`'s `plugins` array).                           |
+| `permissions.android`                      | Array of Strings         | Optional            | `[]`          | List of Android manifest permission constants (`android.permission.CAMERA`).                                 |
+| `permissions.ios`                          | `Record<string, string>` | Optional            | `{}`          | Key-value pairs mapping iOS `Info.plist` usage keys to user prompt description strings.                      |
+| `nativeDependencies.android.gradle`        | Array of Strings         | Optional            | `[]`          | Maven Gradle dependency coordinates (`group:artifact:version`).                                              |
+| `nativeDependencies.android.proguardRules` | String                   | Optional            | None          | Raw ProGuard rules text merged into `proguard-rules.pro`.                                                    |
+| `nativeDependencies.android.gradlePlugins` | Array of Objects         | Optional            | `[]`          | Gradle plugins (`id`, `version`) declared in the root build and applied to the app, such as Google Services. |
+| `nativeDependencies.ios.spm`               | Array of Objects         | Optional            | `[]`          | Swift Package Manager dependencies (`url`, `from`, `product`).                                               |
+| `requiredFiles`                            | Object                   | Optional            | `{}`          | Files the app must list in `nativeFiles`, by name: `{ "android": [...], "ios": [...] }`.                     |
+| `android.manifestEntries`                  | Array of Objects         | Optional            | `[]`          | Android manifest component entries (Activities and Intent Filters).                                          |
+| `methods`                                  | Array of Strings         | Optional            | `[]`          | List of `@WefterMethod` function names implemented by native source files.                                   |
+| `hooks`                                    | Array of Strings         | Optional            | `[]`          | List of `@WefterHook` signal names implemented by native source files.                                       |
+| `events`                                   | Array of Strings         | Optional            | `[]`          | List of event names emitted by native plugin code (`emit`).                                                  |
 
 ---
 
@@ -67,6 +69,24 @@ It defines native permissions, Gradle/SPM package dependencies, ProGuard rules, 
   }
 }
 ```
+
+### Native files and Gradle plugins
+
+A plugin whose SDK reads a configuration file from the app (Firebase's `google-services.json` and `GoogleService-Info.plist`) lists it in `requiredFiles`; sync stops with a clear message when an environment doesn't provide it through [`nativeFiles`](/docs/app-configuration/native-files). An SDK that needs a Gradle plugin lists it in `gradlePlugins`:
+
+```json
+{
+  "requiredFiles": { "android": ["google-services.json"], "ios": ["GoogleService-Info.plist"] },
+  "nativeDependencies": {
+    "android": {
+      "gradle": ["com.google.firebase:firebase-messaging:24.1.0"],
+      "gradlePlugins": [{ "id": "com.google.gms.google-services", "version": "4.4.2" }]
+    }
+  }
+}
+```
+
+A plugin's user-facing text lives next to `plugin.json`, in `i18n/<language>.json`; see [Plugin Text](/plugin/translations).
 
 ### 3. `android.manifestEntries`
 

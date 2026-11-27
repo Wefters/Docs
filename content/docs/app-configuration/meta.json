@@ -11,6 +11,9 @@
     "orientation",
     "keyboard",
     "web-apis",
+    "embedded-sites",
+    "localization",
+    "native-files",
     "deep-links",
     "android-signing",
     "ios-signing"

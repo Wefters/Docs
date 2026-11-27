@@ -1,0 +1,185 @@
+---
+title: Embedded Sites
+icon: AppWindowMac
+description: Show other websites inside the app, in iframes or web windows, and let them talk to the app safely.
+---
+
+## Overview
+
+Apps often show a site they don't bundle: a payment page, a booking widget, a partner's portal, a map. Wefter has three ways, each for a different job:
+
+| Use                  | For                                                                                                 | Talks to the site?                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **iframe** in a page | A site that is part of a page's layout: a widget, a map, an embedded form                           | Yes: methods and events, and optionally plugin calls             |
+| **Web window**       | A whole site you own or work with, over the app; also sites that refuse iframes (`X-Frame-Options`) | Yes: methods and events, script injection and navigation control |
+| **Browser plugin**   | Sites you don't control (news, help pages, terms), and sign-in                                      | No. Only the redirect back at the end of a sign-in               |
+
+Android and iOS don't let any app read or script the system browser, so the [`@wefterjs/browser`](https://github.com/Wefters/Plugins) plugin can't talk to the page; that is what keeps the user's passwords and sign-ins in it private. Use it for sites you don't control, and for sign-in: Google refuses OAuth inside embedded web views.
+
+The site's side of the conversation is the same for iframes and web windows: [`@wefterjs/frame`](#the-sites-side-wefterjsframe).
+
+---
+
+## Sites in iframes
+
+### Allowing a site to load
+
+The app's pages are served with a [Content Security Policy](/docs/app-configuration/web-apis#content-security-policy) that only lets frames show the app's own pages. List the other sites the pages may embed in `frames.allow`:
+
+```json title="wefter.config.json"
+{
+  "frames": {
+    "allow": ["https://pay.example.com", "https://*.partner.example"]
+  }
+}
+```
+
+| Property       | Type             | Description                                                                                                                  |
+| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `frames.allow` | Array of origins | `https://host[:port]`, `https://*.example.com` for any subdomain, or `http://localhost[:port]` during development. No paths. |
+
+Run `wefter sync` after changing it. Sync adds the sites to the policy's `frame-src` on both platforms; sites not listed stay blocked. During `wefter run --watch` the dev server sends no policy, so any site loads there; check the built app before release.
+
+### Talking to the site: `exposeToFrames()`
+
+`exposeToFrames()` from `@wefterjs/core` lists the methods each site may call. Every call carries the site's origin and its iframe, and the app decides what each method does, including whether it calls a plugin:
+
+```typescript
+import { exposeToFrames } from "@wefterjs/core";
+import { Scanner } from "@wefterjs/scanner";
+
+const frames = exposeToFrames({
+  "https://pay.example.com": {
+    getUser: () => ({ id: user.id, name: user.name }),
+    paymentDone: ({ orderId }) => router.push(`/orders/${orderId}`),
+  },
+  "https://*.partner.example": {
+    scanCode: () => Scanner.scan(), // the app chooses to pass a plugin on
+  },
+});
+
+frames.emit("cart:updated", cart); // to every connected site
+frames.on("resize", ({ height }, { frame }) => {
+  frame.style.height = `${height}px`;
+});
+frames.close(); // stop answering
+```
+
+| Member                   | Description                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `emit(name, data?, to?)` | Sends an event to every connected site, or only those whose `origin` or `frame` matches `to`.       |
+| `on(name, listener)`     | Listens for events sites send; the listener also gets `{ origin, frame }`. Returns an unsubscriber. |
+| `connections()`          | The sites connected now, as `{ origin, frame }`.                                                    |
+| `close()`                | Disconnects every site and stops answering.                                                         |
+
+How it works:
+
+- A site says hello to the page. The page answers only when the site's origin is listed **and** the hello comes from one of the page's own iframes, and then gives that site its own private message channel.
+- A site may call only the methods listed for its origin; anything else fails with `UNKNOWN_METHOD`.
+- When an iframe loads another page, that page has to connect again and is checked again. Removed iframes are disconnected.
+- This happens entirely in JavaScript: it works the same on Android, iOS and in a desktop browser.
+
+### Direct plugin calls (optional)
+
+A site you fully trust can call specific plugin methods itself, through `@wefterjs/core` in its own pages, without the app passing them on:
+
+```json title="wefter.config.json"
+{
+  "frames": {
+    "allow": ["https://pay.example.com"],
+    "plugins": {
+      "https://pay.example.com": ["biometric.authenticate", "haptics.*"]
+    }
+  }
+}
+```
+
+| Property         | Type                           | Description                                                                                                          |
+| ---------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `frames.plugins` | Object: exact origin → methods | `plugin.method`, or `plugin.*` for all of a plugin's methods. Sites listed here may also load, as in `frames.allow`. |
+
+The native side enforces the list on every call: anything not listed fails with `FORBIDDEN_ORIGIN`, and the built-in `__system` module is never reachable from another site. Wildcard origins can't be granted plugins. Only calls are granted; plugin events go to the app's page. Every grant widens what a third-party page can do, so prefer `exposeToFrames()` and grant plugins only when there is a reason.
+
+---
+
+## Web windows: `openWebWindow()`
+
+A web window is a second native web view the app opens over itself, like React Native's `<WebView>` with `onMessage`, `postMessage` and `injectJavaScript`. It is built into the shell, so no plugin is needed, and the window gets the shell's dialogs, file uploads, downloads and links to other apps.
+
+```typescript
+import { openWebWindow } from "@wefterjs/core";
+
+const win = await openWebWindow({
+  url: "https://pay.example.com/checkout?order=42",
+  allowOrigins: ["https://pay.example.com"],
+  presentation: "sheet",
+  toolbar: { title: "Checkout", navigation: true },
+  methods: {
+    getUser: () => ({ id: user.id }),
+    paymentDone: async ({ orderId }) => {
+      await win.close();
+      router.push(`/orders/${orderId}`);
+    },
+  },
+  injectScript: "document.documentElement.classList.add('in-app')",
+});
+
+win.emit("theme", "dark");
+win.on("navigation", ({ url, handled }) => {});
+win.on("closed", ({ reason }) => {}); // "user", "app", "replaced" or "error"
+```
+
+| Option         | Type                                 | Default                  | Description                                                                                                                       |
+| -------------- | ------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `url`          | String                               | Required                 | The page to open; its origin must be in `allowOrigins`.                                                                           |
+| `allowOrigins` | Array of origins                     | Required                 | Origins the window may show and talk to: `https`, or `http://localhost` in debug builds.                                          |
+| `outsideLinks` | `"external"` \| `"block"`            | `"external"`             | A page navigating to another origin: open it outside the app, or stay. Either way a `navigation` event reports it.                |
+| `presentation` | `"fullscreen"` \| `"sheet"`          | `"fullscreen"`           | `"sheet"` is a card the user can swipe down on iOS; Android shows full screen.                                                    |
+| `toolbar`      | `{ title?, navigation? }` \| `false` | Close button, page title | A fixed `title`, and back and forward buttons with `navigation: true`. `false` hides the bar.                                     |
+| `methods`      | Object                               | None                     | Methods the pages may call with `app.call(name, args)`; each also gets `{ origin }`.                                              |
+| `injectScript` | String                               | None                     | Script run in each page from `allowOrigins` once it has loaded.                                                                   |
+| `ephemeral`    | Boolean                              | `false`                  | Own cookies and storage, thrown away on close. Android needs Android System WebView 115 or newer; older versions share the app's. |
+| `desktopMode`  | Boolean                              | `false`                  | Ask sites for their desktop layout.                                                                                               |
+
+The returned window has `emit(name, data)`, `on(name, listener)` (for `load`, `navigation`, `closed`, and events the page sends), `injectScript(source)`, `loadUrl(url)`, `close()` and a `closed` promise. One window is open at a time; opening another closes the first with the reason `replaced`. On Android, back goes back in the window, then closes it.
+
+The pages never get the plugin bridge; `frames.plugins` grants apply to iframes only. Use `methods` for what a window's pages need.
+
+---
+
+## The site's side: `@wefterjs/frame`
+
+The embedded site uses `@wefterjs/frame`, a small package with no dependencies. It works in an iframe and in a web window, and outside an app `connectToApp()` resolves to `null`, so the site works on its own in a normal browser tab:
+
+```typescript
+import { connectToApp } from "@wefterjs/frame";
+
+const app = await connectToApp({
+  // The app pages that may embed this site: the bundled app on Android and iOS.
+  appOrigins: ["https://appassets.androidplatform.net", "app://local"],
+});
+
+if (app) {
+  const user = await app.call("getUser");
+  app.on("cart:updated", (cart) => render(cart));
+  app.emit("resize", { height: document.body.scrollHeight });
+}
+```
+
+Without a bundler, load `@wefterjs/frame/script` (`dist/wefter-frame.js`) with a `<script>` tag; it defines `window.WefterFrame.connectToApp`. Calls fail with an `AppCallError` whose `code` is the app's error code, `UNKNOWN_METHOD`, `TIMEOUT` (10 seconds by default) or `CLOSED`.
+
+<Callout type="warn">
+  **What the site can trust.** The app checks the site's origin, and that check is strong. The other way round is
+  weaker: every Android app using the default asset domain is `https://appassets.androidplatform.net`, and every Wefter
+  iOS app is `app://local`. `appOrigins` keeps hostile web pages from embedding the site, not a hostile app. Don't hand
+  out anything sensitive because the site is "inside an app": have the app pass a token from your own server through a
+  call, and check it on the server.
+</Callout>
+
+---
+
+## Native Platform Implementation
+
+- **Bridge access**: both shells check every bridge call's origin. The app's own pages may call everything; other sites only what `frames.plugins` grants (see [Native Bridge Security](/docs/native-bridge-security)).
+- **Android**: `WebWindow.kt` hosts web windows inside `MainActivity`; pages talk to the app over a `WefterWindow` message channel that only `allowOrigins` get. Ephemeral windows use a separate WebView profile.
+- **iOS**: `WebWindow.swift` presents web windows in a navigation controller; a `wefterWindow` message handler accepts messages only from `allowOrigins`. Ephemeral windows use a non-persistent data store.

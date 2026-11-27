@@ -47,7 +47,11 @@ await Screen.lockOrientation({ orientation: "landscape" });
 await Screen.unlockOrientation(); // back to portrait, by default
 ```
 
+A lock works even when the app's own orientation doesn't include it, such as landscape in a portrait app, on both Android and iOS. Orientations are `portrait`, `landscape` (either way up), their `-primary` and `-secondary` forms (one way up), and `any`. iPadOS may ignore locks for apps in resizable windows, and Android 16 on large screens.
+
 `isLandscape()` from `@wefterjs/core` tells whether the screen is in landscape now.
+
+Plugin authors: the shell's `OrientationLock` (`lock(name)`, `unlock()`) does this on both platforms.
 
 ---
 

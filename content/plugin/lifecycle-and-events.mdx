@@ -1,0 +1,89 @@
+---
+title: Lifecycle & Events
+icon: Activity
+description: Follow the app's lifecycle, start other screens, receive notification taps and push tokens, and send events that wait for the page.
+---
+
+## Plugin lifetime
+
+A plugin is created once for the app's screen and lives as long as it. When the web view is rebuilt after its content process crashed, the plugins stay: listeners, open sessions and state survive.
+
+---
+
+## Android
+
+`WefterPlugin` has these members besides `resolve`, `reject` and `emit`. Override only what you need; the others do nothing.
+
+| Member                                                      | Description                                                                                                                                                       |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appActivity: AppCompatActivity`                            | The app's screen, for starting screens and showing dialogs.                                                                                                       |
+| `open fun onResume()` / `onPause()`                         | The screen came to the front / went to the background or was covered.                                                                                             |
+| `open fun onNewIntent(intent: Intent): Boolean`             | The running app was opened again (a notification tap, a link). Return `true` when handled; otherwise it's a deep link. The launch intent is `appActivity.intent`. |
+| `open fun onDestroy()`                                      | The screen is closing for good; release listeners.                                                                                                                |
+| `launchForResult(contract, input) { result -> }`            | Starts another screen (a picker, the camera, a sign-in) and gets its result, at any time.                                                                         |
+| `emit(name, data, hold = true)`                             | An event that waits until the page listens (see [Held events](#held-events)).                                                                                     |
+| `checkPermissions`, `requestPermissions`, `openAppSettings` | See [Permissions](/plugin/permissions).                                                                                                                           |
+
+```kotlin
+class ContactsPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
+    @WefterMethod
+    fun pick(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        launchForResult(ActivityResultContracts.PickContact(), null) { uri ->
+            if (uri == null) reject(callback, "CANCELLED", "No contact picked")
+            else resolve(callback, JSONObject().put("uri", uri.toString()))
+        }
+    }
+
+    override fun onResume() {
+        // Refresh state that may have changed while the app was in the background.
+    }
+}
+```
+
+`launchForResult` doesn't have to be called before the activity starts, unlike `registerForActivityResult`. A result is lost if Android ends the app while the other screen is open; plugins that must not lose it save their state.
+
+---
+
+## iOS
+
+| Member                                                            | Description                                                                                                                              |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `appDidBecomeActive()`, `appWillResignActive()`                   | The app became active / is about to become inactive.                                                                                     |
+| `appDidEnterBackground()`, `appWillEnterForeground()`             | The app went to / is coming back from the background.                                                                                    |
+| `handleOpenURL(_ url: URL) -> Bool`                               | A custom-scheme URL opened the running app. Return `true` when handled; otherwise it's a deep link.                                      |
+| `handleUserActivity(_ activity: NSUserActivity) -> Bool`          | A Universal Link or Handoff continued in the app.                                                                                        |
+| `didRegisterForRemoteNotifications(deviceToken:)`                 | The push token arrived.                                                                                                                  |
+| `didFailToRegisterForRemoteNotifications(error:)`                 | Registering for push failed.                                                                                                             |
+| `presentationOptions(for:) -> UNNotificationPresentationOptions?` | How to show a notification that arrives while the app is in front; `nil` leaves it to another plugin. With no answer, iOS shows nothing. |
+| `handleNotificationResponse(_:) -> Bool`                          | The user tapped a notification or one of its actions, possibly launching the app.                                                        |
+| `emit(_:_:hold: true)`                                            | An event that waits until the page listens.                                                                                              |
+
+The shell becomes the notification centre's delegate when the app launches, as iOS requires for a tap that launches the app to be delivered, and keeps such callbacks until the plugins exist.
+
+```swift
+final class LocalNotificationsPlugin: WefterPlugin {
+    override func handleNotificationResponse(_ response: UNNotificationResponse) -> Bool {
+        let info = response.notification.request.content.userInfo
+        emit("localNotifications:tap", ["id": response.notification.request.identifier, "data": info], hold: true)
+        return true
+    }
+
+    override func presentationOptions(for notification: UNNotification) -> UNNotificationPresentationOptions? {
+        [.banner, .sound]
+    }
+}
+```
+
+---
+
+## Held events
+
+`emit` sends an event to the listeners registered at that moment. Some events happen before the page has loaded or listens: the notification tap that launched the app, a payment that finished while the app was in the background. Emit those with `hold`:
+
+```kotlin
+emit("localNotifications:tap", data, hold = true)
+```
+
+A held event waits in the app until the page's first `registerHook(name, …)` for it, which then receives it right away; later listeners don't get it again. Up to 20 events per name are kept, and they survive page reloads and web content crashes, but not the app's process ending.
+
+On the JavaScript side nothing changes: `registerHook` and plugin `on…` helpers receive held events like any other.

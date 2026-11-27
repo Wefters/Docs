@@ -1,0 +1,66 @@
+---
+title: Native Files
+icon: FileCog
+description: Give native SDKs the configuration files they read, such as Firebase's google-services.json and GoogleService-Info.plist, per environment.
+---
+
+## Overview
+
+Some native SDKs read a configuration file from the app itself: Firebase (push notifications, analytics, crash reporting) needs `google-services.json` on Android and `GoogleService-Info.plist` on iOS, usually a different file for each environment. List the files in `nativeFiles`, and sync puts each environment's copy where its platform expects it:
+
+```json title="wefter.config.json"
+{
+  "nativeFiles": {
+    "android": ["firebase/google-services.json"],
+    "ios": ["firebase/GoogleService-Info.plist"]
+  },
+  "environments": {
+    "development": { "appId": "com.example.app.dev", "appName": "Example (Dev)" },
+    "production": {
+      "appId": "com.example.app",
+      "appName": "Example",
+      "nativeFiles": {
+        "android": ["firebase/prod/google-services.json"],
+        "ios": ["firebase/prod/GoogleService-Info.plist"]
+      }
+    }
+  }
+}
+```
+
+| Property                                    | Type           | Description                                                                |
+| ------------------------------------------- | -------------- | -------------------------------------------------------------------------- |
+| `nativeFiles.android`, `nativeFiles.ios`    | Array of paths | Files for every environment, relative to the project.                      |
+| `environments.<env>.nativeFiles.<platform>` | Array of paths | This environment's files for that platform, instead of the top-level list. |
+
+Run `wefter sync` after changing them. A listed file that doesn't exist stops the sync with its path.
+
+---
+
+## Where the files go
+
+- **Android**: `app/src/<environment>/<file>`, the folder of the environment's build flavor, where Gradle and SDK Gradle plugins (such as Google Services) look.
+- **iOS**: `Resources/EnvironmentFiles/<environment>/<file>`, bundled as a folder. A plugin finds the running environment's copy with `WefterFiles.url(named:)` and passes it to the SDK, for example `FirebaseOptions(contentsOfFile:)`. `WefterFiles.environment` is the running environment's name.
+
+---
+
+## Files and Gradle plugins plugins need
+
+A plugin declares the files it needs, and any Gradle plugin its SDK needs, in `plugin.json`:
+
+```json title="plugin.json"
+{
+  "requiredFiles": { "android": ["google-services.json"], "ios": ["GoogleService-Info.plist"] },
+  "nativeDependencies": {
+    "android": {
+      "gradle": ["com.google.firebase:firebase-messaging:24.1.0"],
+      "gradlePlugins": [{ "id": "com.google.gms.google-services", "version": "4.4.2" }]
+    }
+  }
+}
+```
+
+- **`requiredFiles`**: sync stops, naming the plugin, the platform and the environment, when an environment doesn't list a file of that name.
+- **`gradlePlugins`**: sync declares each in the project's root Gradle file and applies it to the app. When two plugins ask for different versions of one, the first wins and sync warns.
+
+See the [`plugin.json` reference](/plugin/plugin-json-reference).

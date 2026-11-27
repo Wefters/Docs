@@ -1,0 +1,94 @@
+---
+title: Languages
+icon: Languages
+description: Show the native shell's and plugins' own text, the app name and permission messages in the user's language.
+---
+
+## Overview
+
+Most of what users see comes from your web app, in whatever languages it supports. A small part comes from native code: the shell's dialogs and messages ("No app can open this link", "Turn on location?", the file upload menu), and screens plugins draw (the scanner). Wefter shows that text in the user's language, from the languages your app lists.
+
+```json title="wefter.config.json"
+{
+  "localization": {
+    "languages": ["fr", "de", "ne"],
+    "messages": {
+      "fr": {
+        "links.noApp": "Impossible d'ouvrir ce lien",
+        "app.name": "Ma boutique",
+        "permissions.camera": "Prenez une photo du reçu pour la joindre à la dépense."
+      }
+    }
+  }
+}
+```
+
+| Property                 | Type                            | Default | Description                                                                                          |
+| ------------------------ | ------------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| `localization.languages` | Array of language tags          | `[]`    | The languages your web app supports, such as `fr`, `pt-BR` or `zh-Hans`. English is always included. |
+| `localization.messages`  | Object: language → (key → text) | `{}`    | Text that replaces or adds to the shell's and plugins' text, by key.                                 |
+
+Run `wefter sync` after changing it. Sync prints the languages, and warns about keys no shell or plugin uses (often typos) and about texts a listed language has no translation for (they show in English).
+
+---
+
+## Which language users see
+
+Each text is looked up in the first of the user's languages your app lists, then in English. The user's languages are the phone's, or the app's own language where the system lets users choose one per app (Android 13 and later, iOS).
+
+Sync also declares the languages to each system:
+
+- **iOS**: `CFBundleLocalizations` in `Info.plist`. iOS then also shows its own sheets and buttons inside your app (share, file picker, Save to Files) in that language; an app that lists only English gets them in English.
+- **Android**: `res/xml/locales_config.xml`, so Android 13 and later list your app under per-app language settings with exactly these languages.
+
+---
+
+## Languages Wefter includes
+
+The shell's text and the official plugins' text come in English, Spanish (`es`), French (`fr`), German (`de`), Portuguese (`pt`), Hindi (`hi`), Nepali (`ne`), Simplified Chinese (`zh-Hans`), Japanese (`ja`) and Arabic (`ar`). A regional tag uses its base language's text unless you add your own: `pt-BR` uses `pt`. For any other language, give the text in `messages`; what you don't translate shows in English.
+
+---
+
+## The app name and permission messages
+
+Some keys translate native settings instead of runtime text:
+
+| Key                      | Translates                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| `app.name`               | The app's name on the home screen (`CFBundleDisplayName`, Android `app_name`).        |
+| `permissions.camera`     | The iOS camera message (`permissions.camera`).                                        |
+| `permissions.microphone` | The iOS microphone message.                                                           |
+| `permissions.location`   | The iOS location message.                                                             |
+| `infoPlist.<Key>`        | Any other `Info.plist` text, such as a plugin's `infoPlist.NSFaceIDUsageDescription`. |
+
+A translated `app.name` is used for every environment. The untranslated name and messages stay those of `environments.<env>.appName` and `permissions`.
+
+---
+
+## Keys
+
+The shell's keys, which you can replace in `messages`:
+
+| Key                                                                | English                                                           |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `dialog.ok`, `dialog.cancel`                                       | OK, Cancel (`alert()`, `confirm()`, `prompt()`, plugin dialogs)   |
+| `links.noApp`                                                      | No app can open this link                                         |
+| `downloads.saved`, `downloads.downloading`                         | Saved `{name}` to Downloads, Downloading `{name}`…                |
+| `downloads.failed`, `downloads.failedFile`, `downloads.saveFailed` | Couldn't download `{name}` / the file, Couldn't save the download |
+| `files.takePhoto`, `files.recordVideo`, `files.browse`             | The Android file upload menu                                      |
+| `location.off.title`, `.message`, `.settings`, `.notNow`           | The Android "Turn on location?" dialog                            |
+| `webWindow.close`, `.back`, `.forward`                             | Web window buttons, for screen readers                            |
+| `app.crashed`                                                      | The screen shown when the web content keeps crashing              |
+| `webview.update.message`, `.button`                                | Android: the screen asking to update Android System WebView       |
+
+`{name}` is replaced with a value. Plugins' keys start with the plugin's name, such as `scanner.title`; their READMEs list them.
+
+---
+
+## Native Platform Implementation
+
+- **Runtime text**: sync merges the shell's `i18n/<language>.json`, each plugin's `i18n/<language>.json` and your `messages` (in that order, later ones winning) into `assets/wefter-messages.json` (Android) and `Resources/WefterMessages.json` (iOS). `WefterText` reads it in the shell and plugins.
+- **Android**: `res/xml/locales_config.xml`, `android:localeConfig` on the application, and `res/values-<language>/wefter_localized.xml` for `app.name`.
+- **iOS**: `CFBundleLocalizations` in `Info.plist`, and `Resources/<language>.lproj/InfoPlist.strings` for the app name and permission messages.
+
+Plugin authors: see [Plugin Text](/plugin/translations).

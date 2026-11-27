@@ -26,15 +26,21 @@ abstract class WefterPlugin(
 )
 ```
 
+A plugin is created once for the app's screen and survives the web view being rebuilt after a crash.
+
 ### Member Reference
 
-| Member Name         | Method Signature                                                                                  | Description                                                                                  |
-| ------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `resolve`           | `resolve(callback: (Result<Any>) -> Unit, data: JSONObject = JSONObject())`                       | Resolves the pending JS Promise with a successful payload.                                   |
-| `reject`            | `reject(callback: (Result<Any>) -> Unit, code: String, message: String)`                          | Rejects the pending JS Promise with a structured [`WefterError`](/plugin/structured-errors). |
-| `emit`              | `emit(hookName: String, data: JSONObject)`                                                        | Pushes an event payload to JavaScript listeners (`registerHook`).                            |
-| `hasPermission`     | `hasPermission(permission: String): Boolean`                                                      | Checks if a runtime Android permission is granted (`ContextCompat.checkSelfPermission`).     |
-| `requestPermission` | `requestPermission(activity: Activity, permission: String, onResult: (granted: Boolean) -> Unit)` | Requests a runtime permission and receives an asynchronous result callback.                  |
+| Member Name                                                 | Method Signature                                                                                  | Description                                                                                             |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `resolve`                                                   | `resolve(callback: (Result<Any>) -> Unit, data: JSONObject = JSONObject())`                       | Resolves the pending JS Promise with a successful payload.                                              |
+| `reject`                                                    | `reject(callback: (Result<Any>) -> Unit, code: String, message: String)`                          | Rejects the pending JS Promise with a structured [`WefterError`](/plugin/structured-errors).            |
+| `emit`                                                      | `emit(hookName: String, data: JSONObject, hold: Boolean = false)`                                 | Pushes an event to JavaScript listeners (`registerHook`); with `hold`, it waits until the page listens. |
+| `appActivity`                                               | `appActivity: AppCompatActivity`                                                                  | The app's screen, for starting screens and showing dialogs.                                             |
+| `onResume`, `onPause`, `onNewIntent`, `onDestroy`           | Overridable                                                                                       | The app's lifecycle. See [Lifecycle & Events](/plugin/lifecycle-and-events).                            |
+| `launchForResult`                                           | `launchForResult(contract, input, onResult)`                                                      | Starts another screen and gets its result, at any time.                                                 |
+| `hasPermission`                                             | `hasPermission(permission: String): Boolean`                                                      | Checks if a runtime Android permission is granted (`ContextCompat.checkSelfPermission`).                |
+| `checkPermissions`, `requestPermissions`, `openAppSettings` | `checkPermissions(permissions): Map<String, PermissionState>` …                                   | Permission states and requests. See [Permissions](/plugin/permissions).                                 |
+| `requestPermission`                                         | `requestPermission(activity: Activity, permission: String, onResult: (granted: Boolean) -> Unit)` | Deprecated: use `requestPermissions`.                                                                   |
 
 ### Android Implementation Example
 
@@ -74,12 +80,14 @@ open class WefterPlugin {
 
 ### Member Reference
 
-| Member Name      | Method Signature                                                                  | Description                                                                                      |
-| ---------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `resolve`        | `resolve(_ callback: (Result<Any, Error>) -> Void, data: [String: Any] = [:])`    | Resolves the pending JS Promise with a successful dictionary payload.                            |
-| `reject`         | `reject(_ callback: (Result<Any, Error>) -> Void, code: String, message: String)` | Rejects the pending JS Promise with a structured [`WefterError`](/plugin/structured-errors).     |
-| `emit`           | `emit(_ hookName: String, _ data: [String: Any])`                                 | Pushes an event payload to JavaScript listeners (`registerHook`).                                |
-| `viewController` | `public weak var viewController: UIViewController?`                               | Weak reference to host iOS `UIViewController` for presenting native dialogs or view controllers. |
+| Member Name       | Method Signature                                                                  | Description                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `resolve`         | `resolve(_ callback: (Result<Any, Error>) -> Void, data: [String: Any] = [:])`    | Resolves the pending JS Promise with a successful dictionary payload.                                                          |
+| `reject`          | `reject(_ callback: (Result<Any, Error>) -> Void, code: String, message: String)` | Rejects the pending JS Promise with a structured [`WefterError`](/plugin/structured-errors).                                   |
+| `emit`            | `emit(_ hookName: String, _ data: [String: Any], hold: Bool = false)`             | Pushes an event to JavaScript listeners (`registerHook`); with `hold`, it waits until the page listens.                        |
+| Lifecycle         | `appDidBecomeActive()`, `handleOpenURL(_:)`, `handleNotificationResponse(_:)` …   | Overridable app lifecycle, URL, push token and notification callbacks. See [Lifecycle & Events](/plugin/lifecycle-and-events). |
+| `openAppSettings` | `openAppSettings()`                                                               | Opens the app's page in Settings. See [Permissions](/plugin/permissions).                                                      |
+| `viewController`  | `public weak var viewController: UIViewController?`                               | Weak reference to host iOS `UIViewController` for presenting native dialogs or view controllers.                               |
 
 ### iOS Implementation Example
 

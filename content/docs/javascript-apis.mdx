@@ -12,18 +12,21 @@ The `@wefterjs/core` npm package provides client-side JavaScript APIs for commun
 
 ## Core Runtime Functions Reference
 
-| Function Signature                                    | Return Type                                        | Description                                                                                                 |
-| ----------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `invokeNative<T>(plugin, method, payload?, options?)` | `Promise<T>`                                       | Low-level bridge function invoking a native plugin method.                                                  |
-| `definePlugin<T>(pluginName, methodMap)`              | `T`                                                | Generates a typed Promise object wrapper for request/response methods.                                      |
-| `registerHook(hookName, callback)`                    | `{ remove(): void }`                               | Subscribes a JS callback to native event streams (`emit`).                                                  |
-| `hideSplash()`                                        | `Promise<void>`                                    | Signals completion of web UI mounting to dismiss Stage 2 HTML splash screen.                                |
-| `getDeviceInfo()`                                     | `Promise<{ platform: string; osVersion: string }>` | Asynchronously fetches OS platform and system version directly from native shell.                           |
-| `onBridgeReady()`                                     | `Promise<void>`                                    | Resolves once native WebView bridge initialization has completed.                                           |
-| `isNativeBridgeAvailable()`                           | `Boolean`                                          | Synchronously checks if JS is executing inside a Wefter native WebView.                                     |
-| `getPlatformInfo()`                                   | `{ platform, coreVersion, environment }`           | Synchronously returns platform identifier, `@wefterjs/core` version, and active environment.                |
-| `onDeepLink(callback)`                                | `{ remove(): void }`                               | Calls `callback` for every URL the app is opened with: the launch link and links that arrive while it runs. |
-| `getLaunchUrl()`                                      | `Promise<string \| null>`                          | Returns the URL that started the app, or `null` when it was opened normally.                                |
+| Function Signature                                    | Return Type                                        | Description                                                                                                                                                    |
+| ----------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `invokeNative<T>(plugin, method, payload?, options?)` | `Promise<T>`                                       | Low-level bridge function invoking a native plugin method.                                                                                                     |
+| `definePlugin<T>(pluginName, methodMap)`              | `T`                                                | Generates a typed Promise object wrapper for request/response methods.                                                                                         |
+| `registerHook(hookName, callback)`                    | `{ remove(): void }`                               | Subscribes a JS callback to native event streams (`emit`).                                                                                                     |
+| `hideSplash()`                                        | `Promise<void>`                                    | Signals completion of web UI mounting to dismiss Stage 2 HTML splash screen.                                                                                   |
+| `getDeviceInfo()`                                     | `Promise<{ platform: string; osVersion: string }>` | Asynchronously fetches OS platform and system version directly from native shell.                                                                              |
+| `onBridgeReady()`                                     | `Promise<void>`                                    | Resolves once native WebView bridge initialization has completed.                                                                                              |
+| `isNativeBridgeAvailable()`                           | `Boolean`                                          | Synchronously checks if JS is executing inside a Wefter native WebView.                                                                                        |
+| `getPlatformInfo()`                                   | `{ platform, coreVersion, environment }`           | Synchronously returns platform identifier, `@wefterjs/core` version, and active environment.                                                                   |
+| `onDeepLink(callback)`                                | `{ remove(): void }`                               | Calls `callback` for every URL the app is opened with: the launch link and links that arrive while it runs.                                                    |
+| `getLaunchUrl()`                                      | `Promise<string \| null>`                          | Returns the URL that started the app, or `null` when it was opened normally.                                                                                   |
+| `openAppSettings()`                                   | `Promise<void>`                                    | Opens the app's page in the system settings, where the user can allow a permission they denied.                                                                |
+| `exposeToFrames(methods)`                             | `FrameHost`                                        | Lets sites in the page's iframes call the listed methods and exchange events. See [Embedded Sites](/docs/app-configuration/embedded-sites).                    |
+| `openWebWindow(options)`                              | `Promise<WebWindow>`                               | Opens a website over the app in a web window that can talk to the app. See [Embedded Sites](/docs/app-configuration/embedded-sites#web-windows-openwebwindow). |
 
 ---
 
@@ -77,6 +80,20 @@ subscription.remove();
 
 ---
 
+Events a plugin held because they happened before anyone listened (such as a notification tap that launched the app) are delivered to the first listener registered for that name, right after it registers.
+
+### Permission states: `PermissionState`
+
+Plugins that need permissions have `checkPermissions()` and `requestPermissions()`, which resolve to `"granted"`, `"prompt"`, `"denied"` or `"limited"` per permission (types `PermissionState` and `PermissionStatus`). For `"denied"`, only the system settings can change it:
+
+```ts
+import { openAppSettings } from "@wefterjs/core";
+import { Scanner } from "@wefterjs/scanner";
+
+const { camera } = await Scanner.checkPermissions();
+if (camera === "denied") await openAppSettings();
+```
+
 ### 3. `isNativeBridgeAvailable`
 
 ```ts
@@ -129,16 +146,18 @@ class WefterBridgeError extends Error {
 
 ### `WefterErrorCode` Reference Table
 
-| Code String           | Origin            | Description                                               | Recommended Handling                                           |
-| --------------------- | ----------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
-| `"TIMEOUT"`           | `@wefterjs/core`  | Call exceeded `timeoutMs` limit (default 10,000ms).       | Retry operation or inform user of delay.                       |
-| `"ABORTED"`           | `@wefterjs/core`  | Call was cancelled by `AbortSignal`.                      | Handle clean cancellation state.                               |
-| `"NO_BRIDGE"`         | `@wefterjs/core`  | Execution running outside native WebView (browser tab).   | Check `isNativeBridgeAvailable()` or show browser fallback UI. |
-| `"UNKNOWN_PLUGIN"`    | Native Dispatcher | Plugin name is not declared in `wefter.config.json`.      | Add plugin via `wefter add` and run `wefter sync`.             |
-| `"INVALID_PAYLOAD"`   | Native Dispatcher | Native side failed to parse payload JSON parameters.      | Verify payload matches documented parameters.                  |
-| `"PLUGIN_THREW"`      | Native Dispatcher | Native Kotlin or Swift code threw an unhandled exception. | Inspect native logs for root cause traceback.                  |
-| `"PERMISSION_DENIED"` | Native Plugin     | Required Android or iOS runtime permission was denied.    | Prompt user to grant permission in device settings.            |
-| `"UNKNOWN"`           | Either            | General catch-all error code.                             | Inspect `error.message` for detailed diagnostics.              |
+| Code String           | Origin            | Description                                                                           | Recommended Handling                                                        |
+| --------------------- | ----------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `"TIMEOUT"`           | `@wefterjs/core`  | Call exceeded `timeoutMs` limit (default 10,000ms).                                   | Retry operation or inform user of delay.                                    |
+| `"ABORTED"`           | `@wefterjs/core`  | Call was cancelled by `AbortSignal`.                                                  | Handle clean cancellation state.                                            |
+| `"NO_BRIDGE"`         | `@wefterjs/core`  | Execution running outside native WebView (browser tab).                               | Check `isNativeBridgeAvailable()` or show browser fallback UI.              |
+| `"UNKNOWN_PLUGIN"`    | Native Dispatcher | Plugin name is not declared in `wefter.config.json`.                                  | Add plugin via `wefter add` and run `wefter sync`.                          |
+| `"INVALID_PAYLOAD"`   | Native Dispatcher | Native side failed to parse payload JSON parameters.                                  | Verify payload matches documented parameters.                               |
+| `"PLUGIN_THREW"`      | Native Dispatcher | Native Kotlin or Swift code threw an unhandled exception.                             | Inspect native logs for root cause traceback.                               |
+| `"PERMISSION_DENIED"` | Native Plugin     | Required Android or iOS runtime permission was denied.                                | Prompt user to grant permission in device settings.                         |
+| `"FORBIDDEN_ORIGIN"`  | Native Dispatcher | The calling page's origin may not use that plugin method (another site in an iframe). | Grant it with `frames.plugins`, or expose a method with `exposeToFrames()`. |
+| `"UNKNOWN_METHOD"`    | Native Plugin     | The plugin has no such method.                                                        | Check the plugin's version and method name.                                 |
+| `"UNKNOWN"`           | Either            | General catch-all error code.                                                         | Inspect `error.message` for detailed diagnostics.                           |
 
 #### Error Catch Example
 

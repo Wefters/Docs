@@ -40,6 +40,11 @@ When executed, `wefter plugin validate` runs a 7-step inspection suite:
 6. **Method & Hook Consistency Audit**: Cross-checks methods/hooks declared in `plugin.json` against methods/hooks annotated in native source files across all supported platforms.
 7. **Dangerous Permission Handler Check (Android)**: If `plugin.json` declares dangerous Android permissions (camera, location, contacts, etc.), verifies that Kotlin source includes `PERMISSION_DENIED` handling code.
 
+It also prints warnings, which don't fail the check:
+
+- **Permission methods**: a plugin that declares a runtime permission (a dangerous Android permission or an iOS usage description other than Face ID) but lacks `checkPermissions` or `requestPermissions`. See [Permissions](/plugin/permissions).
+- **Plugin text**: an `i18n/` folder without `en.json`, keys that don't start with the plugin's name, invalid JSON or values that aren't text. See [Plugin Text](/plugin/translations).
+
 ---
 
 ## Arguments & Options

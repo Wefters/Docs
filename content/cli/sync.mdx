@@ -50,10 +50,14 @@ When executed, `wefter sync` runs through a 15-step pipeline:
 11. **Environment Configuration**: Injects per-environment product flavors (`build.gradle.kts`) and iOS xcconfig files (`Environment-<env>.xcconfig`). Environments beyond `development` and `production`, such as `staging`, get their own Android product flavor and iOS `Debug-<Env>` / `Release-<Env>` build configurations.
     - **Version**: Writes `version` and `buildNumber` into `versionName` / `versionCode` (Android) and `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `Shared.xcconfig` (iOS).
     - **Export compliance**: Writes `ITSAppUsesNonExemptEncryption` into `Info.plist` when `build.ios.usesNonExemptEncryption` is set.
-12. **Icon & Splash Generation**: Generates native launcher icons and splash screens if `config.icon` or `config.splash` are defined.
-13. **Bridge Registry Generation**: Writes `WefterPluginRegistry.kt` and `WefterPluginRegistry.swift` containing registration code for all native plugin methods.
-14. **Lockfile Update (`wefter.lock.json`)**: Writes updated plugin version numbers and integrity hashes.
-15. **Sync Freshness Marker & Hook (`wefter:sync:after`)**: Writes `.wefter/sync.marker` and executes `wefter:sync:after` lifecycle hook.
+12. **Embedded Sites, Languages & Native Files**:
+    - Adds `frames.allow` (and sites granted `frames.plugins`) to the Content Security Policy's `frame-src`, and writes the plugin grants into both shells ([Embedded Sites](/docs/app-configuration/embedded-sites)).
+    - Merges the shell's, plugins' and `localization.messages` text for `localization.languages` into the file the shells read, declares the languages to iOS (`CFBundleLocalizations`) and Android (`locales_config.xml`), and writes the translated app name and permission messages ([Languages](/docs/app-configuration/localization)). Warns about unused keys and missing translations.
+    - Copies each environment's `nativeFiles` into `app/src/<env>/` (Android) and `Resources/EnvironmentFiles/<env>/` (iOS), stops when a plugin's `requiredFiles` are missing, and applies plugins' `gradlePlugins` ([Native Files](/docs/app-configuration/native-files)).
+13. **Icon & Splash Generation**: Generates native launcher icons and splash screens if `config.icon` or `config.splash` are defined.
+14. **Bridge Registry Generation**: Writes `WefterPluginRegistry.kt` and `WefterPluginRegistry.swift` containing registration code for all native plugin methods.
+15. **Lockfile Update (`wefter.lock.json`)**: Writes updated plugin version numbers and integrity hashes.
+16. **Sync Freshness Marker & Hook (`wefter:sync:after`)**: Writes `.wefter/sync.marker` and executes `wefter:sync:after` lifecycle hook.
 
 ---
 
