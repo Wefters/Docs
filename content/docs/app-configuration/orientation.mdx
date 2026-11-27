@@ -1,0 +1,65 @@
+---
+title: Orientation
+icon: RectangleHorizontal
+description: Keep the app in portrait (the default), lock it to landscape, or let it rotate, on Android and iOS.
+---
+
+## Overview
+
+Apps stay in portrait on phones by default: turning the phone does not rotate them. Set `orientation` in `wefter.config.json` to lock the app to landscape instead (games, media players, dashboards) or to let it follow the device:
+
+```json title="wefter.config.json"
+{
+  "orientation": "any"
+}
+```
+
+| Value                  | Phones                              | Tablets                                     |
+| ---------------------- | ----------------------------------- | ------------------------------------------- |
+| `"portrait"` (default) | Portrait only                       | Every orientation (see [Tablets](#tablets)) |
+| `"landscape"`          | Landscape, either way up            | Landscape, either way up                    |
+| `"any"`                | Every orientation the device allows | Every orientation                           |
+
+Run `wefter sync` after changing it. The app starts in the chosen orientation, without first showing another.
+
+---
+
+## Tablets
+
+With `"portrait"`, tablets still rotate:
+
+- **iPad**: The App Store requires iPad apps to support every orientation, for multitasking.
+- **Android**: Android 16 ignores orientation locks on large screens (tablets, unfolded foldables) for apps built for it, as Wefter apps are. Older Android tablets stay in portrait.
+
+Design the web app so it also works in landscape on tablets, for example with CSS media queries.
+
+---
+
+## Changing Orientation While the App Runs
+
+To lock the orientation for part of the app, such as a video player, use the [`@wefterjs/screen` plugin](https://github.com/Wefters/Plugins). `unlockOrientation()` returns to the app's own `orientation`:
+
+```typescript
+import { Screen } from "@wefterjs/screen";
+
+await Screen.lockOrientation({ orientation: "landscape" });
+// …
+await Screen.unlockOrientation(); // back to portrait, by default
+```
+
+`isLandscape()` from `@wefterjs/core` tells whether the screen is in landscape now.
+
+---
+
+## Native Platform Implementation
+
+`wefter sync` writes the orientation into both native projects:
+
+- **Android** (`AndroidManifest.xml`): `android:screenOrientation` on `MainActivity`: `portrait`, `sensorLandscape`, or none for `"any"`.
+- **iOS** (`Info.plist`): `UISupportedInterfaceOrientations` for iPhone (portrait; landscape left and right; or all three) and `UISupportedInterfaceOrientations~ipad`, which lists every orientation unless the app is landscape only.
+
+---
+
+## Upgrading From `landscape`
+
+`"landscape": true` from earlier versions still works as `"orientation": "landscape"`, and the CLI shows a note to update it. `"landscape": false` is dropped: the app is then portrait on phones, so set `"orientation": "any"` if it should rotate.

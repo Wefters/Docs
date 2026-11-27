@@ -86,6 +86,8 @@ const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 
 video.srcObject = stream;
 ```
 
+Phones with several cameras on one side (wide, ultra wide, macro, depth) list all of them, and `facingMode` takes the first one the system lists. On some Android phones that is a secondary camera, or one that never starts, so `getUserMedia()` neither resolves nor fails. To choose a camera, or switch between front and back, pick one by `deviceId` from `navigator.mediaDevices.enumerateDevices()` once the camera permission is granted: Android names cameras `camera <n>, facing <front|back>`, and the lowest number on each side is the main camera. Give up on a camera that has not started after a few seconds and try the next. The Demo App's camera card does this.
+
 ---
 
 ## Location
@@ -94,6 +96,14 @@ video.srcObject = stream;
 
 - **Android**: The web view's own location, after the Android permission prompt.
 - **iOS**: Answered by Core Location. WebKit's own location asks twice (iOS's prompt, then a second one naming the page's origin); Wefter's asks once, with your `permissions.location` message.
+
+When the device's location is off, requests fail at once with `POSITION_UNAVAILABLE` and the message `Location services are off`, instead of waiting until their `timeout` (or, for `watchPosition()`, forever). The user is offered to turn location on: on Android, a dialog opens the location settings; on iOS, the system's **Turn On Location Services** alert. A watch stays active and reports positions once location is on; call `getCurrentPosition()` again for a one-off position.
+
+```typescript
+navigator.geolocation.getCurrentPosition(show, (error) => {
+  if (error.code === error.POSITION_UNAVAILABLE) showMessage("Turn on location to see stores near you.");
+});
+```
 
 ---
 
@@ -176,11 +186,12 @@ Images, audio, video and network requests may use HTTPS and the `blob:` and `dat
   - `RuntimePermissions.kt`: asks for Android permissions the app declares, one request at a time.
   - `ExternalLinks.kt`: opens links in other apps.
   - `WebDownloads.kt`: saves downloads; files only the page can read (`blob:`, `data:`, the app's own) come through a message channel that only the app's own origins can reach.
+  - `WebGeolocation.kt`: checks that the device's location is on before each location request, through a message channel that only the app's own origins can reach, and offers the location settings when it is off.
   - `WefterFileProvider.kt`: shares photos and videos the camera app takes with it.
   - The web view enables DOM storage (`localStorage`, `sessionStorage`).
 - **iOS** (`.wefter/native/ios/WefterBridge/`):
   - `WebUIDelegate.swift`: dialogs, `target="_blank"` and `window.open()`, and camera and microphone permissions.
-  - `WebGeolocation.swift`: `navigator.geolocation` with Core Location.
+  - `WebGeolocation.swift`: `navigator.geolocation` with Core Location, including when Location Services are off.
   - `WebDownloads.swift`: downloads and the **Save to Files** sheet.
   - `ExternalLinks.swift`: opens links in other apps.
   - The web view plays `playsinline` video inline and allows element fullscreen.

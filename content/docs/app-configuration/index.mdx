@@ -49,9 +49,9 @@ App configuration is divided into dedicated functional domains. Select any topic
     description="Eliminate cold start white flashes using native OS background colors and automatic CSS sampling."
   />
   <Card
-    title="Landscape Mode"
-    href="/docs/app-configuration/landscape"
-    description="Lock application orientation to landscape on Android sensorLandscape and iOS interface orientations."
+    title="Orientation"
+    href="/docs/app-configuration/orientation"
+    description="Keep the app in portrait (the default), lock it to landscape, or let it rotate."
   />
   <Card
     title="Keyboard"
@@ -96,7 +96,7 @@ The table below outlines all available top-level properties in `wefter.config.js
 | `icon`             | String                        | Optional            | None                     | Relative path to source PNG image (minimum 1024x1024px) for launcher icons.                                                                                                                            |
 | `splash`           | Boolean or Object             | Optional            | `false`                  | Custom HTML splash screen configuration object or `false` to disable.                                                                                                                                  |
 | `launchBackground` | String                        | Optional            | Sampled / `#FFFFFF`      | 6-digit hex color (`#RRGGBB`) rendered natively during cold app launch.                                                                                                                                |
-| `landscape`        | Boolean                       | Optional            | `false`                  | Forces application into landscape mode immediately upon launch.                                                                                                                                        |
+| `orientation`      | String                        | Optional            | `"portrait"`             | `"portrait"` (phones stay in portrait; tablets rotate), `"landscape"` or `"any"`. See [Orientation](/docs/app-configuration/orientation).                                                              |
 | `deepLinks`        | Object                        | Optional            | None                     | Custom URL schemes and verified domains the app opens for (`schemes`, `domains`, `paths`).                                                                                                             |
 | `keyboard`         | Object                        | Optional            | None                     | Keyboard behaviour. `accessoryBar` keeps the iOS form bar above the keyboard (off by default).                                                                                                         |
 | `permissions`      | Object                        | Optional            | None                     | Camera, microphone and location the web app uses (`getUserMedia`, `navigator.geolocation`), each with the message iOS shows. See [Web APIs](/docs/app-configuration/web-apis#permissions).             |
@@ -142,7 +142,7 @@ A comprehensive `wefter.config.json` manifest demonstrating all configuration op
     "transition": "fade"
   },
   "launchBackground": "#050814",
-  "landscape": false,
+  "orientation": "portrait",
   "deepLinks": {
     "schemes": ["myapp"]
   },

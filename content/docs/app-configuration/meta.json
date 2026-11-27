@@ -8,7 +8,7 @@
     "app-icon",
     "splash-screen",
     "launch-background",
-    "landscape",
+    "orientation",
     "keyboard",
     "web-apis",
     "deep-links",

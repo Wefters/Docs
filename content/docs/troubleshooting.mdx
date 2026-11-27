@@ -130,6 +130,7 @@ WefterBridgeError: [TIMEOUT] Native method call timed out after 10000ms.
 ```text
 NotAllowedError: Permission denied
 GeolocationPositionError { code: 1, message: "User denied Geolocation" }
+GeolocationPositionError { code: 2, message: "Location services are off" }
 ```
 
 - **Root Cause**: The app does not declare the permission, the user said no, or the page is not a secure context (`window.isSecureContext` is `false`, as on a dev server reached through a network address). In debug builds, the page's console names the missing `permissions` entry.
@@ -142,4 +143,4 @@ GeolocationPositionError { code: 1, message: "User denied Geolocation" }
     }
   }
   ```
-  A user who said no can allow it again in the system settings. With `wefter run --watch` on Android, keep the device connected through `adb` so the app can load the dev server from `localhost`. See [Web APIs](/docs/app-configuration/web-apis).
+  A user who said no can allow it again in the system settings. `Location services are off` means the device's location is switched off; the user is offered to turn it on, and the page can ask again afterwards. With `wefter run --watch` on Android, keep the device connected through `adb` so the app can load the dev server from `localhost`. See [Web APIs](/docs/app-configuration/web-apis).
