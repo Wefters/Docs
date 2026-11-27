@@ -144,3 +144,17 @@ GeolocationPositionError { code: 2, message: "Location services are off" }
   }
   ```
   A user who said no can allow it again in the system settings. `Location services are off` means the device's location is switched off; the user is offered to turn it on, and the page can ask again afterwards. With `wefter run --watch` on Android, keep the device connected through `adb` so the app can load the dev server from `localhost`. See [Web APIs](/docs/app-configuration/web-apis).
+
+### 9. `WefterBridgeError` Code `"FORBIDDEN_ORIGIN"`
+
+```text
+WefterBridgeError: [FORBIDDEN_ORIGIN] https://pay.example.com may not call clipboard.read
+```
+
+- **Root Cause**: A page from another origin, in an iframe of the app's page, called a plugin it was not granted. Only the app's own pages (the bundled app, or the dev server during `wefter run --watch`, matched by scheme, host and port) may call every plugin.
+- **Solution**: Expose what the site needs with `exposeToFrames()` in the app's page, or grant the exact method in `frames.plugins` and run `wefter sync`. See [Embedded Sites](/docs/app-configuration/embedded-sites).
+
+### 10. "This app needs a newer version of Android System WebView"
+
+- **Root Cause**: The device's Android System WebView is older than version 82 and can't keep the bridge limited to the app's own pages.
+- **Solution**: Update Android System WebView (or Chrome, on devices where it provides the web view) from Google Play. The screen's button opens its store page.

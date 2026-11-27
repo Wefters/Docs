@@ -1,0 +1,60 @@
+---
+title: Plugin Text
+icon: Languages
+description: Ship the text your plugin shows to users in several languages, and look it up in the user's language.
+---
+
+## Overview
+
+Text a plugin shows to users (a screen's title, a button, a message) belongs in translation files, not in code. Error messages sent to JavaScript with `reject` stay in English: they are for developers, and apps show their own text based on the error `code`.
+
+---
+
+## Translation files
+
+Put one JSON file per language in the plugin's `i18n/` folder, next to `plugin.json`, and include `i18n` in `package.json`'s `files`:
+
+```text
+my-scanner/
+├── plugin.json
+├── i18n/
+│   ├── en.json
+│   └── fr.json
+```
+
+```json title="i18n/en.json"
+{
+  "scanner.title": "Scan Code",
+  "scanner.found": "Found {count} codes"
+}
+```
+
+- Every key starts with the plugin's name and a dot, so plugins never replace each other's text or the shell's.
+- `en.json` is required: it is what users see when their language is missing.
+- `{name}` placeholders are replaced with values at runtime.
+
+`wefter plugin validate` warns about a missing `en.json`, unprefixed keys and values that aren't text.
+
+---
+
+## Looking text up
+
+```kotlin
+// Android
+titleView.text = WefterText.get(context, "scanner.title")
+message.text = WefterText.get(context, "scanner.found", mapOf("count" to codes.size))
+```
+
+```swift
+// iOS
+titleLabel.text = WefterText.get("scanner.title")
+message.text = WefterText.get("scanner.found", ["count": codes.count])
+```
+
+The shell's own keys, such as `dialog.ok` and `dialog.cancel`, are available too. Use them for standard buttons, so they match the rest of the app.
+
+---
+
+## How it reaches the app
+
+`wefter sync` merges the shell's text, every plugin's `i18n/` files and the app's `localization.messages` for the languages the app lists in `localization.languages`. The app's own text wins, so an app can reword or add to yours. See [Languages](/docs/app-configuration/localization).

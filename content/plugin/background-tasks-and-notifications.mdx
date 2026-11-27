@@ -20,19 +20,17 @@ When a native background task finishes or a push notification arrives, native pl
 ### Android (Kotlin) Background Event Dispatch
 
 ```kotlin
-package com.mycompany.push
+package dev.wefter.bridge
 
-import dev.wefter.bridge.WefterPlugin
-import dev.wefter.bridge.WefterHook
+import android.content.Context
+import org.json.JSONObject
 
-class PushNotificationPlugin : WefterPlugin() {
+class PushNotificationPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
 
     fun onPushNotificationReceived(title: String, body: String) {
-        // Emit notification payload directly to JS registerHook("push:received")
-        emit("push:received", mapOf(
-            "title" to title,
-            "body" to body
-        ))
+        // Held until the page listens with registerHook("push:received"), so a notification that
+        // arrives before the page has loaded is not lost.
+        emit("push:received", JSONObject().put("title", title).put("body", body), hold = true)
     }
 }
 ```
@@ -42,15 +40,15 @@ class PushNotificationPlugin : WefterPlugin() {
 ```swift
 import Foundation
 
-@objc(PushNotificationPlugin)
-public class PushNotificationPlugin: WefterPlugin {
+final class PushNotificationPlugin: WefterPlugin {
 
-    public func handleRemoteNotification(payload: [String: Any]) {
-        // Emit notification payload to JS registerHook("push:received")
-        self.emit("push:received", data: payload)
+    func handleRemoteNotification(payload: [String: Any]) {
+        emit("push:received", payload, hold: true)
     }
 }
 ```
+
+Without `hold`, only listeners registered at that moment get the event. See [Lifecycle & Events](/plugin/lifecycle-and-events) for held events, notification taps and push tokens.
 
 ---
 

@@ -2,59 +2,82 @@
 title: Permissions Management
 sidebarTitle: "Permissions"
 icon: LockKeyhole
-description: Android runtime permission requests, iOS Info.plist usage descriptions, and iOS permission crash guard mechanics.
+description: Declaring permissions, reporting them as granted, prompt, denied or limited, asking for them, and the iOS permission crash guard.
 ---
 
 ## Overview
 
-Operating system permissions are required before plugins can access sensitive hardware (camera, geolocation, contacts, bluetooth, microphone, photo library).
+Operating system permissions are required before plugins can use sensitive hardware or data (camera, location, contacts, microphone, photo library, notifications).
 
-- **Android**: Runtime permissions must be declared in `plugin.json` (`permissions.android`) and checked/requested dynamically using `hasPermission()` and `requestPermission()`.
-- **iOS**: Privacy usage descriptions must be declared in `plugin.json` (`permissions.ios`) and requested using Apple framework APIs (`AVCaptureDevice`, `CLLocationManager`, `PHPhotoLibrary`).
+- **Declare** them in `plugin.json`: Android permissions in `permissions.android`, iOS usage descriptions in `permissions.ios`. Sync adds them to the manifest and `Info.plist`.
+- **Report and ask** for them the same way in every plugin: methods `checkPermissions()` and `requestPermissions()`, which resolve to the state of each permission by a name the plugin chooses.
 
 ---
 
-## Android Permission Flow
+## Permission states
 
-Android requires a 2-step permission handling pattern:
+| State     | Meaning                                                                                                                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `granted` | The app may use it.                                                                                                                                     |
+| `prompt`  | Asking shows the system prompt.                                                                                                                         |
+| `denied`  | Only the system settings can change it: the user declined for good, or the app doesn't declare it. Apps call `openAppSettings()` from `@wefterjs/core`. |
+| `limited` | Partly granted, such as the photos the user picked (iOS limited library, Android 14 partial media access).                                              |
 
-1. **Manifest Declaration**: List permissions in `plugin.json` (`permissions.android`).
-2. **Runtime Check & Request**: Check `hasPermission()` before requesting `requestPermission()`.
+Apps use these to explain a permission before asking, or to send the user to the settings:
 
-### Android Implementation Example
+```typescript
+import { openAppSettings } from "@wefterjs/core";
+import { Scanner } from "@wefterjs/scanner";
+
+const { camera } = await Scanner.checkPermissions();
+if (camera === "denied") showSettingsHint(() => openAppSettings());
+else if (camera === "prompt") await Scanner.requestPermissions();
+```
+
+`wefter plugin validate` warns when a plugin declares a runtime permission (a dangerous Android permission or an iOS usage description) but lacks `checkPermissions` or `requestPermissions`. Face ID is exempt: iOS asks for it on first use and can't report it beforehand.
+
+---
+
+## Android
+
+`WefterPlugin` has:
+
+| Member                                                        | Description                                                                                                                                                                                  |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkPermissions(permissions): Map<String, PermissionState>` | Where each permission stands.                                                                                                                                                                |
+| `requestPermissions(permissions) { states -> }`               | Asks for those that can still be asked for and reports where each stands afterwards, on the main thread. Requests from all plugins and the web page are queued, one system prompt at a time. |
+| `openAppSettings()`                                           | Opens the app's page in the system settings.                                                                                                                                                 |
+| `hasPermission(permission)`                                   | Whether it is granted.                                                                                                                                                                       |
+
+Android only says whether a permission is granted and whether to explain it before asking again; the shell remembers which permissions were asked for, so it can tell "not asked yet" (`prompt`) from "declined for good" (`denied`). `PermissionState.toString()` is the JavaScript name.
 
 ```kotlin
-package dev.wefter.bridge
-
-import android.Manifest
-import android.content.Context
-import org.json.JSONObject
-
 class CameraPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugin(context, dispatcher) {
+    private val camera = Manifest.permission.CAMERA
+
+    @WefterMethod
+    fun checkPermissions(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        resolve(callback, JSONObject().put("camera", checkPermissions(listOf(camera))[camera].toString()))
+    }
+
+    @WefterMethod
+    fun requestPermissions(payload: JSONObject, callback: (Result<Any>) -> Unit) {
+        requestPermissions(listOf(camera)) { states ->
+            resolve(callback, JSONObject().put("camera", states[camera].toString()))
+        }
+    }
 
     @WefterMethod
     fun open(payload: JSONObject, callback: (Result<Any>) -> Unit) {
-        // Step 1: Check if permission is already granted
-        if (hasPermission(Manifest.permission.CAMERA)) {
-            startCamera(callback)
-            return
+        requestPermissions(listOf(camera)) { states ->
+            if (states[camera] == PermissionState.GRANTED) startCamera(callback)
+            else reject(callback, "PERMISSION_DENIED", "Camera permission was denied")
         }
-
-        // Step 2: Request runtime permission
-        requestPermission(activity, Manifest.permission.CAMERA) { granted ->
-            if (granted) {
-                startCamera(callback)
-            } else {
-                reject(callback, "PERMISSION_DENIED", "Camera permission was denied")
-            }
-        }
-    }
-
-    private fun startCamera(callback: (Result<Any>) -> Unit) {
-        resolve(callback, JSONObject().put("active", true))
     }
 }
 ```
+
+The older `requestPermission(activity, permission) { granted -> }` still works and goes through the same queue; it is deprecated.
 
 <Callout type="info">
   **Audit Enforcement**: If a plugin declares dangerous Android permissions (such as `CAMERA`, `ACCESS_FINE_LOCATION`,
@@ -64,45 +87,35 @@ class CameraPlugin(context: Context, dispatcher: BridgeDispatcher) : WefterPlugi
 
 ---
 
-## iOS Permission Flow
+## iOS
 
-iOS permission handling relies on framework-specific APIs and mandatory `Info.plist` usage description strings.
+Each framework asks for its own permission. `PermissionState` converts the common statuses, so plugins report them the same way:
 
-### iOS Implementation Example
+| Initializer                              | From                               |
+| ---------------------------------------- | ---------------------------------- |
+| `PermissionState(AVAuthorizationStatus)` | Camera, microphone                 |
+| `PermissionState(CLAuthorizationStatus)` | Location                           |
+| `PermissionState(PHAuthorizationStatus)` | Photo library (`limited` included) |
+| `PermissionState(UNAuthorizationStatus)` | Notifications                      |
+
+`openAppSettings()` (on `WefterPlugin`, or `Permissions.openAppSettings()`) opens the app's page in Settings.
 
 ```swift
-import Foundation
-import AVFoundation
-
 final class CameraPlugin: WefterPlugin {
-
     // @WefterMethod
-    func open(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            startCamera(callback)
-
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                DispatchQueue.main.async {
-                    if granted {
-                        self?.startCamera(callback)
-                    } else {
-                        self?.reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied")
-                    }
-                }
-            }
-
-        case .denied, .restricted:
-            reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied")
-
-        @unknown default:
-            reject(callback, code: "PERMISSION_DENIED", message: "Camera permission was denied")
-        }
+    func checkPermissions(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        resolve(callback, data: ["camera": PermissionState(AVCaptureDevice.authorizationStatus(for: .video)).rawValue])
     }
 
-    private func startCamera(_ callback: (Result<Any, Error>) -> Void) {
-        resolve(callback, data: ["active": true])
+    // @WefterMethod
+    func requestPermissions(payload: [String: Any], callback: @escaping (Result<Any, Error>) -> Void) throws {
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined else {
+            try checkPermissions(payload: payload, callback: callback)
+            return
+        }
+        AVCaptureDevice.requestAccess(for: .video) { [weak self] _ in
+            self?.resolve(callback, data: ["camera": PermissionState(AVCaptureDevice.authorizationStatus(for: .video)).rawValue])
+        }
     }
 }
 ```

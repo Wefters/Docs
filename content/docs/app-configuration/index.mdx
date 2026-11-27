@@ -64,6 +64,21 @@ App configuration is divided into dedicated functional domains. Select any topic
     description="Dialogs, file uploads, camera, microphone, location, links, downloads and fullscreen video, and the permissions they need."
   />
   <Card
+    title="Embedded Sites"
+    href="/docs/app-configuration/embedded-sites"
+    description="Other websites in iframes and web windows that talk to the app, and which plugins they may reach."
+  />
+  <Card
+    title="Languages"
+    href="/docs/app-configuration/localization"
+    description="The shell's and plugins' own text, the app name and permission messages in the user's language."
+  />
+  <Card
+    title="Native Files"
+    href="/docs/app-configuration/native-files"
+    description="Files native SDKs read, such as Firebase's, per environment."
+  />
+  <Card
     title="Deep Links"
     href="/docs/app-configuration/deep-links"
     description="Open the app from custom URL schemes and receive the links in JavaScript with onDeepLink."
@@ -100,6 +115,9 @@ The table below outlines all available top-level properties in `wefter.config.js
 | `deepLinks`        | Object                        | Optional            | None                     | Custom URL schemes and verified domains the app opens for (`schemes`, `domains`, `paths`).                                                                                                             |
 | `keyboard`         | Object                        | Optional            | None                     | Keyboard behaviour. `accessoryBar` keeps the iOS form bar above the keyboard (off by default).                                                                                                         |
 | `permissions`      | Object                        | Optional            | None                     | Camera, microphone and location the web app uses (`getUserMedia`, `navigator.geolocation`), each with the message iOS shows. See [Web APIs](/docs/app-configuration/web-apis#permissions).             |
+| `frames`           | Object                        | Optional            | None                     | Sites the app's pages may embed (`allow`) and plugin methods some may call (`plugins`). See [Embedded Sites](/docs/app-configuration/embedded-sites).                                                  |
+| `localization`     | Object                        | Optional            | English only             | The app's `languages`, and `messages` replacing the shell's and plugins' text. See [Languages](/docs/app-configuration/localization).                                                                  |
+| `nativeFiles`      | Object                        | Optional            | None                     | Files native SDKs read, by platform; environments may list their own. See [Native Files](/docs/app-configuration/native-files).                                                                        |
 | `version`          | String                        | Optional            | `package.json` version   | App version shown in the stores, three numbers such as `1.4.0`. See [Versioning](/cli/build#versioning).                                                                                               |
 | `buildNumber`      | Integer                       | Optional            | `1`                      | Build number; must go up with every store upload (1 – 2,100,000,000).                                                                                                                                  |
 | `build`            | Object                        | Optional            | See below                | `output` folder (`"build"`), `android.format` (`apk`/`aab`/`both`), `ios.exportMethod`, `ios.usesNonExemptEncryption`. See [`wefter build`](/cli/build).                                               |

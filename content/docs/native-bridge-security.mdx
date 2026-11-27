@@ -24,7 +24,13 @@ When running in production, Wefter loads pre-compiled web assets bundled directl
 
 ### JavaScript Bridge Access
 
-Any JavaScript executing inside the main app WebView has technical access to call `invokeNative(plugin, method, payload)`.
+Any JavaScript running in the app's own pages (the bundled app, or the dev server during `wefter run --watch`) can call `invokeNative(plugin, method, payload)`, in any frame of those pages.
+
+Pages from other origins can't. Both shells check the origin of every call, comparing scheme, host and port:
+
+- **Android**: the bridge is a message channel the web view only adds to the app's own origins (`addWebMessageListener`), and each call is checked again against the origin the web view reports. Android System WebView 82 or newer is required; on older versions the app asks the user to update it.
+- **iOS**: each message's `frameInfo.securityOrigin` is checked, and results go back only to the frame that called.
+- A site in an iframe gets nothing, unless `frames.plugins` in `wefter.config.json` grants its exact origin specific plugin methods; calls outside the grant fail with `FORBIDDEN_ORIGIN`, and the built-in `__system` module is never reachable. Web windows never get the bridge. See [Embedded Sites](/docs/app-configuration/embedded-sites).
 
 <Callout type="warn">
   **Dependency Auditing Warning**: Because any JS running in your WebView can invoke declared native plugin methods,
@@ -35,7 +41,7 @@ Any JavaScript executing inside the main app WebView has technical access to cal
 
 ## 2. Content Security Policy (CSP) Guidelines
 
-The bundled files are already served with a Content Security Policy that only runs the app's own scripts and allows images, media and network requests over HTTPS and from the page's own `blob:` and `data:` URLs (see [Web APIs](/docs/app-configuration/web-apis#content-security-policy)). A policy in your `index.html` applies on top of it, so you can narrow it further.
+The bundled files are already served with a Content Security Policy that only runs the app's own scripts, allows images, media and network requests over HTTPS and from the page's own `blob:` and `data:` URLs, and lets frames show only the app's own pages and the sites in `frames.allow` (see [Web APIs](/docs/app-configuration/web-apis#content-security-policy)). A policy in your `index.html` applies on top of it, so you can narrow it further.
 
 Add a strict Content Security Policy (`<meta http-equiv="Content-Security-Policy">`) to your web application's `index.html` to restrict unauthorized external script execution:
 
