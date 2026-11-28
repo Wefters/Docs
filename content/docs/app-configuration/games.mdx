@@ -15,16 +15,16 @@ A Wefter game is a web page drawn with Canvas or WebGL, running in the system we
 }
 ```
 
-| Setting                                                         | `"app"` (default) | `"game"` |
-| --------------------------------------------------------------- | ----------------- | -------- |
-| [`systemBars.hidden`](/docs/app-configuration/system-bars)      | `false`           | `true`   |
-| [`gestures.swipeBack`](/docs/app-configuration/back-navigation) | `"history"`       | `false`  |
-| [`gestures.zoom`](/docs/app-configuration/gestures)             | `true`            | `false`  |
-| `gestures.longPress`                                            | `true`            | `false`  |
-| `gestures.overscroll`                                           | `true`            | `false`  |
-| `gestures.edgeProtection`                                       | `false`           | `true`   |
-| `audio.autoplay`                                                | `false`           | `true`   |
-| `text.followSystemSize`                                         | `true`            | `false`  |
+| Setting                                                         | `"app"` (default) | `"game"`                             |
+| --------------------------------------------------------------- | ----------------- | ------------------------------------ |
+| [`systemBars.hidden`](/docs/app-configuration/system-bars)      | `false`           | `true`                               |
+| [`gestures.swipeBack`](/docs/app-configuration/back-navigation) | `"history"`       | `false`                              |
+| [`gestures.zoom`](/docs/app-configuration/gestures)             | `true`            | `false`                              |
+| `gestures.longPress`                                            | `true`            | `false`                              |
+| `gestures.overscroll`                                           | `true`            | `false`                              |
+| `gestures.edgeProtection`                                       | `false`           | `true` (lower side edges on Android) |
+| `audio.autoplay`                                                | `false`           | `true`                               |
+| `text.followSystemSize`                                         | `true`            | `false`                              |
 
 Any setting in the config replaces the profile's default: `"profile": "game", "systemBars": { "hidden": false }` keeps the bars. An app with one game screen keeps the `"app"` profile and changes the settings at runtime instead, with `setSystemBars()` and `setGestures()`. Sync prints the settings that differ from an ordinary app.
 

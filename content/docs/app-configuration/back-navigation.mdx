@@ -14,6 +14,8 @@ Users go back with Android's back button or back gesture, and on iOS with a swip
 
 Without any `onBack()` listener, back always works as users expect, with nothing to set up.
 
+With the system bars hidden (the game profile), Android's back gesture takes two swipes: the first only brings the bars back. [Edge protection](/docs/app-configuration/gestures#edge-protection) keeps the gesture off the lower side edges, so it works from the upper part.
+
 ---
 
 ## Handling back in the page: `onBack()`
