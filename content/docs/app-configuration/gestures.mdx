@@ -1,0 +1,77 @@
+---
+title: Gestures
+icon: Hand
+description: Turn off zoom, long press, overscroll and the iOS swipe back, and protect the screen edges from the system's gestures.
+---
+
+## Overview
+
+The app's web view responds to touch like a browser: pinch to zoom, long press for link previews and text selection, Android's stretch at the ends of a page, the iOS swipe back. An ordinary app keeps them. A game or a drawing app usually doesn't want any of them, and wants the system's edge gestures to wait for a second swipe.
+
+```json title="wefter.config.json"
+{
+  "gestures": {
+    "swipeBack": "history",
+    "zoom": true,
+    "longPress": true,
+    "overscroll": true,
+    "edgeProtection": false
+  }
+}
+```
+
+| Property                  | Type                               | Default     | Description                                                                                                                                             |
+| ------------------------- | ---------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gestures.swipeBack`      | `"history"` \| `"page"` \| `false` | `"history"` | The iOS swipe from the left edge. See [Back Navigation](/docs/app-configuration/back-navigation#the-ios-swipe-back-gesturesswipeback).                  |
+| `gestures.zoom`           | Boolean                            | `true`      | Pinch and double-tap zoom, as far as the page's viewport allows.                                                                                        |
+| `gestures.longPress`      | Boolean                            | `true`      | Link and image previews, the text selection callout, tap highlights, and dragging images and links. Inputs stay selectable when it's off.               |
+| `gestures.overscroll`     | Boolean                            | `true`      | Android's stretch at the ends of a scrolled page. The iOS page never bounces.                                                                           |
+| `gestures.edgeProtection` | Boolean or array of areas          | `false`     | Holds back the system's edge gestures, so a first swipe from an edge only shows the bar or indicator and a second one acts. `true` protects every edge. |
+
+`"profile": "game"` turns all of them off and protects the edges; see [Building Games](/docs/app-configuration/games). Run `wefter sync` after changing them.
+
+---
+
+## Changing them at runtime
+
+```typescript
+import { setGestures, getGestures } from "@wefterjs/core";
+
+// During a round: no swipe back or zoom, and the joystick's corner protected.
+await setGestures({
+  swipeBack: false,
+  zoom: false,
+  edgeProtection: [{ x: 0, y: window.innerHeight - 200, width: 200, height: 200 }],
+});
+
+const gestures = await getGestures(); // the settings, and `supported` per setting on this platform
+```
+
+Settings you leave out keep their value. A screen that changes them should put them back when it closes.
+
+---
+
+## Edge protection
+
+The system owns some swipes from the screen edges: Android's back gesture from the sides and home gesture from the bottom, and the iOS home indicator and Control Center. With `edgeProtection`:
+
+- **Android 10+** keeps its back gesture off the protected areas. `true` protects strips along both sides; areas protect only themselves, in CSS pixels from the page's top left corner. Android honours at most 200dp of height per side edge (the lowest part when you ask for more), and never protects the bottom edge, where hidden bars ([`systemBars.hidden`](/docs/app-configuration/system-bars)) already make the first swipe only show them.
+- **iOS** defers its edge gestures (`preferredScreenEdgesDeferringSystemGestures`) on every edge, for `true` or any areas: iOS can't protect parts of an edge. It works best with the home indicator hidden.
+
+---
+
+## What the page can do itself
+
+Gestures inside the page are the page's: use standard CSS and events.
+
+- `touch-action: none` on a game's canvas or a drawing surface stops the browser panning and zooming there, while the rest of the page keeps them.
+- Pointer events (`pointerdown`, `pointermove`, `pointerup` with `pointerId`) follow every finger: multitouch works in both web views without any setting.
+- `user-select: none` and `-webkit-touch-callout: none` on chosen elements turn off selection there only.
+
+---
+
+## Native Platform Implementation
+
+- **Both**: with `zoom` or `longPress` off, the app's pages get a small style sheet (`touch-action: pan-x pan-y`, `user-select: none`, `-webkit-touch-callout: none`, `-webkit-tap-highlight-color: transparent`, `-webkit-user-drag: none`), injected before the page's own scripts. Frames inside the page keep their own behaviour.
+- **Android**: `SystemUI.kt` sets `setSupportZoom` and `builtInZoomControls` (without the on-screen buttons), `overScrollMode`, a long-click handler that leaves text fields alone, and `setSystemGestureExclusionRects`.
+- **iOS**: `SystemUI.swift` sets `allowsBackForwardNavigationGestures`, `allowsLinkPreview` and the scroll view's pinch recogniser.

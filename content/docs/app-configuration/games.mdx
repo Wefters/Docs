@@ -1,0 +1,110 @@
+---
+title: Building Games
+icon: Gamepad2
+description: The game profile, sound, text size, and what a game's page needs for multitouch, audio and pausing.
+---
+
+## Overview
+
+A Wefter game is a web page drawn with Canvas or WebGL, running in the system web view. Multitouch, pointer events, Web Audio, WebGL2, `requestAnimationFrame` and the Fullscreen API all work as in mobile Safari and Chrome. One setting gives the app what a game expects from its screen:
+
+```json title="wefter.config.json"
+{
+  "profile": "game",
+  "orientation": "landscape"
+}
+```
+
+| Setting                                                         | `"app"` (default) | `"game"` |
+| --------------------------------------------------------------- | ----------------- | -------- |
+| [`systemBars.hidden`](/docs/app-configuration/system-bars)      | `false`           | `true`   |
+| [`gestures.swipeBack`](/docs/app-configuration/back-navigation) | `"history"`       | `false`  |
+| [`gestures.zoom`](/docs/app-configuration/gestures)             | `true`            | `false`  |
+| `gestures.longPress`                                            | `true`            | `false`  |
+| `gestures.overscroll`                                           | `true`            | `false`  |
+| `gestures.edgeProtection`                                       | `false`           | `true`   |
+| `audio.autoplay`                                                | `false`           | `true`   |
+| `text.followSystemSize`                                         | `true`            | `false`  |
+
+Any setting in the config replaces the profile's default: `"profile": "game", "systemBars": { "hidden": false }` keeps the bars. An app with one game screen keeps the `"app"` profile and changes the settings at runtime instead, with `setSystemBars()` and `setGestures()`. Sync prints the settings that differ from an ordinary app.
+
+---
+
+## Sound: `audio`
+
+| Property             | Type                                  | Default  | Description                                                                                                                                                                                      |
+| -------------------- | ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `audio.autoplay`     | Boolean                               | `false`  | Lets `<audio>`, `<video>` and Web Audio start without a tap first.                                                                                                                               |
+| `audio.silentSwitch` | `"auto"` \| `"respect"` \| `"ignore"` | `"auto"` | iOS: `"auto"` lets Web Audio follow the silent switch and media elements ignore it; `"respect"` makes everything follow it and mix with other apps' audio; `"ignore"` plays through it. iOS 17+. |
+
+Even with `autoplay`, create or resume your `AudioContext` after the first touch in a browser, where the setting doesn't apply.
+
+---
+
+## Text size: `text`
+
+`text.followSystemSize` (default `true`) scales the page's text with Android's font size setting. A game's HUD laid out in CSS pixels breaks when text grows, so the game profile turns it off. iOS never scales web text with the system size.
+
+---
+
+## The game's page
+
+```html
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+/>
+```
+
+```css
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+canvas {
+  touch-action: none; /* every touch goes to the game */
+}
+```
+
+```typescript
+import { onBack, getSafeArea, onSafeAreaChange } from "@wefterjs/core";
+
+// Every finger, with its own id: a joystick on the left, fire on the right.
+canvas.addEventListener("pointerdown", (e) => fingers.set(e.pointerId, { x: e.clientX, y: e.clientY }));
+canvas.addEventListener(
+  "pointermove",
+  (e) => fingers.get(e.pointerId) && fingers.set(e.pointerId, { x: e.clientX, y: e.clientY }),
+);
+canvas.addEventListener("pointerup", (e) => fingers.delete(e.pointerId));
+canvas.addEventListener("pointercancel", (e) => fingers.delete(e.pointerId));
+
+// Back pauses; back again in the pause menu asks to quit.
+onBack(async () => {
+  if (!paused) {
+    pause();
+    return true;
+  }
+  const quit = await confirm("Quit the game?");
+  return !quit; // not handled: the app goes back, or leaves
+});
+
+// Pause when the app leaves the screen.
+document.addEventListener("visibilitychange", () => document.hidden && pause());
+
+// Keep the HUD clear of the notch.
+let safe = await getSafeArea();
+onSafeAreaChange((area) => (safe = area));
+```
+
+Plugins round it off: `@wefterjs/haptics` for hits, `@wefterjs/screen` to keep the screen awake during a round or lock the orientation, `@wefterjs/storage` for high scores. Keep plugin calls out of the frame loop: each one crosses the native bridge asynchronously.
+
+---
+
+## Native Platform Implementation
+
+- `wefter sync` writes the resolved settings as JSON into `BuildConfig` (`SYSTEM_UI` on Android, `systemUI` on iOS), which `SystemUI.kt` and `SystemUI.swift` read at start.
+- **Android**: `autoplay` sets `mediaPlaybackRequiresUserGesture`; `followSystemSize: false` sets `textZoom` to 100. The web view pauses with the app (`WebView.onPause()`), stopping its media.
+- **iOS**: `autoplay` sets `mediaTypesRequiringUserActionForPlayback`; `silentSwitch` sets `navigator.audioSession.type` before the page's scripts run.

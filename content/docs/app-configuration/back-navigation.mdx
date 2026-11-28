@@ -1,0 +1,74 @@
+---
+title: Back Navigation
+icon: Undo2
+description: What Android's back button and gesture and the iOS swipe back do, and how a page handles them itself with onBack().
+---
+
+## Overview
+
+Users go back with Android's back button or back gesture, and on iOS with a swipe from the left edge. Wefter handles them the same way on both platforms:
+
+1. Fullscreen video closes, then an open [web window](/docs/app-configuration/embedded-sites#web-windows-openwebwindow) goes back or closes. These never reach the page.
+2. If the page listens with `onBack()`, it decides.
+3. Otherwise the web view goes back in its history, and on Android, at the first page, the app goes to the background.
+
+Without any `onBack()` listener, back always works as users expect, with nothing to set up.
+
+---
+
+## Handling back in the page: `onBack()`
+
+```typescript
+import { onBack } from "@wefterjs/core";
+
+const off = onBack(async ({ source, edge, canGoBack }) => {
+  if (sheet.open) {
+    sheet.close();
+    return true; // handled: nothing else happens
+  }
+  if (playing) return await confirmQuit(); // a promise works too
+  // nothing returned: the app does the default
+});
+
+off(); // stop handling back
+```
+
+| `BackEvent` field | Type                      | Description                                                                                                                          |
+| ----------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `source`          | `"button"` \| `"gesture"` | `"gesture"` for a swipe (Android 14+ and the iOS swipe); `"button"` for Android's back button and gestures it doesn't report as one. |
+| `edge`            | `"left"` \| `"right"`     | The edge a gesture started from, when the system reports it.                                                                         |
+| `canGoBack`       | Boolean                   | Whether the web view has a page to go back to, which the default would do.                                                           |
+
+- A listener returns `true`, or a promise of `true`, when it handled the request. When every listener returns something else, the app does the default.
+- While a promise is pending (a "Quit?" dialog), the app waits for it.
+- If the page doesn't answer within two seconds, because it froze, the app does the default, so back never stops working.
+- Each new page starts without listeners: they belong to the page that registered them. Single-page apps keep theirs across route changes.
+
+Outside an app, `onBack()` does nothing.
+
+---
+
+## The iOS swipe back: `gestures.swipeBack`
+
+iOS has no back button. By default WebKit's own swipe goes back through the web view's history, with its interactive animation. `gestures.swipeBack` changes that:
+
+| Value       | The swipe from the left edge (right edge in right-to-left languages)                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| `"history"` | Goes back through the web view's history, as Safari does. `onBack()` listeners aren't asked. (The default)      |
+| `"page"`    | Goes to `onBack()` listeners with `source: "gesture"`; without listeners it goes back in history. No animation. |
+| `false`     | Does nothing. Games use this, so a swipe from the edge during play isn't a back request.                        |
+
+```json title="wefter.config.json"
+{
+  "gestures": { "swipeBack": "page" }
+}
+```
+
+Change it at runtime with `setGestures({ swipeBack })`; see [Gestures](/docs/app-configuration/gestures).
+
+---
+
+## Native Platform Implementation
+
+- **Android**: one `OnBackPressedCallback` in `BackNavigation.kt`, enabled only while the page listens or the web view has history. Otherwise Android handles back itself, with its predictive back-to-home animation (`android:enableOnBackInvokedCallback`). Fullscreen video and web windows add their own callbacks, which Android asks first. The gesture's edge comes from `BackEventCompat` on Android 14+.
+- **iOS**: `allowsBackForwardNavigationGestures` for `"history"`; a `UIScreenEdgePanGestureRecognizer` in `BackNavigation.swift` for `"page"`. iOS apps don't close themselves, so the default stops at the first page.

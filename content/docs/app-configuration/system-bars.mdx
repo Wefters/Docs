@@ -1,0 +1,74 @@
+---
+title: System Bars & Safe Area
+icon: PanelTop
+description: Hide the status bar, navigation bar and home indicator, choose their icon colour, and keep content clear of them and the notch.
+---
+
+## Overview
+
+The app draws edge to edge: its page fills the whole screen, under the status bar, Android's navigation bar, the notch and the iOS home indicator. Wefter lets you hide those bars, pick their icon colour, and tells the page how much of the screen they cover.
+
+```json title="wefter.config.json"
+{
+  "systemBars": { "hidden": false, "icons": "auto" }
+}
+```
+
+| Property            | Type                              | Default  | Description                                                                                                                                                             |
+| ------------------- | --------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `systemBars.hidden` | Boolean                           | `false`  | Hides the status bar and Android's navigation bar; a swipe from the edge shows them for a moment. On iOS the home indicator fades out. `true` with `"profile": "game"`. |
+| `systemBars.icons`  | `"auto"` \| `"dark"` \| `"light"` | `"auto"` | The bars' icon colour. `"auto"` suits `launchBackground`: dark icons on a light colour, light ones on a dark colour.                                                    |
+
+Run `wefter sync` after changing it. With `hidden`, iOS hides the status bar from launch too.
+
+---
+
+## Changing them at runtime
+
+```typescript
+import { setSystemBars, getSystemBars } from "@wefterjs/core";
+
+await setSystemBars({ hidden: true }); // a game round, a photo viewer, a video
+await setSystemBars({ hidden: false, icons: "light" }); // back, over a dark header
+
+const { hidden, icons, supported } = await getSystemBars();
+```
+
+Settings you leave out keep their value. Changes last until the app changes them again or restarts. While fullscreen video plays the bars are always hidden, and a web window shows its own icon colour; both return to the app's settings when they close.
+
+Outside an app, `setSystemBars()` changes nothing and `getSystemBars()` returns the defaults with every `supported` flag `false`.
+
+---
+
+## The safe area
+
+The page has to keep text and buttons clear of the bars, the notch and the home indicator. Use the CSS variables the app sets on `<html>`:
+
+```css
+.header {
+  padding-top: var(--wefter-safe-area-top, env(safe-area-inset-top));
+}
+.toolbar {
+  padding-bottom: var(--wefter-safe-area-bottom, env(safe-area-inset-bottom));
+}
+```
+
+`--wefter-safe-area-top`, `-right`, `-bottom` and `-left` are set before the page's own scripts run, and change on rotation and when the bars hide or show. On iOS they are `env(safe-area-inset-*)`; on Android they come from the system, since `env()` isn't reliable for the bars in every Android System WebView version. The fallback keeps the CSS working in a browser.
+
+In JavaScript, for a canvas game's HUD:
+
+```typescript
+import { getSafeArea, onSafeAreaChange } from "@wefterjs/core";
+
+let area = await getSafeArea(); // { top, right, bottom, left } in CSS pixels
+const off = onSafeAreaChange((next) => (area = next));
+```
+
+In a browser, `getSafeArea()` reads `env(safe-area-inset-*)` and `onSafeAreaChange()` follows window resizes.
+
+---
+
+## Native Platform Implementation
+
+- **Android**: `SystemUI.kt` hides and shows the bars with `WindowInsetsControllerCompat` (`BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`), again whenever the app returns, since Android shows them after the app leaves the screen. The safe area is the system bars' and display cutout's insets, in CSS pixels. The theme draws into the cutout (`shortEdges`).
+- **iOS**: `ViewController` answers `prefersStatusBarHidden`, `preferredStatusBarStyle` and `prefersHomeIndicatorAutoHidden` from `SystemUI.swift`. Sync writes `UIStatusBarHidden` into `Info.plist` while the bars are hidden.

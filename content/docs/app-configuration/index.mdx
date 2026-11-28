@@ -59,6 +59,26 @@ App configuration is divided into dedicated functional domains. Select any topic
     description="Hide or keep the previous, next and Done bar iOS shows above the keyboard in web forms."
   />
   <Card
+    title="System Bars & Safe Area"
+    href="/docs/app-configuration/system-bars"
+    description="Hide the status bar, navigation bar and home indicator, pick their icon colour, and keep content clear of them."
+  />
+  <Card
+    title="Gestures"
+    href="/docs/app-configuration/gestures"
+    description="Turn off zoom, long press, overscroll and the iOS swipe back, and protect the screen edges."
+  />
+  <Card
+    title="Back Navigation"
+    href="/docs/app-configuration/back-navigation"
+    description="What Android's back button and the iOS swipe back do, and handling them in the page with onBack()."
+  />
+  <Card
+    title="Building Games"
+    href="/docs/app-configuration/games"
+    description="The game profile, sound and text size settings, and what a game's page needs."
+  />
+  <Card
     title="Web APIs"
     href="/docs/app-configuration/web-apis"
     description="Dialogs, file uploads, camera, microphone, location, links, downloads and fullscreen video, and the permissions they need."
@@ -114,6 +134,11 @@ The table below outlines all available top-level properties in `wefter.config.js
 | `orientation`      | String                        | Optional            | `"portrait"`             | `"portrait"` (phones stay in portrait; tablets rotate), `"landscape"` or `"any"`. See [Orientation](/docs/app-configuration/orientation).                                                              |
 | `deepLinks`        | Object                        | Optional            | None                     | Custom URL schemes and verified domains the app opens for (`schemes`, `domains`, `paths`).                                                                                                             |
 | `keyboard`         | Object                        | Optional            | None                     | Keyboard behaviour. `accessoryBar` keeps the iOS form bar above the keyboard (off by default).                                                                                                         |
+| `profile`          | String                        | Optional            | `"app"`                  | `"app"` or `"game"`: the defaults of `systemBars`, `gestures`, `audio` and `text`. See [Building Games](/docs/app-configuration/games).                                                                |
+| `systemBars`       | Object                        | Optional            | Visible, `"auto"` icons  | `hidden` and `icons` of the status and navigation bars. See [System Bars & Safe Area](/docs/app-configuration/system-bars).                                                                            |
+| `gestures`         | Object                        | Optional            | Browser-like             | `swipeBack`, `zoom`, `longPress`, `overscroll`, `edgeProtection`. See [Gestures](/docs/app-configuration/gestures).                                                                                    |
+| `audio`            | Object                        | Optional            | None                     | `autoplay` and the iOS `silentSwitch`. See [Building Games](/docs/app-configuration/games#sound-audio).                                                                                                |
+| `text`             | Object                        | Optional            | None                     | `followSystemSize`: Android's font size setting scales the page's text. See [Building Games](/docs/app-configuration/games#text-size-text).                                                            |
 | `permissions`      | Object                        | Optional            | None                     | Camera, microphone and location the web app uses (`getUserMedia`, `navigator.geolocation`), each with the message iOS shows. See [Web APIs](/docs/app-configuration/web-apis#permissions).             |
 | `frames`           | Object                        | Optional            | None                     | Sites the app's pages may embed (`allow`) and plugin methods some may call (`plugins`). See [Embedded Sites](/docs/app-configuration/embedded-sites).                                                  |
 | `localization`     | Object                        | Optional            | English only             | The app's `languages`, and `messages` replacing the shell's and plugins' text. See [Languages](/docs/app-configuration/localization).                                                                  |
