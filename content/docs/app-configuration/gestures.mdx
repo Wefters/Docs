@@ -20,13 +20,13 @@ The app's web view responds to touch like a browser: pinch to zoom, long press f
 }
 ```
 
-| Property                  | Type                               | Default     | Description                                                                                                                                             |
-| ------------------------- | ---------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gestures.swipeBack`      | `"history"` \| `"page"` \| `false` | `"history"` | The iOS swipe from the left edge. See [Back Navigation](/docs/app-configuration/back-navigation#the-ios-swipe-back-gesturesswipeback).                  |
-| `gestures.zoom`           | Boolean                            | `true`      | Pinch and double-tap zoom, as far as the page's viewport allows.                                                                                        |
-| `gestures.longPress`      | Boolean                            | `true`      | Link and image previews, the text selection callout, tap highlights, and dragging images and links. Inputs stay selectable when it's off.               |
-| `gestures.overscroll`     | Boolean                            | `true`      | Android's stretch at the ends of a scrolled page. The iOS page never bounces.                                                                           |
-| `gestures.edgeProtection` | Boolean or array of areas          | `false`     | Holds back the system's edge gestures, so a first swipe from an edge only shows the bar or indicator and a second one acts. `true` protects every edge. |
+| Property                  | Type                               | Default     | Description                                                                                                                                                   |
+| ------------------------- | ---------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gestures.swipeBack`      | `"history"` \| `"page"` \| `false` | `"history"` | The iOS swipe from the left edge. See [Back Navigation](/docs/app-configuration/back-navigation#the-ios-swipe-back-gesturesswipeback).                        |
+| `gestures.zoom`           | Boolean                            | `true`      | Pinch and double-tap zoom, as far as the page's viewport allows.                                                                                              |
+| `gestures.longPress`      | Boolean                            | `true`      | Link and image previews, the text selection callout, tap highlights, and dragging images and links. Inputs stay selectable when it's off.                     |
+| `gestures.overscroll`     | Boolean                            | `true`      | Android's stretch at the ends of a scrolled page. The iOS page never bounces.                                                                                 |
+| `gestures.edgeProtection` | Boolean or array of areas          | `false`     | Keeps the system's edge gestures off the parts of the edges the page needs. `true` protects the lower side edges on Android and every edge on iOS; see below. |
 
 `"profile": "game"` turns all of them off and protects the edges; see [Building Games](/docs/app-configuration/games). Run `wefter sync` after changing them.
 
@@ -55,7 +55,8 @@ Settings you leave out keep their value. A screen that changes them should put t
 
 The system owns some swipes from the screen edges: Android's back gesture from the sides and home gesture from the bottom, and the iOS home indicator and Control Center. With `edgeProtection`:
 
-- **Android 10+** keeps its back gesture off the protected areas. `true` protects strips along both sides; areas protect only themselves, in CSS pixels from the page's top left corner. Android honours at most 200dp of height per side edge (the lowest part when you ask for more), and never protects the bottom edge, where hidden bars ([`systemBars.hidden`](/docs/app-configuration/system-bars)) already make the first swipe only show them.
+- **Android 10+** keeps its back gesture off the protected areas. `true` protects the lowest 200dp of both side edges, where thumbs rest on a game's controls; back still works from the upper part of the edges, so users can always pause or leave. Areas protect only themselves, in CSS pixels from the page's top left corner. Keep them small: with the bars hidden Android protects as much as you ask for, and an edge protected from top to bottom has no back gesture at all. The bottom edge is never protected.
+- **Android with the bars hidden** ([`systemBars.hidden`](/docs/app-configuration/system-bars), on in the game profile): the first swipe from any edge only brings the bars back, and a second swipe acts. That is Android's own behaviour for full-screen apps, and it already guards against accidental backs.
 - **iOS** defers its edge gestures (`preferredScreenEdgesDeferringSystemGestures`) on every edge, for `true` or any areas: iOS can't protect parts of an edge. It works best with the home indicator hidden.
 
 ---
