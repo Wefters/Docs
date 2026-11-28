@@ -25,6 +25,7 @@ A Wefter game is a web page drawn with Canvas or WebGL, running in the system we
 | `gestures.edgeProtection`                                       | `false`           | `true` (lower side edges on Android) |
 | `audio.autoplay`                                                | `false`           | `true`                               |
 | `text.followSystemSize`                                         | `true`            | `false`                              |
+| Android OS game category (`appCategory="game"`, `isGame="true"`) | Not set           | Set on `<application>`               |
 
 Any setting in the config replaces the profile's default: `"profile": "game", "systemBars": { "hidden": false }` keeps the bars. An app with one game screen keeps the `"app"` profile and changes the settings at runtime instead, with `setSystemBars()` and `setGestures()`. Sync prints the settings that differ from an ordinary app.
 
@@ -106,5 +107,5 @@ Plugins round it off: `@wefterjs/haptics` for hits, `@wefterjs/screen` to keep t
 ## Native Platform Implementation
 
 - `wefter sync` writes the resolved settings as JSON into `BuildConfig` (`SYSTEM_UI` on Android, `systemUI` on iOS), which `SystemUI.kt` and `SystemUI.swift` read at start.
-- **Android**: `autoplay` sets `mediaPlaybackRequiresUserGesture`; `followSystemSize: false` sets `textZoom` to 100. The web view pauses with the app (`WebView.onPause()`), stopping its media.
+- **Android**: `wefter sync` sets `android:appCategory="game"` and `android:isGame="true"` on `<application>` in `AndroidManifest.xml` when `profile` is `"game"` (and removes them when it is `"app"`), so Android Game Mode and OS game panels recognize the app as a game. `autoplay` sets `mediaPlaybackRequiresUserGesture`; `followSystemSize: false` sets `textZoom` to 100. The web view pauses with the app (`WebView.onPause()`), stopping its media.
 - **iOS**: `autoplay` sets `mediaTypesRequiringUserActionForPlayback`; `silentSwitch` sets `navigator.audioSession.type` before the page's scripts run.
